@@ -1,10 +1,11 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { useAuth } from "../contexts/AuthContext";
 import { shouldBypassAuth } from "./authGatePolicy";
 
 const SHOULD_BYPASS_AUTH = shouldBypassAuth();
+const LOAD_TIMEOUT_MS = 2000;
 
 type AuthGateProps = {
   children: ReactNode;
@@ -17,15 +18,25 @@ export function AuthGate({
   title = "로그인이 필요합니다",
   description = "해당 화면은 로그인 후 이용할 수 있습니다.",
 }: AuthGateProps) {
-  const { isLoaded, isSignedIn } = useUser();
+  const { isLoading, isSignedIn } = useAuth();
+  const isLoaded = !isLoading;
+  const [loadTimedOut, setLoadTimedOut] = useState(false);
 
-  // 1. 개발자 우회 모드이거나
+  useEffect(() => {
+    if (isLoaded) return;
+    const t = setTimeout(() => setLoadTimedOut(true), LOAD_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [isLoaded]);
+
   if (SHOULD_BYPASS_AUTH) {
     return <>{children}</>;
   }
 
-  // 2. Clerk가 아직 로딩 중이면 로딩 스피너 표시
-  if (!isLoaded) {
+  if (isLoaded && isSignedIn) {
+    return <>{children}</>;
+  }
+
+  if (!isLoaded && !loadTimedOut) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
         <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
@@ -33,12 +44,6 @@ export function AuthGate({
     );
   }
 
-  // 3. 로그인이 되어 있다면 컨텐츠 표시
-  if (isSignedIn) {
-    return <>{children}</>;
-  }
-
-  // 4. 로그인이 안 되어 있다면 차단 화면 표시
   return (
     <div className="mx-auto flex min-h-[50vh] w-full max-w-xl items-center justify-center px-4">
       <div className="w-full rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-sm">

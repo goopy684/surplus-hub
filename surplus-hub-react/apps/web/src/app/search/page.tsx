@@ -2,11 +2,13 @@
 
 import { useMaterials, useAiSearch, useSearchSuggestions, useCategories } from "@repo/core";
 import Link from "next/link";
-import { FormEvent, useState, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { FormEvent, Suspense, useState, useRef, useEffect } from "react";
 
-export default function SearchPage() {
-  const [keyword, setKeyword] = useState("");
-  const [submittedKeyword, setSubmittedKeyword] = useState("");
+function SearchPageContent() {
+  const queryParam = useSearchParams().get("q")?.trim() ?? "";
+  const [keyword, setKeyword] = useState(queryParam);
+  const [submittedKeyword, setSubmittedKeyword] = useState(queryParam);
   const [aiMode, setAiMode] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -89,6 +91,12 @@ export default function SearchPage() {
     setSubmittedKeyword(searchTerm);
   };
 
+  // 헤더 검색창에서 /search?q=... 로 들어오거나 q가 바뀌면 반영한다.
+  useEffect(() => {
+    setKeyword(queryParam);
+    setSubmittedKeyword(queryParam);
+  }, [queryParam]);
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node)) {
@@ -117,14 +125,15 @@ export default function SearchPage() {
           <h1 className="text-lg font-bold text-foreground md:hidden">검색</h1>
           <button
             onClick={() => setAiMode((prev) => !prev)}
-            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+            className={`flex items-center gap-1.5 rounded-btn px-3 py-1.5 text-xs font-bold transition-colors ${
               aiMode
                 ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-muted-foreground hover:bg-accent"
+                : "border border-border bg-card text-foreground hover:bg-accent"
             }`}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
-              <path d="M10 1a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 1zM5.05 3.05a.75.75 0 011.06 0l1.062 1.06A.75.75 0 016.11 5.173L5.05 4.11a.75.75 0 010-1.06zm9.9 0a.75.75 0 010 1.06l-1.06 1.062a.75.75 0 01-1.062-1.061l1.061-1.06a.75.75 0 011.06 0zM10 7a3 3 0 100 6 3 3 0 000-6zm-9 3a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5H1.75A.75.75 0 011 10zm15.75-.75a.75.75 0 010 1.5h-1.5a.75.75 0 010-1.5h1.5zM5.05 14.95a.75.75 0 010-1.06l1.062-1.061a.75.75 0 011.06 1.06l-1.06 1.062a.75.75 0 01-1.062 0zm8.78 0a.75.75 0 01-1.06 0l-1.061-1.06a.75.75 0 011.06-1.062l1.062 1.061a.75.75 0 010 1.06zM10 17.25a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5a.75.75 0 01.75-.75z" />
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5">
+              <path d="M12 3l1.8 4.7L18.5 9.5 13.8 11.3 12 16l-1.8-4.7L5.5 9.5l4.7-1.8L12 3z" />
+              <path d="M19 15l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7.7-1.8z" />
             </svg>
             {aiMode ? "AI 검색 ON" : "AI 검색"}
           </button>
@@ -143,7 +152,7 @@ export default function SearchPage() {
                 if (keyword.trim().length >= 2) setShowSuggestions(true);
               }}
               placeholder="자재, 공구, 설비 검색"
-              className="w-full rounded-xl border border-border bg-secondary px-12 py-3 text-sm outline-none focus:border-primary"
+              className="w-full rounded-field border border-border bg-field px-12 py-3 text-base outline-none focus:border-primary"
             />
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -157,19 +166,19 @@ export default function SearchPage() {
             </svg>
             <button
               type="submit"
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-btn bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"
             >
               검색
             </button>
           </form>
 
           {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-xl border border-border bg-card shadow-lg">
+            <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-field border border-border bg-card card-shadow">
               {suggestions.map((s) => (
                 <button
                   key={s}
                   onClick={() => handleSuggestionClick(s)}
-                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-foreground hover:bg-accent first:rounded-t-xl last:rounded-b-xl"
+                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-foreground hover:bg-accent first:rounded-t-field last:rounded-b-field"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4 shrink-0 text-muted-foreground">
                     <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
@@ -185,10 +194,10 @@ export default function SearchPage() {
           <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
             <button
               onClick={() => setSelectedCategory(undefined)}
-              className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
                 !selectedCategory
                   ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-muted-foreground hover:bg-accent"
+                  : "bg-muted text-muted-foreground hover:bg-accent"
               }`}
             >
               전체
@@ -197,10 +206,10 @@ export default function SearchPage() {
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.slug ?? cat.name)}
-                className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
                   selectedCategory === (cat.slug ?? cat.name)
                     ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-muted-foreground hover:bg-accent"
+                    : "bg-muted text-muted-foreground hover:bg-accent"
                 }`}
               >
                 {cat.name}
@@ -226,7 +235,7 @@ export default function SearchPage() {
             </div>
             <div className="space-y-2">
               {recentSearches.map((searchTerm) => (
-                <div key={searchTerm} className="flex items-center justify-between rounded-lg bg-card px-4 py-3">
+                <div key={searchTerm} className="flex items-center justify-between rounded-thumb border border-border bg-card px-4 py-3">
                   <button onClick={() => handleRecentClick(searchTerm)} className="flex-1 text-left text-sm text-foreground">
                     {searchTerm}
                   </button>
@@ -258,7 +267,7 @@ export default function SearchPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               {popularSearches.map((tag) => (
-                <button key={tag} onClick={() => handlePopularClick(tag)} className="rounded-full bg-secondary px-3 py-1.5 text-sm text-foreground hover:bg-accent">
+                <button key={tag} onClick={() => handlePopularClick(tag)} className="rounded-full bg-muted px-3.5 py-1.5 text-sm text-foreground hover:bg-accent">
                   {tag}
                 </button>
               ))}
@@ -272,7 +281,7 @@ export default function SearchPage() {
           </div>
         )}
 
-        {error && <div className="mt-6 text-sm text-red-500">검색 결과를 불러오지 못했습니다.</div>}
+        {error && <div className="mt-6 text-sm text-destructive">검색 결과를 불러오지 못했습니다.</div>}
 
         {!isLoading && !error && submittedKeyword && (
           <div className="mt-6 space-y-3">
@@ -283,7 +292,7 @@ export default function SearchPage() {
               <Link
                 key={item.id}
                 href={`/material/${item.id}`}
-                className="block rounded-xl border border-border bg-card p-4 shadow-sm hover:shadow-md"
+                className="block rounded-thumb border border-border bg-card p-4 card-shadow card-shadow-hover"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -291,12 +300,15 @@ export default function SearchPage() {
                     <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
                     <p className="mt-2 text-xs text-muted-foreground">{item.location || "위치 정보 없음"}</p>
                   </div>
-                  <p className="shrink-0 text-sm font-bold text-primary">{item.price.toLocaleString()}원</p>
+                  <p className="shrink-0 text-lg font-bold text-foreground">
+                    <span className="tabular">{item.price.toLocaleString()}</span>
+                    <span className="ml-0.5 text-xs font-medium text-muted-foreground">원</span>
+                  </p>
                 </div>
               </Link>
             ))}
             {results.length === 0 && (
-              <div className="rounded-xl border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground">
+              <div className="rounded-thumb border border-dashed border-border bg-card p-6 text-center text-sm text-muted-foreground">
                 검색 결과가 없습니다.
               </div>
             )}
@@ -304,5 +316,14 @@ export default function SearchPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// useSearchParams는 Suspense 경계가 필요하다 (Next 14 prerender).
+export default function SearchPage() {
+  return (
+    <Suspense>
+      <SearchPageContent />
+    </Suspense>
   );
 }

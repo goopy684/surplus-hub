@@ -205,6 +205,7 @@ def update_material_status(
         )
 
     updated = crud_material.update_status(db, db_obj=material, status=status)
+
     return {
         "status": "success",
         "data": MaterialSchema.model_validate(updated),

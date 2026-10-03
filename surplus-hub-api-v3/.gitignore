@@ -1,0 +1,47 @@
+# Secrets / credentials
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+service-account*.json
+credentials*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+*.swp
+
+# Local tooling state
+.bkit/
+.claude/
+
+# Logs
+*.log
+logs/
+
+# Alembic local
+# (keep migrations, exclude only caches above)
+.gstack/

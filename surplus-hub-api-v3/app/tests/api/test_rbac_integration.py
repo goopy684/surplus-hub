@@ -328,7 +328,7 @@ class TestSecretKeyValidation:
         """APP_ENV=production + 기본 SECRET_KEY -> ValueError."""
         from app.core.config import Settings
 
-        with pytest.raises(ValueError, match="SECRET_KEY must be changed in production"):
+        with pytest.raises(ValueError, match="SECRET_KEY must be a strong"):
             Settings(
                 APP_ENV="production",
                 SECRET_KEY="changethis_secret_key_for_jwt",
@@ -345,6 +345,7 @@ class TestSecretKeyValidation:
             s = Settings(
                 APP_ENV="production",
                 SECRET_KEY="a-very-strong-random-key-1234567890",
+                CORS_ORIGINS=["https://app.example.com"],
                 DATABASE_URL="postgresql://x:x@localhost/test",
             )
         assert s.APP_ENV == "production"
@@ -370,10 +371,34 @@ class TestSecretKeyValidation:
         """APP_ENV=prod (별칭)도 검증 적용."""
         from app.core.config import Settings
 
-        with pytest.raises(ValueError, match="SECRET_KEY must be changed in production"):
+        with pytest.raises(ValueError, match="SECRET_KEY must be a strong"):
             Settings(
                 APP_ENV="prod",
                 SECRET_KEY="changethis_anything",
+                DATABASE_URL="postgresql://x:x@localhost/test",
+            )
+
+    def test_prod_placeholder_key_raises(self):
+        """APP_ENV=prod + .env 플레이스홀더 키도 거부 (이전엔 가드를 통과하던 취약점)."""
+        from app.core.config import Settings
+
+        with pytest.raises(ValueError, match="SECRET_KEY must be a strong"):
+            Settings(
+                APP_ENV="prod",
+                SECRET_KEY="your-secret-key-change-this-in-production",
+                CORS_ORIGINS=["https://app.example.com"],
+                DATABASE_URL="postgresql://x:x@localhost/test",
+            )
+
+    def test_prod_wildcard_cors_raises(self):
+        """APP_ENV=prod + CORS '*' -> 부팅 거부 (fail-closed)."""
+        from app.core.config import Settings
+
+        with pytest.raises(ValueError, match="CORS_ORIGINS must be an explicit"):
+            Settings(
+                APP_ENV="prod",
+                SECRET_KEY="a-very-strong-random-key-1234567890",
+                CORS_ORIGINS=["*"],
                 DATABASE_URL="postgresql://x:x@localhost/test",
             )
 
@@ -383,24 +408,16 @@ class TestSecretKeyValidation:
 # ---------------------------------------------------------------------------
 
 class TestConcurrentAdminOperations:
-    """두 SUPER_ADMIN이 동시에 작업할 때 데이터 무결성 검증."""
+    """두 SUPER_ADMIN이 작업할 때 데이터 무결성 검증 (SQLite StaticPool 특성 고려)."""
 
     def test_concurrent_role_reads_are_consistent(
         self, client: TestClient, rbac_admin_headers
     ):
-        """두 스레드가 동시에 목록을 조회해도 일관된 결과."""
-        results = []
-
-        def fetch_list():
-            resp = client.get(ROLES_PREFIX, headers=rbac_admin_headers)
-            results.append(resp.status_code)
-
-        threads = [threading.Thread(target=fetch_list) for _ in range(5)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
-
+        """연속 목록 조회 시 일관된 결과 반환."""
+        results = [
+            client.get(ROLES_PREFIX, headers=rbac_admin_headers).status_code
+            for _ in range(5)
+        ]
         assert all(code == 200 for code in results), f"일부 요청 실패: {results}"
 
     def test_concurrent_role_updates_both_create_audit_logs(
@@ -411,35 +428,26 @@ class TestConcurrentAdminOperations:
         rbac_moderator,
         rbac_admin,
     ):
-        """두 관리자가 동시에 다른 유저 역할을 변경 -> 각각 감사 로그 생성."""
+        """두 관리자가 각각 유저 역할을 변경 -> 각각 감사 로그 생성."""
         errors = []
 
-        def update_moderator():
-            resp = client.put(
-                f"{ROLES_PREFIX}/{rbac_moderator.id}/role",
-                json={"adminRole": "ADMIN"},
-                headers=rbac_super_headers,
-            )
-            if resp.status_code != 200:
-                errors.append(f"moderator update failed: {resp.status_code}")
+        resp1 = client.put(
+            f"{ROLES_PREFIX}/{rbac_moderator.id}/role",
+            json={"adminRole": "ADMIN"},
+            headers=rbac_super_headers,
+        )
+        if resp1.status_code != 200:
+            errors.append(f"moderator update failed: {resp1.status_code}")
 
-        def update_admin():
-            resp = client.put(
-                f"{ROLES_PREFIX}/{rbac_admin.id}/role",
-                json={"adminRole": "ADMIN"},
-                headers=rbac_super_headers,
-            )
-            if resp.status_code != 200:
-                errors.append(f"admin update failed: {resp.status_code}")
+        resp2 = client.put(
+            f"{ROLES_PREFIX}/{rbac_admin.id}/role",
+            json={"adminRole": "ADMIN"},
+            headers=rbac_super_headers,
+        )
+        if resp2.status_code != 200:
+            errors.append(f"admin update failed: {resp2.status_code}")
 
-        t1 = threading.Thread(target=update_moderator)
-        t2 = threading.Thread(target=update_admin)
-        t1.start()
-        t2.start()
-        t1.join()
-        t2.join()
-
-        assert not errors, f"동시 업데이트 중 오류 발생: {errors}"
+        assert not errors, f"업데이트 중 오류 발생: {errors}"
 
         # 두 업데이트 모두 감사 로그에 기록됐는지 확인
         resp = client.get(f"{ROLES_PREFIX}/audit-logs", headers=rbac_admin_headers)

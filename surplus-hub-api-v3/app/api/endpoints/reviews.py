@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.core.notify import notify
 from app.crud.crud_review import crud_review
 from app.models.review import Review
 from app.models.user import User
@@ -47,6 +48,17 @@ def create_review(
         material_id=review_in.material_id,
         rating=review_in.rating,
         content=review_in.content,
+    )
+
+    # Notify the reviewed user
+    notify(
+        db,
+        user_id=review.target_user_id,
+        type="REVIEW",
+        title="새 후기가 도착했어요",
+        body=f"{current_user.name}님이 별점 {review.rating}점 후기를 남겼습니다.",
+        reference_type="material",
+        reference_id=review.material_id,
     )
 
     return {

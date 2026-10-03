@@ -1,9 +1,4 @@
-import { styled } from "nativewind";
 import { TextInput, View, Text } from "react-native";
-
-const StyledView = styled(View);
-const StyledText = styled(Text);
-const StyledTextInput = styled(TextInput);
 
 export interface MaterialInputProps {
   label: string;
@@ -23,12 +18,12 @@ export const MaterialInput = ({
   multiline = false,
 }: MaterialInputProps) => {
   return (
-    <StyledView className="mb-4">
-      <StyledText className="text-sm font-medium text-gray-700 mb-1">
+    <View className="mb-4">
+      <Text className="text-sm font-medium text-muted-foreground mb-1">
         {label}
-      </StyledText>
-      <StyledTextInput
-        className={`bg-white border border-gray-300 rounded-lg p-3 text-base text-gray-900 ${
+      </Text>
+      <TextInput
+        className={`bg-field border border-border rounded-field p-3 text-base text-foreground ${
           multiline ? "h-32" : "h-12"
         }`}
         value={value}
@@ -38,6 +33,6 @@ export const MaterialInput = ({
         multiline={multiline}
         textAlignVertical={multiline ? "top" : "center"}
       />
-    </StyledView>
+    </View>
   );
 };

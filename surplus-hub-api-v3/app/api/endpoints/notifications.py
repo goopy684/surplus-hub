@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -9,8 +10,9 @@ from app.models.user import User
 from app.schemas.notification import (
     DeviceTokenCreate,
     DeviceTokenResponse,
+    NotificationPreferences,
+    NotificationPreferencesUpdate,
     NotificationResponse,
-    UnreadCountResponse,
 )
 
 router = APIRouter()
@@ -98,6 +100,46 @@ def list_notifications(
             "hasNextPage": page < total_pages,
             "totalPages": total_pages,
         },
+    }
+
+
+@router.get(
+    "/preferences",
+    summary="Get Notification Preferences",
+    description="Get the current user's push notification preferences.",
+)
+def get_notification_preferences(
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    return {
+        "status": "success",
+        "data": NotificationPreferences.model_validate(current_user),
+    }
+
+
+@router.patch(
+    "/preferences",
+    summary="Update Notification Preferences",
+    description="Update push notification preferences. Only the fields sent are changed.",
+)
+def update_notification_preferences(
+    prefs_in: NotificationPreferencesUpdate,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    was_marketing = current_user.push_marketing
+    for field, value in prefs_in.model_dump(exclude_unset=True).items():
+        setattr(current_user, field, value)
+    # 정보통신망법: 광고 수신동의 시각을 남긴다. 철회하면 NULL로 지운다(철회 이력은 감사 로그 소관).
+    if current_user.push_marketing != was_marketing:
+        current_user.push_marketing_consented_at = (
+            datetime.now(timezone.utc) if current_user.push_marketing else None
+        )
+    db.commit()
+    db.refresh(current_user)
+    return {
+        "status": "success",
+        "data": NotificationPreferences.model_validate(current_user),
     }
 
 

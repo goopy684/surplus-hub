@@ -10,9 +10,19 @@
 
 ## Phase 1 — 남은 작업
 
-### TODO: 프론트엔드 당근마켓 UX 재설계
-- **What:** 홈 피드(2열 그리드), 자재 상세, 채팅, 프로필 4개 화면 재설계
-- **Context:** 디자인 명세 완료 (색상 #2563EB, lazy auth, 빈 상태 등). 디자인 문서: `~/.gstack/projects/goopy-priv-surplus-hub/jeongseongchae-main-design-20260325-161255.md`
+### ~~TODO: 프론트엔드 당근마켓 UX 재설계~~ ✅ MOSTLY DONE (2026-05-16)
+- **적용 위치:** `surplus-hub-react/apps/web` (신규 monorepo)
+- **완료:**
+  - 홈 피드 2열 그리드 (md:3-col / lg:4-col) + 빈 상태 ("아직 등록된 자재가 없어요" + 등록하기 버튼)
+  - BottomNav 5탭 (홈 / 검색 / 등록 FAB / 채팅 / 프로필) — 기존 구현 확인
+  - 채팅 리스트 빈 상태 — 기존 구현 확인
+  - 카테고리 emoji/label 일관성 — home, register, material-edit 동일
+- **남은 갭:**
+  - 채팅방 상단 자재 미니 카드 미구현 → `@repo/core`에 `useChatRoomDetail({materialId})` 같은 훅 추가 필요. 별도 PR로 분리 권장.
 
-### TODO: 카테고리 시드 데이터 업종별 재구성
-- **What:** 기존 카테고리를 업종별(조명/문/건자재/전기/설비)로 재구성
+### ~~TODO: 카테고리 시드 데이터 업종별 재구성~~ ✅ DONE (2026-05-16)
+- **What:** 백엔드 `crud_category.seed_categories()` 6항목으로 재구성 — 조명/문창호/건축자재/전기/설비/기타
+- **변경 파일:**
+  - `surplus-hub-api-v3/app/crud/crud_category.py`
+  - `surplus-hub-api-v3/app/tests/api/test_categories.py`
+- **주의:** 기존 DB에 시드된 카테고리는 `seed_categories()`가 idempotent하게 동작(존재 시 skip)하므로, **운영 DB는 수동 마이그레이션 필요** (구 카테고리 비활성화 + 신규 6개 insert).

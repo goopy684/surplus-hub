@@ -30,22 +30,23 @@ class TestListCategories:
         assert isinstance(body["data"], list)
 
     def test_list_categories_auto_seeds_defaults(self, client: TestClient):
-        """The endpoint seeds default categories when none exist.
-        After seeding, at least the 10 default categories should be present."""
+        """The endpoint seeds default 업종별 categories when none exist.
+        After seeding, at least the 6 default categories should be present."""
         response = client.get(f"{API_V1_STR}/categories/")
         body = response.json()
         categories = body["data"]
 
-        # The seed_categories() method creates 10 default categories
-        assert len(categories) >= 10
+        # The seed_categories() method creates 6 default 업종별 categories
+        # (조명/문창호/건축자재/전기/설비/기타)
+        assert len(categories) >= 6
 
     def test_list_categories_contains_expected_names(self, client: TestClient):
-        """Verify some well-known default category names are present."""
+        """Verify default 업종별 category names are present."""
         response = client.get(f"{API_V1_STR}/categories/")
         categories = response.json()["data"]
         names = [c["name"] for c in categories]
 
-        expected_names = ["철근", "목재", "시멘트", "기타"]
+        expected_names = ["조명", "문/창호", "건축자재", "전기", "설비", "기타"]
         for name in expected_names:
             assert name in names, f"Expected category '{name}' not found"
 

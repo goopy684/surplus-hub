@@ -8,9 +8,8 @@ from sqlalchemy.orm import Session
 
 from app.api import deps
 from app.core.ws_manager import manager
-from app.core.push import send_chat_notification
+from app.core.notify import notify
 from app.crud.crud_chat import crud_chat_room, crud_message
-from app.crud.crud_notification import crud_notification, crud_device_token
 from app.models.user import User
 from app.utils.location import LocationData
 from app.schemas.chat_response import (
@@ -149,13 +148,11 @@ def _create_message_sync(
     )
 
     other_user_id = room.seller_id if room.buyer_id == sender_id else room.buyer_id
-    device_tokens = crud_device_token.get_user_tokens(db, user_id=other_user_id)
 
     return {
         "msg": msg,
         "room": room,
         "other_user_id": other_user_id,
-        "device_tokens": device_tokens,
     }
 
 
@@ -186,7 +183,6 @@ async def create_message(
 
     msg = result["msg"]
     other_user_id = result["other_user_id"]
-    device_tokens = result["device_tokens"]
 
     # Broadcast via WebSocket to room participants
     message_data = {
@@ -205,15 +201,8 @@ async def create_message(
 
     # Push notification to offline recipient
     if not manager.is_user_online_in_room(room_id, other_user_id):
-        if device_tokens:
-            send_chat_notification(
-                tokens=[t.token for t in device_tokens],
-                sender_name=current_user.name,
-                message_preview=message_in.content,
-                room_id=room_id,
-            )
         await asyncio.to_thread(
-            crud_notification.create_notification,
+            notify,
             db,
             user_id=other_user_id,
             type="CHAT",
@@ -221,6 +210,7 @@ async def create_message(
             body=message_in.content[:100],
             reference_type="chat_room",
             reference_id=room_id,
+            data={"roomId": str(room_id)},
         )
 
     return {

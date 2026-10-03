@@ -11,6 +11,7 @@ class UserStats(BaseModel):
 
 class UserData(BaseModel):
     id: str
+    email: Optional[str] = None
     name: str
     profileImageUrl: Optional[str]
     location: Optional[str]
@@ -19,6 +20,9 @@ class UserData(BaseModel):
     stats: UserStats
     isPremium: bool
     role: str = "user"
+    # Admin gating for the native-auth frontend (replaces Clerk publicMetadata).
+    adminRole: Optional[str] = None
+    isSuperuser: bool = False
 
 class UserResponse(StandardResponse):
     data: UserData

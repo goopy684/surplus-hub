@@ -17,8 +17,8 @@ function TranslationText({ content, getTranslation }: { content: string; getTran
     return () => { mounted.current = false; };
   }, [content, getTranslation]);
 
-  if (text === null) return <p className="text-info text-[11px]">번역 중...</p>;
-  return <p className="text-info text-[11px]">{text}</p>;
+  if (text === null) return <p className="text-muted-foreground text-xs">번역 중...</p>;
+  return <p className="text-muted-foreground text-xs">{text}</p>;
 }
 
 function ChatRoomContent({ params }: { params: { id: string } }) {
@@ -171,21 +171,21 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-65px)] bg-gray-50">
+    <div className="flex flex-col h-[calc(100vh-65px)] bg-paper">
       {/* Header */}
-      <div className="bg-white px-4 py-3 flex items-center border-b border-gray-200 sticky top-0 z-10 w-full shadow-sm">
+      <div className="bg-card px-4 py-3 flex items-center border-b border-border sticky top-0 z-10 w-full">
         <button
           onClick={() => router.back()}
-          className="mr-3 p-2 rounded-full hover:bg-gray-100 text-gray-600 transition-colors"
+          className="mr-3 p-2 rounded-full hover:bg-field text-muted-foreground transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
           </svg>
         </button>
-        <h1 className="text-lg font-bold text-gray-900">채팅</h1>
+        <h1 className="text-lg font-bold text-foreground">채팅</h1>
         {/* 연결 상태 인디케이터 */}
         {isConnected && (
-          <span className="ml-2 w-2.5 h-2.5 rounded-full bg-green-500 inline-block" />
+          <span className="ml-2 w-2.5 h-2.5 rounded-full bg-olive-tx inline-block" />
         )}
         <div className="ml-auto flex items-center gap-2">
           {/* Translation toggle button */}
@@ -193,8 +193,8 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
             onClick={() => setShowTranslation(!showTranslation)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
               showTranslation
-                ? "border border-primary bg-primary/10 text-primary"
-                : "border border-border text-muted-foreground"
+                ? "bg-accent text-accent-foreground"
+                : "border border-border bg-card text-foreground"
             }`}
           >
             <svg
@@ -214,7 +214,7 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
             번역
           </button>
           {/* More options button */}
-          <button className="p-2 rounded-full hover:bg-gray-100 text-muted-foreground transition-colors">
+          <button className="p-2 rounded-full hover:bg-field text-muted-foreground transition-colors">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -252,7 +252,7 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
               />
             </svg>
             <div className="flex-1">
-              <h3 className="text-destructive font-bold text-sm mb-1">⚠️ 안전거래 알림</h3>
+              <h3 className="text-destructive font-bold text-sm mb-1">안전거래 알림</h3>
               <p className="text-destructive/80 text-xs">
                 외부 계좌 입금은 사기 피해 위험이 있습니다. 앱 내 안전결제를 이용해주세요.
               </p>
@@ -289,18 +289,14 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
             >
               <div className="max-w-[70%]">
                 <div
-                  className={`rounded-2xl p-3 shadow-sm ${
+                  className={`rounded-2xl p-3 ${
                     isMe
-                      ? "bg-primary text-primary-foreground rounded-br-md"
+                      ? "bg-accent-soft text-foreground rounded-br-md"
                       : "bg-card text-foreground border border-border rounded-bl-md"
                   }`}
                 >
                   <p>{msg.content}</p>
-                  <p
-                    className={`text-xs mt-1 text-right ${
-                      isMe ? "text-primary-foreground/60" : "text-gray-400"
-                    }`}
-                  >
+                  <p className="text-xs mt-1 text-right text-muted-foreground">
                     {new Date(msg.timestamp).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
@@ -309,14 +305,14 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
                 </div>
                 {/* Translation display: 최근 20개 메시지만 번역 */}
                 {showTranslation && (
-                  <div className="mt-2 bg-info/10 rounded-lg px-3 py-2 flex items-start gap-2">
+                  <div className="mt-2 bg-field rounded-lg px-3 py-2 flex items-start gap-2">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
-                      strokeWidth={1.5}
+                      strokeWidth={1.8}
                       stroke="currentColor"
-                      className="w-3 h-3 text-info flex-shrink-0 mt-0.5"
+                      className="w-3 h-3 text-muted-foreground flex-shrink-0 mt-0.5"
                     >
                       <path
                         strokeLinecap="round"
@@ -327,13 +323,13 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
                     {canTranslate ? (
                       <TranslationText content={msg.content} getTranslation={getTranslation} />
                     ) : (
-                      <p className="text-info text-[11px]">번역 대기 중...</p>
+                      <p className="text-muted-foreground text-xs">번역 대기 중...</p>
                     )}
                   </div>
                 )}
                 {/* 읽음 표시 */}
                 {isMe && msg.isRead && (
-                  <p className="text-xs text-primary text-right mt-0.5">읽음</p>
+                  <p className="text-xs text-muted-foreground text-right mt-0.5">읽음</p>
                 )}
               </div>
             </div>
@@ -342,7 +338,7 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
         {/* 타이핑 인디케이터 */}
         {typingUser && (
           <div className="flex justify-start">
-            <div className="bg-white text-gray-500 rounded-2xl rounded-tl-none px-4 py-2 shadow-sm text-sm">
+            <div className="bg-card text-muted-foreground border border-border rounded-2xl rounded-tl-none px-4 py-2 text-sm">
               {typingUser}님이 입력 중
               <span className="inline-flex ml-1">
                 <span className="animate-bounce" style={{ animationDelay: "0ms" }}>.</span>
@@ -357,13 +353,13 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
 
       {/* AI Smart Reply Chips */}
       {smartReplies.length > 0 && (
-      <div className="bg-white border-t border-gray-200 px-4 py-3">
+      <div className="bg-card border-t border-border px-4 py-3">
         <div className="flex items-center gap-2 mb-2">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
-            strokeWidth={1.5}
+            strokeWidth={1.8}
             stroke="currentColor"
             className="w-3.5 h-3.5 text-primary"
           >
@@ -373,7 +369,7 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
               d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"
             />
           </svg>
-          <span className="text-primary text-[10px] font-semibold">AI 추천 답장</span>
+          <span className="text-muted-foreground text-xs font-semibold">AI 추천 답장</span>
           {smartRepliesLoading && (
             <div className="w-3 h-3 border border-primary border-t-transparent rounded-full animate-spin" />
           )}
@@ -383,7 +379,7 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
             <button
               key={index}
               onClick={() => handleSmartReply(reply)}
-              className="flex-shrink-0 border border-primary/30 bg-primary/5 text-primary rounded-full px-4 py-2 text-xs font-medium hover:bg-primary/10 transition-colors"
+              className="flex-shrink-0 border border-border bg-card text-foreground rounded-full px-4 py-2 text-xs font-medium hover:bg-field transition-colors"
             >
               {reply}
             </button>
@@ -394,7 +390,7 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
 
       <form
         onSubmit={handleSend}
-        className="bg-white p-4 border-t border-gray-200 flex gap-2 w-full"
+        className="bg-card p-4 border-t border-border flex gap-2 w-full"
       >
         <input
           type="text"
@@ -404,11 +400,11 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
             handleTyping();
           }}
           placeholder="메시지를 입력하세요..."
-          className="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:ring-2 focus:ring-primary outline-none"
+          className="flex-1 border border-border bg-field rounded-full px-4 py-2 focus:ring-2 focus:ring-primary outline-none"
         />
         <button
           type="submit"
-          className="bg-gradient-to-r from-primary to-[#e65c00] text-white rounded-full w-10 h-10 flex items-center justify-center hover:opacity-90 transition-opacity flex-shrink-0"
+          className="bg-primary text-primary-foreground rounded-full w-10 h-10 flex items-center justify-center hover:opacity-90 transition-opacity flex-shrink-0"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

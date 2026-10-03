@@ -21,6 +21,9 @@ class ChatRoom(Base):
     buyer = relationship("User", foreign_keys=[buyer_id])
     seller = relationship("User", foreign_keys=[seller_id])
 
+    def __str__(self) -> str:
+        return f"ChatRoom #{self.id} (material={self.material_id})"
+
 class Message(Base):
     __tablename__ = "messages"
 
@@ -36,3 +39,7 @@ class Message(Base):
     
     chat_room = relationship("ChatRoom", backref="messages")
     sender = relationship("User")
+
+    def __str__(self) -> str:
+        body = (self.content or "")[:40]
+        return f"Message #{self.id}: {body}"

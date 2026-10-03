@@ -24,7 +24,6 @@ firebase-admin>=6.0.0
 slowapi>=0.1.9
 itsdangerous>=2.1.0
 # AI
-sentence-transformers>=3.0.0
 pgvector>=0.3.0
 numpy>=1.24.0
 google-genai>=1.0.0

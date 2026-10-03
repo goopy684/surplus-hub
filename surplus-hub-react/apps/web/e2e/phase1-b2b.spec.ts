@@ -68,15 +68,12 @@ const withApiEnvelope = (data: unknown, meta?: unknown) =>
     ...(meta ? { meta } : {}),
   });
 
-const stubExternalClerkScript = async (page: Page) => {
-  await page.route("**://*.clerk.accounts.dev/**", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/javascript",
-      body: "",
-    });
-  });
-};
+// v3 자재 등록은 사진 우선 흐름이라 AI 자동 입력을 거쳐야 폼이 열린다.
+// setInputFiles로 올릴 1x1 PNG.
+const PNG_1x1 = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+  "base64"
+);
 
 const stubPhase1Api = async (page: Page) => {
   const materials = seedMaterials();
@@ -94,6 +91,41 @@ const stubPhase1Api = async (page: Page) => {
           id: "11",
           name: "테스트사장",
           location: "경기도",
+        }),
+      });
+      return;
+    }
+
+    // AI auto-fill endpoints (photo-first register flow)
+    if (url.includes("/api/v1/ai/analyze-image") && method === "POST") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: withApiEnvelope({
+          titleSuggestion: "AI 추천 자재",
+          category: "기타",
+          description: "AI가 인식한 자재입니다.",
+        }),
+      });
+      return;
+    }
+
+    if (url.includes("/api/v1/ai/generate-description") && method === "POST") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: withApiEnvelope({ description: "AI가 생성한 상세 설명입니다." }),
+      });
+      return;
+    }
+
+    if (url.includes("/api/v1/ai/suggest-price") && method === "POST") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: withApiEnvelope({
+          suggestedPrice: 40000,
+          marketPrice: { min: 30000, ideal: 40000, max: 50000, recentTrades: 3 },
         }),
       });
       return;
@@ -206,7 +238,6 @@ const stubPhase1Api = async (page: Page) => {
 
 test.describe("Phase 1 B2B — home feed", () => {
   test.beforeEach(async ({ page }) => {
-    await stubExternalClerkScript(page);
     await stubPhase1Api(page);
     await page.addInitScript(() => {
       localStorage.setItem("access_token", "playwright-token");
@@ -220,9 +251,15 @@ test.describe("Phase 1 B2B — home feed", () => {
     await expect(page.getByText("LED 조명 모듈 50개")).toBeVisible();
     await expect(page.getByText("사무실 문짝 10개")).toBeVisible();
 
-    // Condition grade badges should be visible
-    await expect(page.getByText("상").first()).toBeVisible();
-    await expect(page.getByText("중").first()).toBeVisible();
+    // Condition grade badges should be visible — scope to the material card:
+    // bare getByText("상") substring-matches hidden elements (e.g. "경상북도"
+    // in the mobile-only region select).
+    await expect(
+      page.getByRole("link", { name: /LED 조명 모듈 50개/ }).getByText("상", { exact: true })
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /사무실 문짝 10개/ }).getByText("중", { exact: true })
+    ).toBeVisible();
 
     // Prices should be visible
     await expect(page.getByText("300,000원")).toBeVisible();
@@ -230,6 +267,8 @@ test.describe("Phase 1 B2B — home feed", () => {
   });
 
   test("region dropdown filters materials", async ({ page }) => {
+    // 지역 필터 select는 모바일 헤더 전용(md:hidden)이라 모바일 뷰포트에서 검증한다.
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
 
     // Both materials visible initially
@@ -240,12 +279,13 @@ test.describe("Phase 1 B2B — home feed", () => {
     const regionSelect = page.locator("select").first();
     await regionSelect.selectOption("경기도");
 
-    // Wait for re-render — only 경기도 material should remain
-    await page.waitForTimeout(500);
+    // 경기도 자재는 계속 보여야 한다.
     await expect(page.getByText("LED 조명 모듈 50개")).toBeVisible();
   });
 
   test("bottom nav has register button in center", async ({ page }) => {
+    // 하단 네비는 모바일 전용(md:hidden)이라 모바일 뷰포트에서 검증한다.
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
 
     // BottomNav should have 5 items including register
@@ -256,7 +296,6 @@ test.describe("Phase 1 B2B — home feed", () => {
 
 test.describe("Phase 1 B2B — material registration", () => {
   test.beforeEach(async ({ page }) => {
-    await stubExternalClerkScript(page);
     await stubPhase1Api(page);
     await page.addInitScript(() => {
       localStorage.setItem("access_token", "playwright-token");
@@ -266,18 +305,32 @@ test.describe("Phase 1 B2B — material registration", () => {
   test("register form has condition_grade and region fields", async ({ page }) => {
     await page.goto("/register");
 
-    // condition_grade dropdown should exist
-    const conditionSelect = page.locator("select").filter({ hasText: /상태 등급|상 \(양호\)|선택 안 함/ });
-    await expect(conditionSelect.or(page.getByText("상태 등급"))).toBeVisible();
+    // v3 등록은 사진 우선 흐름: 사진 업로드 → AI 자동 입력을 거쳐야 상세 폼이 열린다.
+    await page.setInputFiles('input[type="file"]', {
+      name: "material.png",
+      mimeType: "image/png",
+      buffer: PNG_1x1,
+    });
+    await page.getByRole("button", { name: "AI 자동 입력 시작" }).click();
+    await expect(page.getByRole("button", { name: "등록하기" })).toBeVisible();
 
-    // Region/location dropdown should exist with 시도 options
-    await expect(page.getByText("서울특별시").or(page.getByText("경기도")).first()).toBeVisible();
+    // ai-result 단계의 select는 상태 등급(0) · 위치 시도(1) 순서로 존재한다.
+    // condition_grade 필드
+    await expect(page.getByText("상태 등급")).toBeVisible();
+    const conditionSelect = page.locator("select").nth(0);
+    await conditionSelect.selectOption("상");
+    await expect(conditionSelect).toHaveValue("상");
+
+    // region(시도) 필드
+    await expect(page.getByText("위치 (시도)")).toBeVisible();
+    const regionSelect = page.locator("select").nth(1);
+    await regionSelect.selectOption("서울특별시");
+    await expect(regionSelect).toHaveValue("서울특별시");
   });
 });
 
 test.describe("Phase 1 B2B — chat entry", () => {
   test.beforeEach(async ({ page }) => {
-    await stubExternalClerkScript(page);
     await stubPhase1Api(page);
     await page.addInitScript(() => {
       localStorage.setItem("access_token", "playwright-token");
@@ -287,9 +340,9 @@ test.describe("Phase 1 B2B — chat entry", () => {
   test("material detail to chat button flow", async ({ page }) => {
     await page.goto("/material/201");
 
-    // Material detail should show
-    await expect(page.getByText("LED 조명 모듈 50개")).toBeVisible();
-    await expect(page.getByText("300,000")).toBeVisible();
+    // 제목은 헤더 h1 + 본문 h2로 2번 렌더링되므로 first()로 한정한다.
+    await expect(page.getByText("LED 조명 모듈 50개").first()).toBeVisible();
+    await expect(page.getByText("300,000").first()).toBeVisible();
 
     // Condition grade badge should show
     await expect(page.getByText("상").first()).toBeVisible();

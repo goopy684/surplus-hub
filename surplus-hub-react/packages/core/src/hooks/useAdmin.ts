@@ -29,7 +29,11 @@ import {
   createReport,
   fetchAuditLogs,
   exportCsv,
+  sendAdminPush,
+  fetchPushStats,
+  fetchPushHistory,
 } from "../api";
+import type { AdminPushPayload, AdminPushResult, PushStats, PushHistoryItem } from "../api";
 import {
   AdminUser,
   AdminRole,
@@ -282,6 +286,37 @@ export const useBulkProcessReports = (): UseMutationResult<
       queryClient.invalidateQueries({ queryKey: ["admin", "moderationQueue"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
     },
+  });
+};
+
+// ─── Push Notifications ───────────────────────────────────────────────────────
+
+export const useSendAdminPush = (): UseMutationResult<
+  AdminPushResult,
+  Error,
+  AdminPushPayload
+> => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: AdminPushPayload) => sendAdminPush(payload),
+    onSuccess: () => {
+      // ["admin", "push", ...] 하위 stats·history를 한 번에 무효화
+      queryClient.invalidateQueries({ queryKey: ["admin", "push"] });
+    },
+  });
+};
+
+export const usePushStats = (): UseQueryResult<PushStats> => {
+  return useQuery<PushStats>({
+    queryKey: ["admin", "push", "stats"],
+    queryFn: fetchPushStats,
+  });
+};
+
+export const usePushHistory = (limit = 20): UseQueryResult<PushHistoryItem[]> => {
+  return useQuery<PushHistoryItem[]>({
+    queryKey: ["admin", "push", "history", limit],
+    queryFn: () => fetchPushHistory(limit),
   });
 };
 

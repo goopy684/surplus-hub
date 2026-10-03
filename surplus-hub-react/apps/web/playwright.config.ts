@@ -4,7 +4,10 @@ const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || "http://127.0.0.1:4010";
 
 export default defineConfig({
   testDir: "./e2e",
-  fullyParallel: true,
+  // Tests share one real local backend (127.0.0.1:8010) and some mutate data
+  // (register flow), so parallel runs race each other and flake.
+  fullyParallel: false,
+  workers: 1,
   timeout: 30_000,
   expect: {
     timeout: 10_000,

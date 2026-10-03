@@ -84,6 +84,7 @@ const mapMaterialItem = (raw: unknown): MaterialItem => {
       readString(sellerObj.profile_image_url) ||
       readString(item.sellerAvatarUrl ?? item.seller_avatar_url),
     likesCount: parseNumber(item.likesCount ?? item.likes_count, 0),
+    conditionGrade: readString(item.conditionGrade ?? item.condition_grade),
     createdAt: normalizeIso(item.createdAt ?? item.created_at),
   };
 };
@@ -100,6 +101,7 @@ export const fetchMaterials = async (
       ...(params.category ? { category: params.category } : {}),
       sort: normalizedSort,
       ...(params.keyword ? { keyword: params.keyword } : {}),
+      ...(params.location ? { location: params.location } : {}),
       ...(params.lat !== undefined ? { lat: params.lat } : {}),
       ...(params.lng !== undefined ? { lng: params.lng } : {}),
     },

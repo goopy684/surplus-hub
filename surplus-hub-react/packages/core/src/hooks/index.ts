@@ -9,3 +9,4 @@ export * from "./useReviews";
 export * from "./useEvents";
 export * from "./useAiSearch";
 export * from "./useAdmin";
+export * from "./useNotifications";

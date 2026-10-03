@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.core.notify import notify
 from app.crud.crud_material import crud_material
 from app.crud.crud_transaction import crud_transaction
 from app.models.user import User
@@ -58,6 +59,17 @@ def create_transaction(
         )
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
+
+    # Notify the seller of the incoming purchase request
+    notify(
+        db,
+        user_id=tx.seller_id,
+        type="TRANSACTION",
+        title="거래 요청이 도착했어요",
+        body=f"{current_user.name}님이 '{material.title}' 구매를 요청했습니다.",
+        reference_type="material",
+        reference_id=material.id,
+    )
 
     return {"status": "success", "data": _format_transaction(tx)}
 
@@ -135,6 +147,18 @@ def confirm_transaction(
         raise HTTPException(status_code=400, detail="Transaction is not pending")
 
     tx = crud_transaction.confirm_transaction(db, db_obj=tx)
+
+    # Notify the buyer that the seller accepted
+    notify(
+        db,
+        user_id=tx.buyer_id,
+        type="TRANSACTION",
+        title="거래가 확정되었어요",
+        body=f"{current_user.name}님이 거래를 확정했습니다.",
+        reference_type="material",
+        reference_id=tx.material_id,
+    )
+
     return {"status": "success", "data": _format_transaction(tx)}
 
 

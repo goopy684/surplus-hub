@@ -35,6 +35,7 @@ def read_user_me(
 
     user_data = schemas.user_response.UserData(
         id=str(current_user.id),
+        email=current_user.email,
         name=current_user.name,
         profileImageUrl=current_user.profile_image_url,
         location=current_user.location,
@@ -42,7 +43,9 @@ def read_user_me(
         mannerTemperature=current_user.manner_temperature,
         stats=stats,
         isPremium=crud_subscription.is_premium(db, user_id=current_user.id),
-        role=current_user.role
+        role=current_user.role,
+        adminRole=current_user.admin_role,
+        isSuperuser=current_user.is_superuser,
     )
 
     return {

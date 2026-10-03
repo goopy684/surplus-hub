@@ -5,7 +5,7 @@
   "scripts": {
     "build": "turbo run build --filter=web",
     "build:all": "turbo run build",
-    "start": "node apps/web/.next/standalone/server.js",
+    "start": "node apps/web/.next/standalone/apps/web/server.js",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
@@ -29,11 +29,10 @@
     "apps/*",
     "packages/*"
   ],
-  "dependencies": {
-    "@react-native-community/cli-server-api": "^20.1.1",
-    "expo": "^55.0.0"
+  "comments": {
+    "dependencies": "react/react-dom pinned at root to 18.3.1 so the web app (Next 14) and its hoisted styled-jsx resolve React 18. apps/mobile (Expo/React 19) nests its own react@19 and metro.config.js forces app-local resolution. Do not remove without aligning web/mobile React majors."
   },
-  "overrides": {
+  "dependencies": {
     "react": "18.3.1",
     "react-dom": "18.3.1"
   }

@@ -11,3 +11,7 @@ class MaterialImage(Base):
     display_order = Column(Integer, default=0)
 
     material = relationship("Material", back_populates="material_images")
+
+    # Show the image URL (not the object repr) in sqladmin relationship columns.
+    def __str__(self) -> str:
+        return self.url or f"MaterialImage #{self.id}"

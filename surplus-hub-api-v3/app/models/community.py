@@ -19,9 +19,12 @@ class Post(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     author = relationship("User", backref="posts")
-    
+
     # Simple image handling for posts (single or multiple, usually handled by a separate table or array, keeping simple for now)
-    image_url = Column(String, nullable=True) 
+    image_url = Column(String, nullable=True)
+
+    def __str__(self) -> str:
+        return f"{self.title} (#{self.id})"
 
 class Comment(Base):
     __tablename__ = "comments"
@@ -35,3 +38,7 @@ class Comment(Base):
     
     post = relationship("Post", backref="comments")
     author = relationship("User")
+
+    def __str__(self) -> str:
+        body = (self.content or "")[:40]
+        return f"Comment #{self.id}: {body}"

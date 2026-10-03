@@ -238,7 +238,7 @@ export default function CommunityDetailPage() {
         <p className="mb-4 text-sm text-muted-foreground">{error || "게시글을 찾을 수 없습니다."}</p>
         <button
           onClick={() => router.push("/community")}
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+          className="rounded-btn bg-primary px-4 py-3 text-sm font-bold text-primary-foreground"
         >
           목록으로 돌아가기
         </button>
@@ -270,14 +270,14 @@ export default function CommunityDetailPage() {
             <button
               onClick={handleStartEditPost}
               disabled={postActionLoading}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary/10 disabled:opacity-50"
+              className="rounded-chip px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-accent disabled:opacity-50"
             >
               수정
             </button>
             <button
               onClick={handleDeletePost}
               disabled={postActionLoading}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50"
+              className="rounded-chip px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50"
             >
               삭제
             </button>
@@ -287,7 +287,7 @@ export default function CommunityDetailPage() {
 
       {/* Post Section */}
       <div className="border-b border-border bg-card p-4">
-        <div className="mb-3 inline-block rounded bg-info/10 px-2.5 py-1 text-xs font-medium text-info">
+        <div className="mb-3 inline-block rounded-chip border border-border bg-card px-2.5 py-1 text-xs font-semibold text-muted-foreground">
           {post.category}
         </div>
 
@@ -297,28 +297,28 @@ export default function CommunityDetailPage() {
               type="text"
               value={editTitle}
               onChange={(e) => setEditTitle(e.target.value)}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-bold text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              className="w-full rounded-field border border-border bg-muted px-3 py-2 text-sm font-bold text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               placeholder="제목을 입력하세요"
             />
             <textarea
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
               rows={6}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+              className="w-full rounded-field border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
               placeholder="내용을 입력하세요"
             />
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setIsEditingPost(false)}
                 disabled={postActionLoading}
-                className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-accent disabled:opacity-50"
+                className="rounded-btn border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground hover:bg-accent disabled:opacity-50"
               >
                 취소
               </button>
               <button
                 onClick={handleSavePost}
                 disabled={postActionLoading || !editTitle.trim() || !editContent.trim()}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                className="rounded-btn bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50"
               >
                 {postActionLoading ? "저장 중..." : "저장"}
               </button>
@@ -329,7 +329,7 @@ export default function CommunityDetailPage() {
             <h2 className="mb-2 text-base font-bold text-foreground">
               {post.title}
             </h2>
-            <p className="mb-3 text-sm text-foreground/80">
+            <p className="mb-3 text-sm leading-relaxed text-foreground">
               {post.content}
             </p>
           </>
@@ -385,14 +385,14 @@ export default function CommunityDetailPage() {
         {!showAiAnswer && !aiAnswerLoading && (
           <button
             onClick={handleShowAiAnswer}
-            className="mb-4 w-full rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-4 transition-all hover:border-primary/50 hover:bg-primary/10"
+            className="mb-4 w-full rounded-btn border border-border bg-card p-4 card-shadow transition-colors hover:bg-accent"
           >
             <div className="flex items-center justify-center gap-2 text-primary">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
-                strokeWidth={1.5}
+                strokeWidth={1.8}
                 stroke="currentColor"
                 className="h-5 w-5"
               >
@@ -409,12 +409,12 @@ export default function CommunityDetailPage() {
 
         {/* AI Loading State */}
         {aiAnswerLoading && (
-          <div className="mb-4 flex items-center gap-3 rounded-xl bg-accent p-4">
+          <div className="mb-4 flex items-center gap-3 rounded-thumb border border-border bg-card p-4">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
-              strokeWidth={1.5}
+              strokeWidth={1.8}
               stroke="currentColor"
               className="h-5 w-5 animate-spin text-primary"
             >
@@ -430,17 +430,17 @@ export default function CommunityDetailPage() {
 
         {/* AI Answer Card */}
         {showAiAnswer && (
-          <div className="mb-4 rounded-xl border border-primary/20 bg-accent p-4">
+          <div className="mb-4 rounded-thumb border border-border bg-accent p-4">
             {/* Header */}
             <div className="mb-3 flex items-center gap-2">
-              <div className="fab-gradient flex h-8 w-8 items-center justify-center rounded-full">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
-                  strokeWidth={1.5}
+                  strokeWidth={1.8}
                   stroke="currentColor"
-                  className="h-5 w-5 text-white"
+                  className="h-5 w-5 text-primary-foreground"
                 >
                   <path
                     strokeLinecap="round"
@@ -450,7 +450,7 @@ export default function CommunityDetailPage() {
                 </svg>
               </div>
               <span className="font-medium text-foreground">AI 기술 어시스턴트</span>
-              <span className="ml-auto flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+              <span className="ml-auto flex items-center gap-1 rounded-chip bg-accent px-2 py-0.5 text-xs font-semibold text-accent-foreground">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
@@ -498,7 +498,7 @@ export default function CommunityDetailPage() {
             <button
               onClick={handleShowSummary}
               disabled={summaryLoading}
-              className="flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-accent/80 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-btn bg-accent px-3 py-1.5 text-xs font-semibold text-accent-foreground transition-colors hover:bg-accent/80 disabled:opacity-50"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -515,12 +515,12 @@ export default function CommunityDetailPage() {
 
         {/* AI Summary Loading */}
         {summaryLoading && (
-          <div className="mb-4 flex items-center gap-3 rounded-xl bg-secondary p-4">
+          <div className="mb-4 flex items-center gap-3 rounded-thumb border border-border bg-card p-4">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
-              strokeWidth={1.5}
+              strokeWidth={1.8}
               stroke="currentColor"
               className="h-5 w-5 animate-spin text-primary"
             >
@@ -536,8 +536,8 @@ export default function CommunityDetailPage() {
 
         {/* AI Summary Box */}
         {showSummary && summaryItems.length > 0 && (
-          <div className="mb-4 rounded-xl bg-secondary p-4">
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-primary">
+          <div className="mb-4 rounded-thumb border border-border bg-accent p-4">
+            <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -551,7 +551,7 @@ export default function CommunityDetailPage() {
             <ul className="space-y-1.5 text-sm text-foreground">
               {summaryItems.map((item, idx) => (
                 <li key={idx} className="flex gap-2">
-                  <span className="text-primary">•</span>
+                  <span className="text-muted-foreground">•</span>
                   <span>{item}</span>
                 </li>
               ))}
@@ -600,7 +600,7 @@ export default function CommunityDetailPage() {
                         value={editCommentContent}
                         onChange={(e) => setEditCommentContent(e.target.value)}
                         rows={3}
-                        className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                        className="w-full rounded-field border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                       />
                       <div className="flex gap-2">
                         <button
@@ -609,14 +609,14 @@ export default function CommunityDetailPage() {
                             setEditCommentContent("");
                           }}
                           disabled={commentActionLoading}
-                          className="rounded-lg border border-border px-3 py-1 text-xs text-muted-foreground hover:bg-accent disabled:opacity-50"
+                          className="rounded-btn border border-border bg-card px-3 py-1 text-xs font-semibold text-foreground hover:bg-accent disabled:opacity-50"
                         >
                           취소
                         </button>
                         <button
                           onClick={() => handleSaveComment(comment.id)}
                           disabled={commentActionLoading || !editCommentContent.trim()}
-                          className="rounded-lg bg-primary px-3 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50"
+                          className="rounded-btn bg-primary px-3 py-1 text-xs font-bold text-primary-foreground disabled:opacity-50"
                         >
                           {commentActionLoading ? "저장 중..." : "저장"}
                         </button>
@@ -663,12 +663,12 @@ export default function CommunityDetailPage() {
               }
             }}
             placeholder="댓글을 입력하세요..."
-            className="flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            className="flex-1 rounded-field border border-border bg-muted px-3 py-2 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           />
           <button
             onClick={handleSubmitComment}
             disabled={!newComment.trim() || commentSubmitting}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+            className="rounded-btn bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50"
           >
             {commentSubmitting ? "..." : "등록"}
           </button>

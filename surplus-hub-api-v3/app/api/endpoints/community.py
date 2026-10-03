@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.core.notify import notify
 from app.crud.crud_community import crud_post, crud_comment
 from app.crud.crud_like import crud_post_like
 from app.models.user import User
@@ -237,6 +238,18 @@ def create_comment(
         raise HTTPException(status_code=404, detail="Post not found")
 
     comment = crud_comment.create_comment(db, post_id=id, author_id=current_user.id, content=comment_in.content)
+
+    # Notify the post author, unless they are the one commenting
+    if post.author_id != current_user.id:
+        notify(
+            db,
+            user_id=post.author_id,
+            type="COMMENT",
+            title="새 댓글이 달렸어요",
+            body=f"{current_user.name}님이 '{post.title}'에 댓글을 남겼습니다: {comment_in.content[:50]}",
+            reference_type="post",
+            reference_id=post.id,
+        )
 
     return {
         "status": "success",

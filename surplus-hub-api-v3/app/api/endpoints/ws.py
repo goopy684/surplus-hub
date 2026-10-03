@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 import logging
 
@@ -8,9 +9,8 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.ws_manager import manager
-from app.core.push import send_chat_notification
+from app.core.notify import notify
 from app.crud.crud_chat import crud_chat_room, crud_message
-from app.crud.crud_notification import crud_notification, crud_device_token
 from app.db.session import SessionLocal
 from app.models.user import User
 from app.utils.location import LocationData
@@ -170,15 +170,9 @@ async def websocket_chat(
                         if room:
                             other_user_id = room.seller_id if room.buyer_id == user_id else room.buyer_id
                             if not manager.is_user_online_in_room(room_id, other_user_id):
-                                tokens = crud_device_token.get_user_tokens(db, user_id=other_user_id)
-                                if tokens:
-                                    send_chat_notification(
-                                        tokens=[t.token for t in tokens],
-                                        sender_name=user_name,
-                                        message_preview=content,
-                                        room_id=room_id,
-                                    )
-                                crud_notification.create_notification(
+                                # 블로킹 HTTP 푸시 호출이므로 이벤트 루프를 막지 않게 스레드로 넘긴다
+                                await asyncio.to_thread(
+                                    notify,
                                     db,
                                     user_id=other_user_id,
                                     type="CHAT",
@@ -186,6 +180,7 @@ async def websocket_chat(
                                     body=content[:100],
                                     reference_type="chat_room",
                                     reference_id=room_id,
+                                    data={"roomId": str(room_id)},
                                 )
                     except Exception as e:
                         logger.error(f"Failed to send notification for room {room_id}: {e}")
@@ -237,15 +232,9 @@ async def websocket_chat(
                         if room:
                             other_user_id = room.seller_id if room.buyer_id == user_id else room.buyer_id
                             if not manager.is_user_online_in_room(room_id, other_user_id):
-                                tokens = crud_device_token.get_user_tokens(db, user_id=other_user_id)
-                                if tokens:
-                                    send_chat_notification(
-                                        tokens=[t.token for t in tokens],
-                                        sender_name=user_name,
-                                        message_preview=content[:100],
-                                        room_id=room_id,
-                                    )
-                                crud_notification.create_notification(
+                                # 블로킹 HTTP 푸시 호출이므로 이벤트 루프를 막지 않게 스레드로 넘긴다
+                                await asyncio.to_thread(
+                                    notify,
                                     db,
                                     user_id=other_user_id,
                                     type="CHAT",
@@ -253,6 +242,7 @@ async def websocket_chat(
                                     body=content[:100],
                                     reference_type="chat_room",
                                     reference_id=room_id,
+                                    data={"roomId": str(room_id)},
                                 )
                     except Exception as e:
                         logger.error(f"Failed to send notification for room {room_id}: {e}")

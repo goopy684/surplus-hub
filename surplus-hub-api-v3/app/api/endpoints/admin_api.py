@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.core.notify import notify
 from app.crud.crud_material import crud_material
 from app.models.user import User
 
@@ -46,7 +47,25 @@ def review_material(
     db.add(material)
     db.commit()
     db.refresh(material)
-    
+
+    # Notify the seller of the review outcome
+    if review_in.action == "approve":
+        title, body = "자재 등록이 승인되었습니다", f"'{material.title}' 등록이 승인되어 게시되었습니다."
+    else:
+        title = "자재 등록이 반려되었습니다"
+        body = f"'{material.title}' 등록이 반려되었습니다."
+        if review_in.note:
+            body += f" 사유: {review_in.note}"
+    notify(
+        db,
+        user_id=material.seller_id,
+        type="MATERIAL_STATUS",
+        title=title,
+        body=body,
+        reference_type="material",
+        reference_id=material.id,
+    )
+
     from app.schemas.material import Material as MaterialSchema
     return {
         "status": "success",

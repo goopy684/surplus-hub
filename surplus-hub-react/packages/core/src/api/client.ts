@@ -37,6 +37,15 @@ const readEnv = (key: string): string | undefined => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
+export const hasAuthToken = (): boolean => {
+  if (typeof window === "undefined" || typeof localStorage === "undefined") return false;
+  try {
+    return !!(localStorage.getItem("access_token") || localStorage.getItem("clerk_token"));
+  } catch {
+    return false;
+  }
+};
+
 const getBrowserToken = (): string | null => {
   if (typeof window === "undefined" || typeof localStorage === "undefined") {
     return null;
@@ -49,14 +58,28 @@ const getBrowserToken = (): string | null => {
   }
 };
 
+let warnedEmptyBaseUrl = false;
+
 const resolveBaseUrl = (): string => {
-  return normalizeBaseUrl(
+  const baseUrl = normalizeBaseUrl(
     configuredBaseUrl ||
       readEnv("NEXT_PUBLIC_API_URL") ||
       readEnv("EXPO_PUBLIC_API_URL") ||
       readEnv("API_URL") ||
       DEFAULT_API_BASE_URL
   );
+
+  // baseUrl이 비면 모든 요청이 현재 오리진 상대경로로 나가 조용히 404가 된다.
+  // 기존 동작은 유지하고(throw 금지) 서버·클라이언트 양쪽에서 한 번만 경고한다.
+  if (!baseUrl && !warnedEmptyBaseUrl) {
+    warnedEmptyBaseUrl = true;
+    console.warn(
+      "[@repo/core] API baseUrl이 비어 있습니다. NEXT_PUBLIC_API_URL(웹) 또는 EXPO_PUBLIC_API_URL(모바일)을 설정하세요. " +
+        "설정 전까지 모든 API 요청이 상대경로로 나갑니다."
+    );
+  }
+
+  return baseUrl;
 };
 
 const resolveAccessToken = async (): Promise<string | null> => {

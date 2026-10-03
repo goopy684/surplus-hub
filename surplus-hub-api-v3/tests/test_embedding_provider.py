@@ -55,33 +55,29 @@ def _make_vector(dim: int = 1024) -> List[float]:
 class TestProviderSelection:
     def test_local_provider_selected_when_app_env_local(self):
         """APP_ENV=local -> LocalEmbeddingProvider."""
-        with patch("app.ai.clients.embeddings.settings") as mock_settings:
-            mock_settings.use_local_embedding = True
-            mock_settings.APP_ENV = "local"
+        with patch.object(embeddings_module.settings, "AI_PROVIDER", "local"), \
+             patch.object(embeddings_module.settings, "APP_ENV", "local"):
             provider = _get_provider()
         assert isinstance(provider, LocalEmbeddingProvider)
 
     def test_openai_provider_selected_when_app_env_dev(self):
         """APP_ENV=dev -> OpenAIEmbeddingProvider."""
-        with patch("app.ai.clients.embeddings.settings") as mock_settings:
-            mock_settings.use_local_embedding = False
-            mock_settings.APP_ENV = "dev"
+        with patch.object(embeddings_module.settings, "AI_PROVIDER", "openai"), \
+             patch.object(embeddings_module.settings, "APP_ENV", "dev"):
             provider = _get_provider()
         assert isinstance(provider, OpenAIEmbeddingProvider)
 
     def test_openai_provider_selected_when_app_env_stage(self):
         """APP_ENV=stage -> OpenAIEmbeddingProvider."""
-        with patch("app.ai.clients.embeddings.settings") as mock_settings:
-            mock_settings.use_local_embedding = False
-            mock_settings.APP_ENV = "stage"
+        with patch.object(embeddings_module.settings, "AI_PROVIDER", "openai"), \
+             patch.object(embeddings_module.settings, "APP_ENV", "stage"):
             provider = _get_provider()
         assert isinstance(provider, OpenAIEmbeddingProvider)
 
     def test_openai_provider_selected_when_app_env_prod(self):
         """APP_ENV=prod -> OpenAIEmbeddingProvider."""
-        with patch("app.ai.clients.embeddings.settings") as mock_settings:
-            mock_settings.use_local_embedding = False
-            mock_settings.APP_ENV = "prod"
+        with patch.object(embeddings_module.settings, "AI_PROVIDER", "openai"), \
+             patch.object(embeddings_module.settings, "APP_ENV", "prod"):
             provider = _get_provider()
         assert isinstance(provider, OpenAIEmbeddingProvider)
 
@@ -94,11 +90,13 @@ class TestEmbeddingDimension:
     def test_local_embedding_dimension(self):
         """LocalEmbeddingProvider.generate() returns 1024-dim vector."""
         provider = LocalEmbeddingProvider()
-        mock_model = MagicMock()
-        mock_vector = MagicMock()
-        mock_vector.tolist.return_value = _make_vector(1024)
-        mock_model.encode.return_value = mock_vector
-        provider._model = mock_model  # skip _load_model
+        mock_client = MagicMock()
+        mock_item = MagicMock()
+        mock_item.embedding = _make_vector(1024)
+        mock_resp = MagicMock()
+        mock_resp.data = [mock_item]
+        mock_client.embeddings.create.return_value = mock_resp
+        provider._client = mock_client
 
         result = provider.generate("test text")
         assert len(result) == 1024
@@ -106,14 +104,12 @@ class TestEmbeddingDimension:
     def test_local_embedding_batch_dimension(self):
         """LocalEmbeddingProvider.generate_batch() each vector is 1024-dim."""
         provider = LocalEmbeddingProvider()
-        mock_model = MagicMock()
-
-        # encode returns list of mock numpy-array-like objects
-        mock_vectors = [MagicMock() for _ in range(3)]
-        for mv in mock_vectors:
-            mv.tolist.return_value = _make_vector(1024)
-        mock_model.encode.return_value = mock_vectors
-        provider._model = mock_model
+        mock_client = MagicMock()
+        mock_items = [MagicMock(index=i, embedding=_make_vector(1024)) for i in range(3)]
+        mock_resp = MagicMock()
+        mock_resp.data = mock_items
+        mock_client.embeddings.create.return_value = mock_resp
+        provider._client = mock_client
 
         results = provider.generate_batch(["a", "b", "c"])
         assert all(len(v) == 1024 for v in results)
@@ -134,17 +130,16 @@ class TestEmbeddingDimension:
 
     def test_generate_embedding_top_level_dimension(self):
         """generate_embedding() public API returns 1024-dim vector."""
-        with patch("app.ai.clients.embeddings.settings") as mock_settings:
-            mock_settings.use_local_embedding = True
-            mock_settings.APP_ENV = "local"
-            mock_settings.EMBEDDING_MODEL_NAME = "BAAI/bge-m3"
-
+        with patch.object(embeddings_module.settings, "AI_PROVIDER", "local"), \
+             patch.object(embeddings_module.settings, "APP_ENV", "local"):
             provider = LocalEmbeddingProvider()
-            mock_model = MagicMock()
-            mock_vector = MagicMock()
-            mock_vector.tolist.return_value = _make_vector(1024)
-            mock_model.encode.return_value = mock_vector
-            provider._model = mock_model
+            mock_client = MagicMock()
+            mock_item = MagicMock()
+            mock_item.embedding = _make_vector(1024)
+            mock_resp = MagicMock()
+            mock_resp.data = [mock_item]
+            mock_client.embeddings.create.return_value = mock_resp
+            provider._client = mock_client
             embeddings_module._provider = provider
 
             result = generate_embedding("hello world")
@@ -235,12 +230,12 @@ class TestBatchProcessing:
     def test_batch_returns_correct_count_local(self):
         """LocalEmbeddingProvider.generate_batch returns one vector per input."""
         provider = LocalEmbeddingProvider()
-        mock_model = MagicMock()
-        mock_vectors = [MagicMock() for _ in range(5)]
-        for mv in mock_vectors:
-            mv.tolist.return_value = _make_vector(1024)
-        mock_model.encode.return_value = mock_vectors
-        provider._model = mock_model
+        mock_client = MagicMock()
+        mock_items = [MagicMock(index=i, embedding=_make_vector(1024)) for i in range(5)]
+        mock_resp = MagicMock()
+        mock_resp.data = mock_items
+        mock_client.embeddings.create.return_value = mock_resp
+        provider._client = mock_client
 
         results = provider.generate_batch(["t1", "t2", "t3", "t4", "t5"])
         assert len(results) == 5
@@ -258,10 +253,6 @@ class TestBatchProcessing:
     def test_batch_empty_input_local(self):
         """Empty list returns empty list for LocalEmbeddingProvider."""
         provider = LocalEmbeddingProvider()
-        mock_model = MagicMock()
-        mock_model.encode.return_value = []
-        provider._model = mock_model
-
         results = provider.generate_batch([])
         assert results == []
 
@@ -276,17 +267,15 @@ class TestBatchProcessing:
 
     def test_batch_top_level_api_local(self):
         """generate_embeddings_batch() public API returns correct count."""
-        with patch("app.ai.clients.embeddings.settings") as mock_settings:
-            mock_settings.use_local_embedding = True
-            mock_settings.APP_ENV = "local"
-
+        with patch.object(embeddings_module.settings, "AI_PROVIDER", "local"), \
+             patch.object(embeddings_module.settings, "APP_ENV", "local"):
             provider = LocalEmbeddingProvider()
-            mock_model = MagicMock()
-            mock_vectors = [MagicMock() for _ in range(3)]
-            for mv in mock_vectors:
-                mv.tolist.return_value = _make_vector(1024)
-            mock_model.encode.return_value = mock_vectors
-            provider._model = mock_model
+            mock_client = MagicMock()
+            mock_items = [MagicMock(index=i, embedding=_make_vector(1024)) for i in range(3)]
+            mock_resp = MagicMock()
+            mock_resp.data = mock_items
+            mock_client.embeddings.create.return_value = mock_resp
+            provider._client = mock_client
             embeddings_module._provider = provider
 
             results = generate_embeddings_batch(["a", "b", "c"])
@@ -301,10 +290,8 @@ class TestBatchProcessing:
 class TestSingletonPattern:
     def test_provider_singleton_local(self):
         """_get_provider() returns the same instance on subsequent calls."""
-        with patch("app.ai.clients.embeddings.settings") as mock_settings:
-            mock_settings.use_local_embedding = True
-            mock_settings.APP_ENV = "local"
-
+        with patch.object(embeddings_module.settings, "AI_PROVIDER", "local"), \
+             patch.object(embeddings_module.settings, "APP_ENV", "local"):
             first = _get_provider()
             second = _get_provider()
 
@@ -312,10 +299,8 @@ class TestSingletonPattern:
 
     def test_provider_singleton_openai(self):
         """Singleton holds for OpenAIEmbeddingProvider too."""
-        with patch("app.ai.clients.embeddings.settings") as mock_settings:
-            mock_settings.use_local_embedding = False
-            mock_settings.APP_ENV = "dev"
-
+        with patch.object(embeddings_module.settings, "AI_PROVIDER", "openai"), \
+             patch.object(embeddings_module.settings, "APP_ENV", "dev"):
             first = _get_provider()
             second = _get_provider()
 
@@ -323,10 +308,8 @@ class TestSingletonPattern:
 
     def test_singleton_reset_yields_new_instance(self):
         """After manual reset the next call creates a fresh instance."""
-        with patch("app.ai.clients.embeddings.settings") as mock_settings:
-            mock_settings.use_local_embedding = True
-            mock_settings.APP_ENV = "local"
-
+        with patch.object(embeddings_module.settings, "AI_PROVIDER", "local"), \
+             patch.object(embeddings_module.settings, "APP_ENV", "local"):
             first = _get_provider()
             _reset_provider()
             second = _get_provider()
@@ -345,10 +328,8 @@ class TestOpenAIErrorHandling:
         """OpenAIEmbeddingProvider._get_client() raises ValueError when no API key."""
         provider = OpenAIEmbeddingProvider()
 
-        with patch("app.ai.clients.embeddings.settings") as mock_settings:
-            mock_settings.OPENAI_API_KEY = None
-            mock_settings.APP_ENV = "dev"
-
+        with patch.object(embeddings_module.settings, "OPENAI_API_KEY", None), \
+             patch.object(embeddings_module.settings, "APP_ENV", "dev"):
             with pytest.raises(ValueError, match="OPENAI_API_KEY is required"):
                 provider._get_client()
 
@@ -358,7 +339,13 @@ class TestOpenAIErrorHandling:
             warnings.simplefilter("always")
             # Import Settings directly to trigger __init__ with custom values
             from app.core.config import Settings
-            Settings(APP_ENV="dev", OPENAI_API_KEY=None)
+            Settings(
+                APP_ENV="dev",
+                AI_PROVIDER="openai",
+                OPENAI_API_KEY=None,
+                SECRET_KEY="a" * 32,
+                CORS_ORIGINS=["https://example.com"],
+            )
 
         warning_messages = [str(w.message) for w in caught]
         assert any("OPENAI_API_KEY" in msg for msg in warning_messages)

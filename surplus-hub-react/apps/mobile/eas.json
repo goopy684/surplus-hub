@@ -1,0 +1,38 @@
+{
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://localhost:8000"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "APS_ENVIRONMENT": "production",
+        "EXPO_PUBLIC_API_URL": "https://surplus-hub-api-v3-production.up.railway.app",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://4799ec7f69c3e241905a0744e6ab3461@o4511681348567040.ingest.us.sentry.io/4511794439520256",
+        "SENTRY_ORG": "edb29006711b",
+        "SENTRY_PROJECT": "surplus-rn"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "APS_ENVIRONMENT": "production",
+        "EXPO_PUBLIC_API_URL": "https://surplus-hub-api-v3-production.up.railway.app",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://4799ec7f69c3e241905a0744e6ab3461@o4511681348567040.ingest.us.sentry.io/4511794439520256",
+        "SENTRY_ORG": "edb29006711b",
+        "SENTRY_PROJECT": "surplus-rn"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

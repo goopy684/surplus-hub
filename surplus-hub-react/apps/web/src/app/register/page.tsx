@@ -7,17 +7,61 @@ import { AuthGate } from "../../components/AuthGate";
 
 type Step = "upload" | "ai-analyzing" | "ai-result";
 
+// 모노라인 아이콘 (viewBox 0 0 24 24, stroke currentColor 1.8, fill none)
+const ICON_PROPS = {
+  xmlns: "http://www.w3.org/2000/svg",
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.8,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  className: "w-5 h-5",
+};
+
+// 카테고리 아이콘 (모노라인 SVG)
+const CategoryIcons = {
+  조명: (
+    <svg {...ICON_PROPS}>
+      <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.5.4.8 1 .8 1.6V16h5.6v-.6c0-.6.3-1.2.8-1.6A6 6 0 0 0 12 3Z" />
+    </svg>
+  ),
+  "문/창호": (
+    <svg {...ICON_PROPS}>
+      <path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17M4 21h16M15 12h.01" />
+    </svg>
+  ),
+  건축자재: (
+    <svg {...ICON_PROPS}>
+      <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
+      <rect x="3" y="3" width="18" height="18" rx="1" />
+    </svg>
+  ),
+  전기: (
+    <svg {...ICON_PROPS}>
+      <path d="M13 3 4 14h7l-1 7 9-11h-7l1-7Z" />
+    </svg>
+  ),
+  설비: (
+    <svg {...ICON_PROPS}>
+      <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4l-6 6 2.6 2.6 6-6a4 4 0 0 0 5.4-5.4l-2.4 2.4-2.6-.7-.7-2.6 2.4-2.4Z" />
+    </svg>
+  ),
+  기타: (
+    <svg {...ICON_PROPS}>
+      <path d="M12 3 3 7.5v9L12 21l9-4.5v-9L12 3ZM3 7.5 12 12m0 0 9-4.5M12 12v9" />
+    </svg>
+  ),
+} as const;
+
+// 업종별 카테고리 — 백엔드 seed_categories / 홈 피드와 동기화
 const CATEGORIES = [
-  { emoji: "🔩", label: "볼트/너트" },
-  { emoji: "🪵", label: "목재" },
-  { emoji: "🔧", label: "공구" },
-  { emoji: "⚡", label: "전기자재" },
+  { emoji: "💡", label: "조명" },
+  { emoji: "🚪", label: "문/창호" },
   { emoji: "🧱", label: "건축자재" },
-  { emoji: "🛢️", label: "배관" },
-  { emoji: "🏗️", label: "철강" },
-  { emoji: "📦", label: "포장재" },
-  { emoji: "🧪", label: "화학소재" },
-  { emoji: "⚙️", label: "기타" },
+  { emoji: "⚡", label: "전기" },
+  { emoji: "🔧", label: "설비" },
+  { emoji: "📦", label: "기타" },
 ] as const;
 
 const TRADE_METHODS = ["직거래", "택배가능", "둘 다"] as const;
@@ -222,7 +266,7 @@ function RegisterContent() {
 
               {images.length === 0 ? (
                 // Empty state
-                <label className="border-2 border-dashed border-border rounded-xl h-48 flex flex-col items-center justify-center cursor-pointer hover:bg-accent/50 transition-colors">
+                <label className="border-2 border-dashed border-border rounded-thumb h-48 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors">
                   <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
                   <div className="w-16 h-16 rounded-full bg-accent flex items-center justify-center mb-3">
                     <svg
@@ -246,7 +290,7 @@ function RegisterContent() {
               ) : (
                 // Image grid
                 <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                  <label className="flex-shrink-0 w-24 h-24 border-2 border-dashed border-border rounded-lg flex flex-col items-center justify-center bg-secondary cursor-pointer hover:bg-accent/50 transition-colors">
+                  <label className="flex-shrink-0 w-24 h-24 border-2 border-dashed border-border rounded-thumb flex flex-col items-center justify-center bg-card cursor-pointer hover:bg-muted transition-colors">
                     <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -267,15 +311,15 @@ function RegisterContent() {
                         d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z"
                       />
                     </svg>
-                    <span className="text-[10px] text-muted-foreground">추가</span>
+                    <span className="text-xs text-muted-foreground">추가</span>
                   </label>
                   {images.map((img, idx) => (
                     <div
                       key={idx}
-                      className="flex-shrink-0 w-24 h-24 relative rounded-lg overflow-hidden border border-border"
+                      className="flex-shrink-0 w-24 h-24 relative rounded-thumb overflow-hidden border border-border"
                     >
                       {idx === 0 && (
-                        <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded font-bold z-10">
+                        <div className="absolute top-1 left-1 bg-black/55 text-white text-xs px-1.5 py-0.5 rounded-chip font-bold z-10">
                           대표
                         </div>
                       )}
@@ -305,7 +349,7 @@ function RegisterContent() {
 
             {/* AI Error */}
             {aiError && (
-              <div className="mb-4 rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive whitespace-pre-wrap">
+              <div className="mb-4 rounded-thumb bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive whitespace-pre-wrap">
                 <div className="font-semibold mb-1">{aiError.split("\n")[0]}</div>
                 {aiError.includes("\n") && (
                   <details className="mt-1">
@@ -319,7 +363,7 @@ function RegisterContent() {
             {/* AI Smart Registration CTA */}
             {images.length > 0 && (
               <div className="space-y-3 mb-6">
-                <div className="bg-accent rounded-xl p-4 border border-accent">
+                <div className="bg-accent rounded-thumb p-4 border border-accent">
                   <div className="flex items-start gap-3 mb-3">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -347,11 +391,11 @@ function RegisterContent() {
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
                     placeholder="키워드 입력 (선택사항)"
-                    className="w-full p-2.5 border border-border rounded-lg text-sm mb-3 bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                    className="w-full p-2.5 border border-border rounded-field text-sm mb-3 bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                   />
                   <button
                     onClick={handleAIAnalysis}
-                    className="w-full fab-gradient text-white rounded-xl py-3 font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                    className="w-full bg-primary text-primary-foreground rounded-btn py-3 font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -431,7 +475,7 @@ function RegisterContent() {
         {step === "ai-result" && (
           <>
             {/* AI Confidence Badge */}
-            <div className="bg-accent rounded-lg p-3 mb-6 flex items-start gap-2">
+            <div className="bg-accent rounded-thumb p-3 mb-6 flex items-start gap-2">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -455,7 +499,7 @@ function RegisterContent() {
             <div className="space-y-5">
               {/* Title */}
               <div>
-                <label className="flex items-center gap-2 text-sm font-bold text-foreground mb-2">
+                <label htmlFor="reg-title" className="flex items-center gap-2 text-sm font-bold text-foreground mb-2">
                   제목
                   <span className="inline-flex items-center gap-1 text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded font-normal">
                     <svg
@@ -472,16 +516,17 @@ function RegisterContent() {
                   </span>
                 </label>
                 <input
+                  id="reg-title"
                   type="text"
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="w-full p-3 border border-border rounded-lg text-sm bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  className="w-full p-3 border border-border rounded-field text-base bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                 />
               </div>
 
               {/* Category */}
               <div>
-                <label className="flex items-center gap-2 text-sm font-bold text-foreground mb-2">
+                <span id="reg-category-label" className="flex items-center gap-2 text-sm font-bold text-foreground mb-2">
                   카테고리
                   <span className="inline-flex items-center gap-1 text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded font-normal">
                     <svg
@@ -496,20 +541,21 @@ function RegisterContent() {
                     </svg>
                     AI
                   </span>
-                </label>
-                <div className="flex flex-wrap gap-2">
+                </span>
+                <div role="group" aria-labelledby="reg-category-label" className="flex flex-wrap gap-2">
                   {CATEGORIES.map((cat) => {
                     const isSelected = form.category === `${cat.emoji} ${cat.label}`;
                     return (
                       <button
                         key={cat.label}
                         onClick={() => setForm({ ...form, category: `${cat.emoji} ${cat.label}` })}
-                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isSelected
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-secondary text-foreground hover:bg-accent"
+                        className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-chip text-sm font-medium transition-colors ${isSelected
+                            ? "bg-accent text-accent-foreground border border-accent"
+                            : "border border-border bg-card text-foreground hover:bg-muted"
                           }`}
                       >
-                        {cat.emoji} {cat.label}
+                        <span className="w-4 h-4 [&>svg]:w-4 [&>svg]:h-4">{CategoryIcons[cat.label]}</span>
+                        {cat.label}
                       </button>
                     );
                   })}
@@ -518,11 +564,12 @@ function RegisterContent() {
 
               {/* Condition Grade */}
               <div>
-                <label className="block text-sm font-bold text-foreground mb-2">상태 등급</label>
+                <label htmlFor="reg-condition" className="block text-sm font-bold text-foreground mb-2">상태 등급</label>
                 <select
+                  id="reg-condition"
                   value={form.conditionGrade}
                   onChange={(e) => setForm({ ...form, conditionGrade: e.target.value })}
-                  className="w-full p-3 border border-border rounded-lg text-sm bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  className="w-full p-3 border border-border rounded-field text-base bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                 >
                   <option value="">선택 안 함</option>
                   {CONDITION_GRADES.map((grade) => (
@@ -535,7 +582,7 @@ function RegisterContent() {
 
               {/* Description */}
               <div>
-                <label className="flex items-center gap-2 text-sm font-bold text-foreground mb-2">
+                <label htmlFor="reg-description" className="flex items-center gap-2 text-sm font-bold text-foreground mb-2">
                   상세 설명
                   <span className="inline-flex items-center gap-1 text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded font-normal">
                     <svg
@@ -552,15 +599,16 @@ function RegisterContent() {
                   </span>
                 </label>
                 <textarea
+                  id="reg-description"
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="w-full p-3 border border-border rounded-lg text-sm h-28 resize-none bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  className="w-full p-3 border border-border rounded-field text-base leading-relaxed h-28 resize-none bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                 />
               </div>
 
               {/* Price */}
               <div>
-                <label className="flex items-center gap-2 text-sm font-bold text-foreground mb-2">
+                <label htmlFor="reg-price" className="flex items-center gap-2 text-sm font-bold text-foreground mb-2">
                   가격
                   <span className="inline-flex items-center gap-1 text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded font-normal">
                     <svg
@@ -578,13 +626,14 @@ function RegisterContent() {
                 </label>
                 <div className="relative">
                   <input
+                    id="reg-price"
                     type="text"
                     value={form.price}
                     inputMode="numeric"
                     onChange={(e) => setForm({ ...form, price: e.target.value.replace(/\D/g, "") })}
-                    className="w-full p-3 border border-border rounded-lg text-sm bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none pr-12"
+                    className="w-full p-3 border border-border rounded-field text-lg font-bold text-foreground tabular bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none pr-12"
                   />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-bold">
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
                     원
                   </span>
                 </div>
@@ -592,15 +641,15 @@ function RegisterContent() {
 
               {/* AI Market Price Analysis */}
               {marketPrice && marketPrice.max > 0 && (
-              <div className="bg-secondary rounded-lg p-4">
+              <div className="bg-card border border-border rounded-thumb card-shadow p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
-                    strokeWidth={1.5}
+                    strokeWidth={1.8}
                     stroke="currentColor"
-                    className="w-5 h-5 text-info"
+                    className="w-5 h-5 text-muted-foreground"
                   >
                     <path
                       strokeLinecap="round"
@@ -608,14 +657,14 @@ function RegisterContent() {
                       d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"
                     />
                   </svg>
-                  <h4 className="font-bold text-sm">AI 시세 분석</h4>
+                  <h4 className="font-bold text-sm text-foreground">AI 시세 분석</h4>
                 </div>
 
                 {/* Progress bar */}
                 <div className="mb-3">
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-info via-success to-warning"
+                      className="h-full bg-olive-tx"
                       style={{
                         width: `${Math.min(100, Math.max(0, ((Number(form.price) - marketPrice.min) / (marketPrice.max - marketPrice.min)) * 100))}%`,
                       }}
@@ -627,26 +676,29 @@ function RegisterContent() {
                 <div className="flex justify-between text-xs mb-2">
                   <div className="text-center">
                     <div className="text-muted-foreground">최저가</div>
-                    <div className="font-bold text-foreground">
-                      {marketPrice.min.toLocaleString()}원
+                    <div className="font-bold text-foreground tabular">
+                      {marketPrice.min.toLocaleString()}
+                      <span className="text-muted-foreground font-medium">원</span>
                     </div>
                   </div>
                   <div className="text-center">
                     <div className="text-muted-foreground">적정가</div>
-                    <div className="font-bold text-success">
-                      {marketPrice.ideal.toLocaleString()}원
+                    <div className="font-bold text-olive-tx tabular">
+                      {marketPrice.ideal.toLocaleString()}
+                      <span className="text-muted-foreground font-medium">원</span>
                     </div>
                   </div>
                   <div className="text-center">
                     <div className="text-muted-foreground">최고가</div>
-                    <div className="font-bold text-foreground">
-                      {marketPrice.max.toLocaleString()}원
+                    <div className="font-bold text-foreground tabular">
+                      {marketPrice.max.toLocaleString()}
+                      <span className="text-muted-foreground font-medium">원</span>
                     </div>
                   </div>
                 </div>
 
                 {marketPrice.recentTrades > 0 && (
-                <p className="text-xs text-muted-foreground text-center">
+                <p className="text-xs text-muted-foreground text-center tabular">
                   최근 30일 유사 거래 {marketPrice.recentTrades}건 기준
                 </p>
                 )}
@@ -655,17 +707,17 @@ function RegisterContent() {
 
               {/* Trade Method */}
               <div>
-                <label className="block text-sm font-bold text-foreground mb-2">거래 방식</label>
-                <div className="flex gap-2">
+                <span id="reg-trade-label" className="block text-sm font-bold text-foreground mb-2">거래 방식</span>
+                <div role="group" aria-labelledby="reg-trade-label" className="flex gap-2">
                   {TRADE_METHODS.map((method) => {
                     const isSelected = form.tradeMethod === method;
                     return (
                       <button
                         key={method}
                         onClick={() => setForm({ ...form, tradeMethod: method })}
-                        className={`flex-1 py-3 rounded-lg text-sm font-medium border transition-colors ${isSelected
-                            ? "border-primary bg-primary/5 text-primary"
-                            : "border-border bg-card text-foreground hover:bg-accent"
+                        className={`flex-1 py-3 rounded-field text-sm font-medium border transition-colors ${isSelected
+                            ? "border-accent bg-accent text-accent-foreground"
+                            : "border-border bg-card text-foreground hover:bg-muted"
                           }`}
                       >
                         {method}
@@ -676,11 +728,12 @@ function RegisterContent() {
               </div>
               {/* Location */}
               <div>
-                <label className="block text-sm font-bold text-foreground mb-2">위치 (시도)</label>
+                <label htmlFor="reg-location" className="block text-sm font-bold text-foreground mb-2">위치 (시도)</label>
                 <select
+                  id="reg-location"
                   value={form.location}
                   onChange={(e) => setForm({ ...form, location: e.target.value })}
-                  className="w-full p-3 border border-border rounded-lg text-sm bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  className="w-full p-3 border border-border rounded-field text-base bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                 >
                   <option value="">선택 안 함</option>
                   {LOCATIONS.map((loc) => (
@@ -690,19 +743,15 @@ function RegisterContent() {
                   ))}
                 </select>
               </div>
-            </div>
 
-            {/* Submit Button */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-card border-t border-border pb-safe z-50">
-              <div className="max-w-lg mx-auto">
-                <button
-                  onClick={handleSubmit}
-                  disabled={isSubmitting || !form.title.trim() || !form.price}
-                  className="w-full fab-gradient text-white rounded-xl py-4 font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
-                >
-                  {isSubmitting ? "등록 중..." : "등록하기"}
-                </button>
-              </div>
+              {/* Submit Button — 폼 흐름 안에 두어 항상 스크롤로 도달·노출 */}
+              <button
+                onClick={handleSubmit}
+                disabled={isSubmitting || !form.title.trim() || !form.price}
+                className="w-full bg-primary text-primary-foreground rounded-btn py-4 font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
+              >
+                {isSubmitting ? "등록 중..." : "등록하기"}
+              </button>
             </div>
           </>
         )}

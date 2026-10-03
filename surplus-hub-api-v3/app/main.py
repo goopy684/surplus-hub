@@ -71,7 +71,7 @@ app.add_exception_handler(AppException, app_exception_handler)
 app.add_exception_handler(Exception, generic_exception_handler)
 
 # Admin Interface (with authentication)
-admin = Admin(app, engine, authentication_backend=admin_auth)
+admin = Admin(app, engine, authentication_backend=admin_auth, title="잉여자재 관리자")
 admin.add_view(UserAdmin)
 admin.add_view(MaterialAdmin)
 admin.add_view(ChatRoomAdmin)

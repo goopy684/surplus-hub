@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCommunityPosts } from "@repo/core";
 import { useMemo, useState } from "react";
@@ -23,39 +24,14 @@ const formatTimeAgo = (value: string): string => {
   return new Date(value).toLocaleDateString();
 };
 
-const getCategoryColor = (category: string) => {
-  switch (category) {
-    case "QnA":
-      return {
-        bg: "bg-purple-50",
-        text: "text-purple-700",
-        border: "border-purple-200",
-      };
-    case "노하우":
-      return {
-        bg: "bg-blue-50",
-        text: "text-blue-700",
-        border: "border-blue-200",
-      };
-    case "안전":
-      return {
-        bg: "bg-orange-50",
-        text: "text-orange-700",
-        border: "border-orange-200",
-      };
-    case "정보":
-      return {
-        bg: "bg-yellow-50",
-        text: "text-yellow-700",
-        border: "border-yellow-200",
-      };
-    default:
-      return {
-        bg: "bg-muted",
-        text: "text-muted-foreground",
-        border: "border-border",
-      };
-  }
+const getCategoryColor = (_category: string) => {
+  // 카테고리는 등급이 아니므로 무채색(뉴트럴) 토큰으로 통일한다.
+  // 악센트(테라코타)는 화면당 주요 액션 1곳에만 — 일반 배지에 색을 입히지 않는다.
+  return {
+    bg: "bg-card",
+    text: "text-muted-foreground",
+    border: "border-border",
+  };
 };
 
 export default function CommunityPage() {
@@ -89,10 +65,10 @@ export default function CommunityPage() {
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`whitespace-nowrap rounded-full px-5 py-2 text-sm font-medium transition-all ${
+              className={`whitespace-nowrap rounded-full px-5 py-2 text-sm font-medium transition-colors ${
                 selectedCategory === category
-                  ? "bg-primary text-white shadow-md"
-                  : "border border-border bg-secondary text-muted-foreground hover:bg-accent"
+                  ? "bg-accent font-bold text-accent-foreground"
+                  : "border border-border bg-card text-foreground hover:bg-muted"
               }`}
             >
               {category}
@@ -106,7 +82,7 @@ export default function CommunityPage() {
       ) : null}
 
       {error ? (
-        <div className="p-8 text-center text-sm text-red-500">게시글을 불러오지 못했습니다.</div>
+        <div className="p-8 text-center text-sm text-destructive">게시글을 불러오지 못했습니다.</div>
       ) : null}
 
       {!isLoading && !error ? (
@@ -115,10 +91,10 @@ export default function CommunityPage() {
             const catColors = getCategoryColor(post.category);
 
             return (
-              <div
+              <Link
                 key={post.id}
-                onClick={() => router.push(`/community/${post.id}`)}
-                className="cursor-pointer border-b border-border bg-card p-4 transition-shadow hover:shadow-md active:bg-muted/50"
+                href={`/community/${post.id}`}
+                className="block cursor-pointer border-b border-border bg-card p-4 transition-colors active:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <div className="mb-2 flex items-center justify-between">
                   <div
@@ -129,8 +105,8 @@ export default function CommunityPage() {
                   <span className="text-xs text-muted-foreground">{formatTimeAgo(post.createdAt)}</span>
                 </div>
 
-                <h3 className="mb-1 text-sm font-bold text-foreground">{post.title}</h3>
-                <p className="mb-2 line-clamp-2 text-xs text-muted-foreground">{post.content}</p>
+                <h3 className="mb-1 text-base font-bold text-foreground">{post.title}</h3>
+                <p className="mb-2 line-clamp-2 text-sm text-muted-foreground">{post.content}</p>
 
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>{post.authorName}</span>
@@ -140,7 +116,7 @@ export default function CommunityPage() {
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
-                        strokeWidth={1.5}
+                        strokeWidth={1.8}
                         stroke="currentColor"
                         className="h-4 w-4"
                       >
@@ -157,7 +133,7 @@ export default function CommunityPage() {
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
-                        strokeWidth={1.5}
+                        strokeWidth={1.8}
                         stroke="currentColor"
                         className="h-4 w-4"
                       >
@@ -176,12 +152,12 @@ export default function CommunityPage() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             );
           })}
 
           {posts.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+            <div className="rounded-thumb border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
               조건에 맞는 게시글이 없습니다.
             </div>
           ) : null}
@@ -189,16 +165,23 @@ export default function CommunityPage() {
       ) : null}
 
       <button
+        type="button"
+        aria-label="글쓰기"
         onClick={() => router.push("/community/write")}
-        className="fixed bottom-24 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-b from-primary to-[#e65c00] text-white shadow-lg shadow-primary/30 hover:shadow-xl"
+        className="fixed bottom-24 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-fab focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
-          fill="currentColor"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.8}
+          strokeLinecap="round"
+          strokeLinejoin="round"
           className="h-6 w-6"
         >
-          <path d="M21.731 2.269a2.625 2.625 0 00-3.712 0l-1.157 1.157 3.712 3.712 1.157-1.157a2.625 2.625 0 000-3.712zM19.513 8.199l-3.712-3.712-12.15 12.15a5.25 5.25 0 00-1.32 2.214l-.8 2.685a.75.75 0 00.933.933l2.685-.8a5.25 5.25 0 002.214-1.32L19.513 8.2z" />
+          <path d="M16.5 3.75 20.25 7.5 7.5 20.25 3.75 20.25 3.75 16.5 16.5 3.75Z" />
+          <path d="M14.25 6 18 9.75" />
         </svg>
       </button>
     </div>

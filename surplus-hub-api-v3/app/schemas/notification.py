@@ -1,5 +1,5 @@
-from typing import Optional, List
-from pydantic import BaseModel, Field, AliasChoices
+from typing import Literal, Optional, List
+from pydantic import BaseModel, Field, AliasChoices, field_validator
 from datetime import datetime
 
 
@@ -35,7 +35,7 @@ class DeviceTokenCreate(BaseModel):
         ...,
         validation_alias=AliasChoices("token", "device_token", "deviceToken"),
     )
-    platform: str = "ios"
+    platform: Literal["ios", "android", "web", "expo"] = "ios"
 
     model_config = {"populate_by_name": True}
 
@@ -47,6 +47,36 @@ class DeviceTokenResponse(BaseModel):
     is_active: bool = Field(True, alias="isActive")
 
     model_config = {"populate_by_name": True, "from_attributes": True}
+
+
+class NotificationPreferences(BaseModel):
+    push_enabled: bool = Field(True, alias="pushEnabled")
+    push_chat: bool = Field(True, alias="pushChat")
+    push_material: bool = Field(True, alias="pushMaterial")
+    push_community: bool = Field(True, alias="pushCommunity")
+    push_marketing: bool = Field(False, alias="pushMarketing")
+
+    model_config = {"populate_by_name": True, "from_attributes": True}
+
+
+class NotificationPreferencesUpdate(BaseModel):
+    # 보낸 필드만 적용하는 PATCH 시맨틱
+    push_enabled: Optional[bool] = Field(None, alias="pushEnabled")
+    push_chat: Optional[bool] = Field(None, alias="pushChat")
+    push_material: Optional[bool] = Field(None, alias="pushMaterial")
+    push_community: Optional[bool] = Field(None, alias="pushCommunity")
+    push_marketing: Optional[bool] = Field(None, alias="pushMarketing")
+
+    model_config = {"populate_by_name": True}
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def _reject_explicit_null(cls, v):
+        # 컬럼은 nullable=False다. 보내지 않은 필드는 검증을 타지 않으므로 PATCH
+        # 시맨틱은 그대로고, 명시적 null만 422로 막는다.
+        if v is None:
+            raise ValueError("must be true or false, not null")
+        return v
 
 
 class UnreadCountResponse(BaseModel):

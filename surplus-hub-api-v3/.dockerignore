@@ -1,0 +1,34 @@
+# --- secrets & local env (never bake into the image) ---
+.env
+.env.*
+
+# --- VCS / IDE / OS ---
+.git
+.gitignore
+.github
+.idea
+.vscode
+.DS_Store
+
+# --- python caches & local virtualenv ---
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.mypy_cache
+.ruff_cache
+
+# --- dev-only / not needed at runtime ---
+docker-compose.yml
+*.md
+docs
+create_sample_data.py
+create_test_user.py
+scripts
+static/uploads
+
+# NOTE: alembic/, alembic.ini, app/, gunicorn.conf.py, requirements.txt and
+# docker-entrypoint.sh are intentionally NOT ignored — the entrypoint needs
+# them to run `alembic upgrade head` and start gunicorn.

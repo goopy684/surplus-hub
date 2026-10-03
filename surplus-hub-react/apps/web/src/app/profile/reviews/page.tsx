@@ -21,7 +21,7 @@ const StarRating = ({ rating }: { rating: number }) => {
           fill={star <= rating ? "currentColor" : "none"}
           stroke="currentColor"
           strokeWidth={1.5}
-          className={`h-4 w-4 ${star <= rating ? "text-yellow-400" : "text-muted-foreground/30"}`}
+          className={`h-4 w-4 ${star <= rating ? "text-olive-tx" : "text-border"}`}
         >
           <path
             strokeLinecap="round"
@@ -65,16 +65,16 @@ function ReviewsContent() {
       ) : null}
 
       {error ? (
-        <div className="p-8 text-center text-sm text-red-500">리뷰를 불러오지 못했습니다.</div>
+        <div className="p-8 text-center text-sm text-destructive">리뷰를 불러오지 못했습니다.</div>
       ) : null}
 
       {!isLoading && !error ? (
         <>
           {reviews.length > 0 ? (
-            <div className="mx-4 mt-4 mb-3 rounded-xl border border-border bg-card p-4">
+            <div className="card-shadow mx-4 mt-4 mb-3 rounded-thumb border border-border bg-card p-4">
               <div className="flex items-center gap-3">
                 <div className="flex flex-col items-center">
-                  <span className="text-3xl font-bold text-foreground">{averageRating.toFixed(1)}</span>
+                  <span className="tabular text-3xl font-bold text-foreground">{averageRating.toFixed(1)}</span>
                   <StarRating rating={Math.round(averageRating)} />
                   <span className="mt-1 text-xs text-muted-foreground">총 {reviews.length}개</span>
                 </div>
@@ -84,14 +84,14 @@ function ReviewsContent() {
                     const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
                     return (
                       <div key={star} className="flex items-center gap-2">
-                        <span className="w-3 text-right text-xs text-muted-foreground">{star}</span>
+                        <span className="tabular w-3 text-right text-xs text-muted-foreground">{star}</span>
                         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                           <div
-                            className="h-full rounded-full bg-yellow-400 transition-all"
+                            className="h-full rounded-full bg-olive-tx transition-all"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
-                        <span className="w-4 text-xs text-muted-foreground">{count}</span>
+                        <span className="tabular w-4 text-xs text-muted-foreground">{count}</span>
                       </div>
                     );
                   })}
@@ -105,8 +105,8 @@ function ReviewsContent() {
               <div key={review.id} className="bg-card px-4 py-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                      <span className="text-sm font-bold text-primary">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                      <span className="text-sm font-bold text-foreground">
                         {(review.reviewerName || "?").charAt(0)}
                       </span>
                     </div>

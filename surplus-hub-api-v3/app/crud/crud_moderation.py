@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.models.moderation import Report, UserSanction, AdminNote, BannedWord
 from app.models.user import User
 from app.models.transaction import Transaction
+from app.models.material import Material
 from app.schemas.moderation import (
     ReportCreate,
     SanctionCreate,
@@ -116,6 +117,14 @@ class CRUDModeration:
             for txn in active_transactions:
                 txn.status = "CANCELLED"
                 db.add(txn)
+                # H10: release the material the cancelled transaction had locked,
+                # otherwise a RESERVED listing stays dead stock forever.
+                material = (
+                    db.query(Material).filter(Material.id == txn.material_id).first()
+                )
+                if material and material.status == "RESERVED":
+                    material.status = "ACTIVE"
+                    db.add(material)
 
         db.commit()
         db.refresh(sanction)

@@ -1,76 +1,94 @@
+/* Hallmark · genre: editorial · macrostructure: Catalogue index-rail (app feed) · theme: 1a brand system · design-system: design.md · designed-as-app
+ * pre-emit critique: P4 H4 E4 S5 R5 V4 · honest: pass (46) · chrome: pass (47) · tokens: pass (48) · responsive: pass (49) · icons: pass (30) · mobile: pass (34, 49, 50–57)
+ * contrast: pass w/ flag — gate 40 open on white-on-#ed701d primary buttons (~2.8:1), pre-existing brand-wide accent, owner decision required */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Surplus Hub Design System v3 — docs/DESIGN_SYSTEM.md */
 @layer base {
   :root {
-    --primary: #2563EB;
+    --primary: #ed701d;          /* 1a 시안 orange */
     --primary-foreground: #ffffff;
-    --background: #f9f7f6;
-    --foreground: #151c28;
-    --card: #ffffff;
+    --background: #f9f7f6;        /* paper (시안 배경) */
+    --foreground: #151c28;        /* ink (시안) */
+    --card: #FFFFFF;             /* surface */
     --card-foreground: #151c28;
-    --muted: #f1f0ee;
-    --muted-foreground: #6a7181;
-    --accent: #EFF6FF;
-    --accent-foreground: #1D4ED8;
-    --secondary: #eeeff2;
+    --muted: #f1f0ee;           /* field (시안 썸네일/필드) */
+    --muted-foreground: #6a7181; /* ink-2 (시안 sub) */
+    --accent: #fdf0e7;          /* accent-soft (시안 soft) */
+    --accent-foreground: #a54a0d; /* 시안 primary-text */
+    --secondary: #f1f0ee;
     --secondary-foreground: #151c28;
-    --border: #e2e4e9;
+    --border: #e2e4e9;          /* line (시안) */
     --input: #e2e4e9;
-    --ring: #2563EB;
-    --destructive: #dc2828;
-    --success: #21c45d;
-    --warning: #f59f0a;
-    --info: #1485f5;
-    --condition-good: #34C759;
-    --condition-fair: #FF9500;
-    --condition-poor: #FF3B30;
+    --ring: #ed701d;
+    --destructive: #C0492B;
+    --success: #3F5A29;          /* olive */
+    --warning: #B8761F;
+    --info: #6a7181;
+    /* 등급(상/중/하) — A급 올리브, 그 외 톤다운 */
+    --condition-good: #3F5A29;
+    --condition-fair: #B8761F;
+    --condition-poor: #C0492B;
+
+    /* design-system named tokens (1a 시안) */
+    --ink: #151c28;
+    --ink-2: #6a7181;
+    --ink-3: #8C8275;
+    --paper: #f9f7f6;
+    --surface: #FFFFFF;
+    --field: #f1f0ee;
+    --line: #e2e4e9;
+    --line-2: #EBE3D8;
+    --olive-tx: #3F5A29;
+    --olive-bg: #EFF3E6;
+    --olive-bd: #D2DCBE;
+    --accent-soft: #fdf0e7;
   }
 
   * {
     border-color: var(--border);
   }
 
+  /* clip(≠hidden): sticky/fixed 유지하면서 가로 스크롤 누수 차단 */
+  html, body {
+    overflow-x: clip;
+  }
+
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard Variable", Pretendard, "Noto Sans KR", "Malgun Gothic", sans-serif;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
     background-color: var(--background);
     color: var(--foreground);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
+
+  /* 숫자(가격·수량·거리)는 표 정렬용 tabular */
+  .tabular { font-variant-numeric: tabular-nums; }
 }
 
 @layer utilities {
-  .manner-gauge {
-    background: linear-gradient(90deg, #21c45d, #f59f0a, #dc2828);
-  }
-
   .card-shadow {
-    box-shadow: 0 2px 12px -2px rgba(26, 26, 38, 0.08);
+    box-shadow: 0 1px 2px rgba(31, 27, 23, 0.05);
   }
 
   .card-shadow-hover {
-    box-shadow: 0 8px 24px -4px rgba(26, 26, 38, 0.12);
+    box-shadow: 0 6px 18px -6px rgba(31, 27, 23, 0.14);
   }
 
-  .fab-gradient {
-    background: linear-gradient(135deg, var(--primary), #1D4ED8);
-  }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
 
-  .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
 
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
 
-  .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+  @media (prefers-reduced-motion: reduce) {
+    .animate-pulse { animation: none; }
+    .animate-spin { animation: none; }
   }
 }

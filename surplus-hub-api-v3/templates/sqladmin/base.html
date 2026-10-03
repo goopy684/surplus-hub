@@ -1,0 +1,102 @@
+{% extends "sqladmin_original/base.html" %}
+{# Override only to inject a small Korean relabeling script. sqladmin has no
+   i18n, and its framework chrome (buttons, table headers, search) is hardcoded
+   English across many large templates. Rather than vendor/maintain those
+   templates, we relabel the fixed set of framework strings on each page. Model
+   names and column labels are localized via the Python ModelView API. #}
+{% block tail %}
+{{ super() }}
+<script type="text/javascript">
+(function () {
+  var EXACT = {
+    "Save": "저장",
+    "Go Back": "뒤로",
+    "Delete": "삭제",
+    "Edit": "수정",
+    "Details": "상세",
+    "Login": "로그인",
+    "Logout": "로그아웃",
+    "Search": "검색",
+    "Reset": "초기화",
+    "Filter": "필터",
+    "Filters": "필터",
+    "Apply": "적용",
+    "Cancel": "취소",
+    "Close": "닫기",
+    "Yes": "예",
+    "No": "아니오",
+    "Column": "항목",
+    "Value": "값",
+    "Actions": "작업",
+    "Home": "홈",
+    "Export": "내보내기",
+    "prev": "이전",
+    "next": "다음",
+    "Show": "표시",
+    "No items found": "항목이 없습니다.",
+    "No items found.": "항목이 없습니다."
+  };
+  function relabelNode(node) {
+    // Replace matching TEXT nodes only, so sibling icons (<svg>/<i>) inside a
+    // button or nav link are preserved.
+    var raw = node.nodeValue;
+    var key = raw.trim();
+    if (!key) return;
+    // sqladmin "create" button renders "+ New {Model}" -> "+ {Model} 추가".
+    var m = raw.match(/^(\s*\+?\s*)New\s+(.+?)(\s*)$/);
+    if (m) {
+      node.nodeValue = m[1] + m[2].trim() + " 추가" + m[3];
+      return;
+    }
+    // Pagination: "Showing 1 to 10 of 40 items" -> "전체 40개 중 1–10".
+    var s = raw.match(/Showing\s+(\d+)\s+to\s+(\d+)\s+of\s+(\d+)\s+items/);
+    if (s) {
+      node.nodeValue = raw.replace(s[0], "전체 " + s[3] + "개 중 " + s[1] + "–" + s[2]);
+      return;
+    }
+    // Page-size dropdown: "10 / Page" -> "10 / 페이지".
+    if (/\/\s*Page\s*$/.test(key)) {
+      node.nodeValue = raw.replace(/\/\s*Page\s*$/, "/ 페이지");
+      return;
+    }
+    if (Object.prototype.hasOwnProperty.call(EXACT, key)) {
+      node.nodeValue = raw.replace(key, EXACT[key]);
+    }
+  }
+  function relabel() {
+    // Only relabel framework chrome elements (buttons, headers, labels, nav) —
+    // never table data cells (td), so user data is left untouched. Walk ALL
+    // descendant text nodes (text may be nested in a <span> beside an icon).
+    var sel = "button, a.btn, a.nav-link, a.page-link, .page-link, th, label, .page-title, .card-title, .empty-title, .empty-subtitle, .card-footer, .dropdown-item";
+    document.querySelectorAll(sel).forEach(function (el) {
+      var walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+      var nodes = [];
+      var n;
+      while ((n = walker.nextNode())) nodes.push(n);
+      nodes.forEach(relabelNode);
+    });
+    document.querySelectorAll("input[placeholder]").forEach(function (i) {
+      if (/search/i.test(i.placeholder)) i.placeholder = "검색";
+    });
+    // Pagination summary "Showing [1] to [10] of [40] items" — numbers are in
+    // <span>s, so translate the surrounding text fragments (order preserved):
+    // "1 ~ 10 / 전체 40개".
+    document.querySelectorAll("p.text-muted, .card-footer p").forEach(function (p) {
+      if (!/Showing[\s\S]*items/.test(p.textContent)) return;
+      p.childNodes.forEach(function (node) {
+        if (node.nodeType !== 3) return;
+        node.nodeValue = node.nodeValue
+          .replace(/Showing\s*/, "")
+          .replace(/\s*to\s*/, " ~ ")
+          .replace(/\s*of\s*/, " / 전체 ")
+          .replace(/\s*items\s*/, "개");
+      });
+    });
+  }
+  if (document.readyState !== "loading") relabel();
+  else document.addEventListener("DOMContentLoaded", relabel);
+  // Re-run once after async widgets (page-size dropdown, select2) render.
+  setTimeout(relabel, 600);
+})();
+</script>
+{% endblock %}

@@ -81,21 +81,21 @@ export default function ChatRoomScreen() {
 
   if (isLoading) {
     return (
-      <View className="flex-1 justify-center items-center">
-        <ActivityIndicator size="large" color="#2563eb" />
+      <View className="flex-1 justify-center items-center bg-background">
+        <ActivityIndicator size="large" color="#ed701d" />
       </View>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-background">
       <Stack.Screen
         options={{
           headerTitle: () => (
             <View className="flex-row items-center">
-              <Text className="text-lg font-bold">채팅</Text>
+              <Text className="text-lg font-bold text-foreground">채팅</Text>
               {isConnected && (
-                <View className="ml-2 w-2.5 h-2.5 rounded-full bg-green-500" />
+                <View className="ml-2 w-2.5 h-2.5 rounded-full bg-olive" />
               )}
             </View>
           ),
@@ -115,13 +115,13 @@ export default function ChatRoomScreen() {
       />
       {typingUser && (
         <View className="px-4 py-2">
-          <Text className="text-sm text-gray-500">{typingUser}님이 입력 중...</Text>
+          <Text className="text-sm text-muted-foreground">{typingUser}님이 입력 중...</Text>
         </View>
       )}
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 100 : 0}
-        className="p-4 border-t border-gray-200 bg-white flex-row items-center"
+        className="p-4 border-t border-border bg-card flex-row items-center"
       >
         <View className="flex-1 mr-2">
             <MaterialInput

@@ -53,6 +53,34 @@ import app.models.stats  # noqa: F401, E402
 
 
 # ---------------------------------------------------------------------------
+# No test may reach the real Expo push service. Replaces the httpx
+# reference app.core.push looks its client up through, so tests that patch
+# push.httpx.Client themselves still work.
+#
+# NetworkBlocked derives from BaseException on purpose: push.py and notify.py
+# both swallow `except Exception`, so an Exception here would be silently
+# absorbed and the test would pass while having tried to hit the network.
+# ---------------------------------------------------------------------------
+class NetworkBlocked(BaseException):
+    pass
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _block_push_transport():
+    from types import SimpleNamespace
+    from app.core import push as push_mod
+
+    def _blocked(*args, **kwargs):
+        raise NetworkBlocked(
+            "test tried to reach the real push transport; "
+            "patch app.core.notify.send_push_notification instead"
+        )
+
+    with patch.object(push_mod, "httpx", SimpleNamespace(Client=_blocked)):
+        yield
+
+
+# ---------------------------------------------------------------------------
 # Session-scoped: create/drop all tables once
 # ---------------------------------------------------------------------------
 @pytest.fixture(scope="session", autouse=True)

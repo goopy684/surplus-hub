@@ -9,6 +9,7 @@ import {
   updateMaterial,
   deleteMaterial,
 } from "../api";
+import { hasAuthToken } from "../api/client";
 import {
   MaterialCreateInput,
   MaterialUpdateInput,
@@ -55,7 +56,7 @@ export const useMaterialLikeStatus = (id: string): UseQueryResult<MaterialLikeSt
   return useQuery<MaterialLikeStatus>({
     queryKey: ["materialLike", id],
     queryFn: () => checkMaterialLike(id),
-    enabled: !!id,
+    enabled: !!id && hasAuthToken(),
     retry: false,
   });
 };

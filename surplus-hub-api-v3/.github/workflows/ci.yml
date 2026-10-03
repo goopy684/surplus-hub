@@ -31,7 +31,9 @@ jobs:
     needs: lint-and-type-check
     services:
       postgres:
-        image: postgres:15
+        # pgvector image: the app's migrations CREATE EXTENSION vector, which
+        # plain postgres:15 does not ship, so `alembic upgrade head` would fail.
+        image: pgvector/pgvector:pg16
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -62,6 +64,8 @@ jobs:
           pip install -r requirements.txt
       - name: Run migrations
         run: alembic upgrade head
+      - name: Verify DB schema matches models (no migration drift)
+        run: python scripts/check_schema_drift.py
       - name: Run tests
         run: pytest app/tests/ -v --tb=short
 

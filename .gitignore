@@ -183,3 +183,7 @@
 /.idea/vcs.xml
 .claude/state/
 surplus-hub-api-v3/.claude/bash-command-log.txt
+
+__pycache__/
+*.py[cod]
+*.class

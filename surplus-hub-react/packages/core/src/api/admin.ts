@@ -1,4 +1,5 @@
 import { apiClient, unwrapApiData } from "./client";
+import { normalizeIso, readNumber, readRecord, readString } from "./utils";
 import {
   AdminUser,
   AdminRole,
@@ -249,6 +250,106 @@ export const fetchAuditLogs = async (
   });
   const raw = unwrapApiData<{ items: AuditLog[]; total: number }>(response.data);
   return { items: Array.isArray(raw?.items) ? raw.items : [], total: raw?.total ?? 0 };
+};
+
+// ─── Push Notifications ───────────────────────────────────────────────────────
+
+export interface AdminPushPayload {
+  title: string;
+  body: string;
+  target: "all" | "users" | "role";
+  userIds?: number[];
+  role?: string;
+  type?: "SYSTEM" | "MARKETING";
+  referenceType?: string | null;
+  referenceId?: number | null;
+}
+
+export interface AdminPushResult {
+  targeted: number;
+  created: number;
+  pushed: number;
+  failed: number;
+  skipped: number;
+}
+
+export interface PushDeviceTokenStats {
+  total: number;
+  active: number;
+  ios: number;
+  android: number;
+  expo: number;
+  web: number;
+}
+
+export interface PushStats {
+  totalNotifications: number;
+  unreadNotifications: number;
+  deviceTokens: PushDeviceTokenStats;
+  sentLast7Days: number;
+}
+
+export interface PushHistoryItem {
+  id: number;
+  adminId: number;
+  adminName: string;
+  title: string;
+  body: string;
+  target: string;
+  targeted: number;
+  createdAt: string;
+}
+
+export const sendAdminPush = async (payload: AdminPushPayload): Promise<AdminPushResult> => {
+  const response = await apiClient.post("/api/v1/admin/notifications/push", payload);
+  const raw = readRecord(unwrapApiData<unknown>(response.data));
+  return {
+    targeted: readNumber(raw.targeted),
+    created: readNumber(raw.created),
+    pushed: readNumber(raw.pushed),
+    failed: readNumber(raw.failed),
+    skipped: readNumber(raw.skipped),
+  };
+};
+
+export const fetchPushStats = async (): Promise<PushStats> => {
+  const response = await apiClient.get("/api/v1/admin/notifications/stats");
+  const raw = readRecord(unwrapApiData<unknown>(response.data));
+  const tokens = readRecord(raw.deviceTokens ?? raw.device_tokens);
+  return {
+    totalNotifications: readNumber(raw.totalNotifications ?? raw.total_notifications),
+    unreadNotifications: readNumber(raw.unreadNotifications ?? raw.unread_notifications),
+    deviceTokens: {
+      total: readNumber(tokens.total),
+      active: readNumber(tokens.active),
+      ios: readNumber(tokens.ios),
+      android: readNumber(tokens.android),
+      expo: readNumber(tokens.expo),
+      web: readNumber(tokens.web),
+    },
+    sentLast7Days: readNumber(raw.sentLast7Days ?? raw.sent_last_7_days),
+  };
+};
+
+export const fetchPushHistory = async (limit = 20): Promise<PushHistoryItem[]> => {
+  const response = await apiClient.get("/api/v1/admin/notifications/history", {
+    params: { limit },
+  });
+  const raw = unwrapApiData<unknown>(response.data);
+  const items = Array.isArray(raw) ? raw : [];
+  return items.map((entry) => {
+    const item = readRecord(entry);
+    return {
+      id: readNumber(item.id),
+      adminId: readNumber(item.adminId ?? item.admin_id),
+      adminName: readString(item.adminName ?? item.admin_name) || "",
+      title: readString(item.title) || "",
+      body: readString(item.body ?? item.message) || "",
+      target: readString(item.target) || "all",
+      targeted: readNumber(item.targeted),
+      createdAt: normalizeIso(item.createdAt ?? item.created_at),
+    };
+  });
 };
 
 // ─── Export CSV ───────────────────────────────────────────────────────────────

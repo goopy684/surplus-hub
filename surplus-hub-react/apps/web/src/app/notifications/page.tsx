@@ -7,8 +7,17 @@ import {
   fetchNotifications,
   markAsRead,
   markAllAsRead,
+  resolveNotificationTarget,
   Notification,
+  NotificationTarget,
 } from "@repo/core";
+
+// 리졸버가 정규화한 kind → 웹 라우트 (웹은 모바일과 달리 커뮤니티 상세가 있다)
+const TARGET_ROUTES: Record<NotificationTarget["kind"], string> = {
+  chat: "/chat",
+  material: "/material",
+  post: "/community",
+};
 
 const NOTIFICATION_ICONS: Record<string, string> = {
   CHAT: "M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z",
@@ -68,15 +77,10 @@ function NotificationsContent() {
         // ignore
       }
     }
-    // Navigate based on referenceType (Notification 타입에 이미 선언된 필드 직접 사용)
-    if (notification.referenceType && notification.referenceId) {
-      if (notification.referenceType === "chat_room") {
-        router.push(`/chat/${notification.referenceId}`);
-      } else if (notification.referenceType === "material") {
-        router.push(`/material/${notification.referenceId}`);
-      } else if (notification.referenceType === "post") {
-        router.push(`/community/${notification.referenceId}`);
-      }
+    // 별칭·대소문자·빈 id 판단은 공용 리졸버가 한다 (푸시 탭과 같은 규칙).
+    const target = resolveNotificationTarget(notification);
+    if (target) {
+      router.push(`${TARGET_ROUTES[target.kind]}/${target.id}`);
     }
   };
 
@@ -115,7 +119,7 @@ function NotificationsContent() {
           <p className="mb-4 text-sm text-muted-foreground">{error}</p>
           <button
             onClick={loadNotifications}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+            className="rounded-btn bg-primary px-4 py-3 text-sm font-bold text-primary-foreground"
           >
             다시 시도
           </button>
@@ -127,7 +131,7 @@ function NotificationsContent() {
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
-              strokeWidth={1.5}
+              strokeWidth={1.8}
               stroke="currentColor"
               className="h-10 w-10 opacity-40"
             >
@@ -159,7 +163,7 @@ function NotificationsContent() {
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
-                    strokeWidth={1.5}
+                    strokeWidth={1.8}
                     stroke="currentColor"
                     className={`h-5 w-5 ${!notification.isRead ? "text-primary" : "text-muted-foreground"}`}
                   >
@@ -178,7 +182,7 @@ function NotificationsContent() {
                   <p className="mb-1 text-xs text-muted-foreground line-clamp-2">
                     {notification.message}
                   </p>
-                  <span className="text-[11px] text-muted-foreground/70">
+                  <span className="text-xs text-muted-foreground">
                     {formatRelativeTime(notification.createdAt)}
                   </span>
                 </div>

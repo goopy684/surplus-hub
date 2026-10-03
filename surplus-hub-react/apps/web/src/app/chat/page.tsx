@@ -17,7 +17,7 @@ function ChatListContent() {
   }
 
   if (error) {
-    return <div className="p-8 text-center text-red-500">채팅 목록을 불러오는데 실패했습니다.</div>;
+    return <div className="p-8 text-center text-destructive">채팅 목록을 불러오는데 실패했습니다.</div>;
   }
 
   return (
@@ -34,7 +34,7 @@ function ChatListContent() {
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
-              strokeWidth={1.5}
+              strokeWidth={1.8}
               stroke="currentColor"
               className="h-10 w-10 opacity-40"
             >
@@ -79,14 +79,14 @@ function ChatListContent() {
                     {room.lastMessage?.content || "대화를 시작해보세요"}
                   </p>
                   {room.unreadCount > 0 && (
-                    <span className="mt-0.5 flex h-[18px] min-w-[18px] flex-shrink-0 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                    <span className="tabular mt-0.5 flex h-5 min-w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground">
                       {room.unreadCount}
                     </span>
                   )}
                 </div>
               </div>
 
-              <div className="ml-3 h-10 w-10 flex-shrink-0 overflow-hidden rounded border border-border bg-muted">
+              <div className="ml-3 h-10 w-10 flex-shrink-0 overflow-hidden rounded-thumb border border-border bg-muted">
                 <div className="h-full w-full bg-muted"></div>
               </div>
             </Link>

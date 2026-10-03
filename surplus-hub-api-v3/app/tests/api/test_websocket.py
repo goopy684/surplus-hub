@@ -71,7 +71,7 @@ class TestWebSocketBroadcast:
 
         with patch("app.api.endpoints.ws.get_db_session", side_effect=lambda: TestingSessionLocal()), \
              patch("app.core.ws_manager.ConnectionManager._heartbeat_loop"), \
-             patch("app.core.push.send_chat_notification"):
+             patch("app.core.notify.send_push_notification"):
 
             with client.websocket_connect(
                 f"/ws/chat/{test_room.id}?token={token1}"
@@ -104,7 +104,7 @@ class TestWebSocketBroadcast:
 
         with patch("app.api.endpoints.ws.get_db_session", side_effect=lambda: TestingSessionLocal()), \
              patch("app.api.endpoints.ws.authenticate_ws_token", return_value=test_user.id), \
-             patch("app.core.push.send_chat_notification"):
+             patch("app.core.notify.send_push_notification"):
 
             with client.websocket_connect(
                 f"/ws/chat/{test_room.id}?token={token}"
@@ -184,7 +184,7 @@ class TestWebSocketDisconnectCleanup:
         with patch("app.api.endpoints.ws.get_db_session", side_effect=lambda: TestingSessionLocal()), \
              patch("app.api.endpoints.ws.authenticate_ws_token", return_value=test_user.id), \
              patch("app.core.ws_manager.ConnectionManager._heartbeat_loop"), \
-             patch("app.core.push.send_chat_notification"):
+             patch("app.core.notify.send_push_notification"):
 
             with client.websocket_connect(
                 f"/ws/chat/{test_room.id}?token={token}"
@@ -209,7 +209,7 @@ class TestWebSocketDisconnectCleanup:
 
         with patch("app.api.endpoints.ws.get_db_session", side_effect=lambda: TestingSessionLocal()), \
              patch("app.core.ws_manager.ConnectionManager._heartbeat_loop"), \
-             patch("app.core.push.send_chat_notification"):
+             patch("app.core.notify.send_push_notification"):
 
             with client.websocket_connect(
                 f"/ws/chat/{test_room.id}?token={token1}"

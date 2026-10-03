@@ -9,6 +9,7 @@ from app.models.notification import Notification, DeviceToken
 from app.models.like import MaterialLike, PostLike
 from app.models.review import Review
 from app.models.event import Event
+from app.models.transaction import Transaction
 from app.models.subscription import Subscription
 from app.models.search_log import SearchLog
 from app.models.admin import AdminAuditLog

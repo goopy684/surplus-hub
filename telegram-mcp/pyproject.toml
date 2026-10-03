@@ -1,0 +1,14 @@
+[project]
+name = "telegram-mcp"
+version = "0.1.0"
+description = "Telegram MCP Server - Telethon 기반 대화 분석"
+requires-python = ">=3.11"
+dependencies = [
+    "mcp[cli]>=1.0.0",
+    "telethon>=1.37.0",
+    "python-dotenv>=1.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

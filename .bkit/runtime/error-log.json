@@ -1,0 +1,65 @@
+[
+  {
+    "timestamp": "2026-06-20T15:05:58.649Z",
+    "errorType": "unknown",
+    "category": "unknown",
+    "severity": "low",
+    "agentId": "a8623d02166d4764f",
+    "agentType": "general-purpose",
+    "message": ""
+  },
+  {
+    "timestamp": "2026-06-20T15:06:07.425Z",
+    "errorType": "unknown",
+    "category": "unknown",
+    "severity": "low",
+    "agentId": "a0792dfb11045bbec",
+    "agentType": "general-purpose",
+    "message": ""
+  },
+  {
+    "timestamp": "2026-06-20T15:06:09.280Z",
+    "errorType": "unknown",
+    "category": "unknown",
+    "severity": "low",
+    "agentId": null,
+    "agentType": "claude",
+    "message": ""
+  },
+  {
+    "timestamp": "2026-06-20T15:06:29.256Z",
+    "errorType": "unknown",
+    "category": "unknown",
+    "severity": "low",
+    "agentId": "a38a89b18790ec91d",
+    "agentType": "general-purpose",
+    "message": ""
+  },
+  {
+    "timestamp": "2026-06-20T15:06:34.567Z",
+    "errorType": "unknown",
+    "category": "unknown",
+    "severity": "low",
+    "agentId": "aed463189e5ce976e",
+    "agentType": "general-purpose",
+    "message": ""
+  },
+  {
+    "timestamp": "2026-06-20T15:06:36.798Z",
+    "errorType": "unknown",
+    "category": "unknown",
+    "severity": "low",
+    "agentId": null,
+    "agentType": "claude",
+    "message": ""
+  },
+  {
+    "timestamp": "2026-06-21T14:17:32.104Z",
+    "errorType": "unknown",
+    "category": "unknown",
+    "severity": "low",
+    "agentId": null,
+    "agentType": "claude",
+    "message": ""
+  }
+]

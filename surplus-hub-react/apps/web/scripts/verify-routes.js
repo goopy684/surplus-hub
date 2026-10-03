@@ -4,7 +4,6 @@ const routes = [
   '/chat',
   '/profile',
   '/register',
-  '/mater',
   '/material/1'
 ];
 

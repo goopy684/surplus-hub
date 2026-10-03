@@ -16,6 +16,7 @@ from fastapi.testclient import TestClient
 from app.core.config import settings
 from app.core.security import create_access_token
 from app.models.user import User
+from app.crud.crud_dashboard import crud_dashboard
 
 API_V1_STR = settings.API_V1_STR
 DASHBOARD_PREFIX = f"{API_V1_STR}/admin/dashboard"
@@ -291,3 +292,58 @@ class TestDashboardExport:
         # users CSV header contains 'id' and 'email'
         assert "id" in first_line
         assert "email" in first_line
+
+# ---------------------------------------------------------------------------
+# Tests: period bucketing (day/week/month) — the actual aggregation logic
+# ---------------------------------------------------------------------------
+
+
+class _Row:
+    """Mimics a SQLAlchemy result row with .date / .count attributes."""
+
+    def __init__(self, date_str, count):
+        self.date = date_str
+        self.count = count
+
+
+class TestBucketRows:
+    def test_day_period_passes_through(self):
+        rows = [_Row("2026-07-14", 2), _Row("2026-07-15", 3)]
+        out = crud_dashboard._bucket_rows(rows, "day")
+        assert out == [
+            {"date": "2026-07-14", "count": 2},
+            {"date": "2026-07-15", "count": 3},
+        ]
+
+    def test_week_period_collapses_to_monday_and_sums(self):
+        # 07-14 (Tue) and 07-15 (Wed) share the ISO week starting Mon 07-13;
+        # 07-20 is the next Monday -> its own bucket.
+        rows = [_Row("2026-07-14", 2), _Row("2026-07-15", 3), _Row("2026-07-20", 5)]
+        out = crud_dashboard._bucket_rows(rows, "week")
+        assert out == [
+            {"date": "2026-07-13", "count": 5},
+            {"date": "2026-07-20", "count": 5},
+        ]
+
+    def test_month_period_collapses_to_first_and_sums(self):
+        rows = [_Row("2026-07-15", 2), _Row("2026-07-31", 4), _Row("2026-08-02", 1)]
+        out = crud_dashboard._bucket_rows(rows, "month")
+        assert out == [
+            {"date": "2026-07-01", "count": 6},
+            {"date": "2026-08-01", "count": 1},
+        ]
+
+    def test_output_is_sorted_chronologically(self):
+        rows = [_Row("2026-08-02", 1), _Row("2026-07-15", 2)]
+        out = crud_dashboard._bucket_rows(rows, "month")
+        assert [r["date"] for r in out] == ["2026-07-01", "2026-08-01"]
+
+    def test_empty_rows_returns_empty_list(self):
+        assert crud_dashboard._bucket_rows([], "week") == []
+
+    def test_accepts_datetime_string_with_time_component(self):
+        # SQLite's func.date() yields 'YYYY-MM-DD', but guard against a full
+        # timestamp string sneaking through.
+        rows = [_Row("2026-07-15 12:34:56", 2)]
+        out = crud_dashboard._bucket_rows(rows, "month")
+        assert out == [{"date": "2026-07-01", "count": 2}]

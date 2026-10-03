@@ -25,17 +25,15 @@ class CRUDCategory(CRUDBase[Category, CategoryCreate, dict]):
         if existing > 0:
             return self.get_active(db)
 
+        # 업종별 카테고리 (B2B 잉여자재 거래 — 디자인 명세 2026-03-25)
+        # 조명 / 문창호 / 건축자재 / 전기 / 설비 / 기타
         default_categories = [
-            {"name": "철근", "icon": "construction", "display_order": 1},
-            {"name": "목재", "icon": "forest", "display_order": 2},
-            {"name": "시멘트", "icon": "foundation", "display_order": 3},
-            {"name": "벽돌/블록", "icon": "grid_view", "display_order": 4},
-            {"name": "타일", "icon": "dashboard", "display_order": 5},
-            {"name": "배관자재", "icon": "plumbing", "display_order": 6},
-            {"name": "전기자재", "icon": "electrical_services", "display_order": 7},
-            {"name": "페인트", "icon": "format_paint", "display_order": 8},
-            {"name": "단열재", "icon": "thermostat", "display_order": 9},
-            {"name": "기타", "icon": "more_horiz", "display_order": 10},
+            {"name": "조명", "icon": "lightbulb", "display_order": 1},
+            {"name": "문/창호", "icon": "door_front", "display_order": 2},
+            {"name": "건축자재", "icon": "construction", "display_order": 3},
+            {"name": "전기", "icon": "electrical_services", "display_order": 4},
+            {"name": "설비", "icon": "plumbing", "display_order": 5},
+            {"name": "기타", "icon": "more_horiz", "display_order": 6},
         ]
 
         categories = []

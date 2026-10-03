@@ -1,0 +1,298 @@
+python3 -m venv .venv && source .venv/bin/activate && pip install -e . 2>&1 | tail -10 - Create venv and install dependencies
+ -> OUTPUT: [notice] A new release of pip is available: 26.0 -> 26.0.1
+[notice] To update, run: pip install --upgrade pip
+error: metadata-generation-failed
+
+× Encountered error while generating package metadata.
+╰─> from file:///Users/jeongseongchae/dev/owner/telegram-mcp
+
+note: This is an issue with the package mentioned above, not pip.
+hint: See above for details., ERROR: 
+python3 -m venv .venv && source .venv/bin/activate && pip install "mcp[cli]>=1.0.0" "telethon>=1.37.0" "python-dotenv>=1.0.0" 2>&1 | tail -10 - Install dependencies directly via pip
+ -> OUTPUT:   Building wheel for pyaes (pyproject.toml): finished with status 'done'
+  Created wheel for pyaes: filename=pyaes-1.6.1-py3-none-any.whl size=26422 sha256=be170bbe9046bd8341467d28b37bfde3602a015d05b7d3913d73c8e7e68e0268
+  Stored in directory: /Users/jeongseongchae/Library/Caches/pip/wheels/d1/14/ec/f27d9124264441d195bbf80a3e627664f4e61220935cc39343
+Successfully built pyaes
+Installing collected packages: pyaes, typing-extensions, shellingham, rpds-py, python-multipart, python-dotenv, pyjwt, pygments, pycparser, pyasn1, mdurl, idna, httpx-sse, h11, click, certifi, attrs, annotated-types, annotated-doc, uvicorn, typing-inspection, rsa, referencing, pydantic-core, markdown-it-py, httpcore, cffi, anyio, telethon, starlette, rich, pydantic, jsonschema-specifications, httpx, cryptography, typer, sse-starlette, pydantic-settings, jsonschema, mcp
+
+Successfully installed annotated-doc-0.0.4 annotated-types-0.7.0 anyio-4.13.0 attrs-26.1.0 certifi-2026.2.25 cffi-2.0.0 click-8.3.2 cryptography-46.0.6 h11-0.16.0 httpcore-1.0.9 httpx-0.28.1 httpx-sse-0.4.3 idna-3.11 jsonschema-4.26.0 jsonschema-specifications-2025.9.1 markdown-it-py-4.0.0 mcp-1.27.0 mdurl-0.1.2 pyaes-1.6.1 pyasn1-0.6.3 pycparser-3.0 pydantic-2.12.5 pydantic-core-2.41.5 pydantic-settings-2.13.1 pygments-2.20.0 pyjwt-2.12.1 python-dotenv-1.2.2 python-multipart-0.0.22 referencing-0.37.0 rich-14.3.3 rpds-py-0.30.0 rsa-4.9.1 shellingham-1.5.4 sse-starlette-3.3.4 starlette-1.0.0 telethon-1.42.0 typer-0.24.1 typing-extensions-4.15.0 typing-inspection-0.4.2 uvicorn-0.43.0
+
+[notice] A new release of pip is available: 26.0 -> 26.0.1
+[notice] To update, run: pip install --upgrade pip, ERROR: 
+.venv/bin/python -c "from mcp.server.fastmcp import FastMCP; from telethon import TelegramClient; print('OK: all imports work')" - Verify imports work
+ -> OUTPUT: OK: all imports work, ERROR: 
+realpath /Users/jeongseongchae/dev/owner/telegram-mcp/.venv/bin/python - Get absolute path to venv python
+ -> OUTPUT: /opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/bin/python3.14, ERROR: 
+echo /Users/jeongseongchae/dev/owner/telegram-mcp/.venv/bin/python - Show venv python path
+ -> OUTPUT: /Users/jeongseongchae/dev/owner/telegram-mcp/.venv/bin/python, ERROR: 
+ls /Users/jeongseongchae/dev/owner/telegram-mcp/telegram_session.session 2>/dev/null && echo "세션 파일 존재" || echo "세션 파일 없음" - Check if session file was created
+ -> OUTPUT: 세션 파일 없음, ERROR: 
+ls -la /Users/jeongseongchae/dev/owner/telegram-mcp/telegram_session.session 2>/dev/null && echo "세션 파일 존재!" || echo "세션 파일 없음" - Check if session file was created after auth
+ -> OUTPUT: 세션 파일 없음, ERROR: 
+ls -la /Users/jeongseongchae/dev/owner/telegram-mcp/telegram_session.session - Verify session file exists
+ -> OUTPUT: .rw-r--r--@ 29k jeongseongchae  5 Apr 17:59 /Users/jeongseongchae/dev/owner/telegram-mcp/telegram_session.session, ERROR: 
+ -> OUTPUT: API_ID: True
+API_HASH: True
+Session: True, ERROR: 
+timeout 15 .venv/bin/python -c "
+import asyncio, json, os
+from dotenv import load_dotenv
+from pathlib import Path
+from telethon import TelegramClient
+
+load_dotenv()
+API_ID = int(os.environ['TELEGRAM_API_ID'])
+API_HASH = os.environ['TELEGRAM_API_HASH']
+SESSION_PATH = str(Path('.') / 'telegram_session')
+
+async def main():
+    client = TelegramClient(SESSION_PATH, API_ID, API_HASH)
+    await client.start()
+    dialogs = await client.get_dialogs(limit=30)
+    for d in dialogs:
+        print(f'{d.id:>15} | {d.unread_count:>3}개 | {d.name}')
+    await client.disconnect()
+
+asyncio.run(main())
+" 2>&1 - Fetch Telegram dialog list directly
+.venv/bin/python -c "
+import asyncio, json, os
+from dotenv import load_dotenv
+from pathlib import Path
+from telethon import TelegramClient
+
+load_dotenv()
+API_ID = int(os.environ['TELEGRAM_API_ID'])
+API_HASH = os.environ['TELEGRAM_API_HASH']
+SESSION_PATH = str(Path('.') / 'telegram_session')
+
+async def main():
+    client = TelegramClient(SESSION_PATH, API_ID, API_HASH)
+    await client.start()
+    dialogs = await client.get_dialogs(limit=30)
+    for d in dialogs:
+        print(f'{d.id:>15} | {d.unread_count:>3}개 | {d.name}')
+    await client.disconnect()
+
+asyncio.run(main())
+" 2>&1 - Fetch Telegram dialog list
+ -> OUTPUT:     -4217758923 |   0개 | [개발] 마이정토 재개발
+ -1002199579110 |   0개 | 성채-인도성지순례
+         777000 |   0개 | Telegram
+ -1002470324395 |   0개 | [정토회] 시스템팀 개발봉사자 전체
+    -5161709118 |   0개 | 2-2차 시스템국 소임자교육
+ -1002206300199 |   0개 | 클립보드-daily
+ -1003183280455 |   0개 | [마이정토] 시스템 문의하기 관리자
+ -1002515536165 |   0개 | 🔥명상수련 시스템 개발팀 🔥
+      272338067 |   0개 | 봉달이
+      183682408 |   0개 | 김현석
+ -1001006763071 |   0개 | 법륜 스님의 하루
+ -1002171898652 |   0개 | [개발] 정기회의관리 시스템
+ -1001137474653 |   0개 | 도서관
+ -1003839782776 |   0개 | 법회출석 시스템 프로젝트 소통방
+    -5213220611 |   0개 | 컴퓨터 비전
+ -1001852578018 |   0개 | 구로지회공지채널(모둠원)
+    -4998315885 |   0개 | 구로모둠_2-2차
+    -5081748999 |   0개 | 🌼시스템국 개발팀
+    -4023724955 |   0개 | 국제지부 봉사운영 시스템
+ -1002473644364 |   0개 | 시스템국 개발 담당 전체방
+ -1003831561970 |   0개 | 2-2[법회]시스템
+    -4952590727 |   0개 | AI 툴
+    -5132477798 |   0개 | 딥러닝 이론
+ -1001182187198 |   0개 | 책
+ -1001789479731 |   0개 | 🔹교육연수&회원&시스템
+    -4954395076 |   0개 | AI 석사
+    -4689062495 |   0개 | 활지추 디자인 실무논의방
+ -1001921693330 |   0개 | 복싱
+    -5227087128 |   0개 | 컴퓨터비전
+ -1002157363291 |   0개 | [개발] 국제지부 봉사운영 프로젝트, ERROR: 
+.venv/bin/python -c "
+import asyncio, json, os
+from dotenv import load_dotenv
+from pathlib import Path
+from telethon import TelegramClient
+
+load_dotenv()
+API_ID = int(os.environ['TELEGRAM_API_ID'])
+API_HASH = os.environ['TELEGRAM_API_HASH']
+SESSION_PATH = str(Path('.') / 'telegram_session')
+
+async def main():
+    client = TelegramClient(SESSION_PATH, API_ID, API_HASH)
+    await client.start()
+    
+    entity = await client.get_entity(-1002470324395)
+    
+    from datetime import datetime, timezone, timedelta
+    since = datetime.now(timezone.utc) - timedelta(days=7)
+    
+    messages = await client.get_messages(entity, limit=500, offset_date=None)
+    filtered = [m for m in messages if m.date and m.date >= since]
+    
+    for msg in filtered:
+        sender_name = ''
+        if msg.sender:
+            if hasattr(msg.sender, 'first_name'):
+                parts = [msg.sender.first_name or '', msg.sender.last_name or '']
+                sender_name = ' '.join(p for p in parts if p)
+            elif hasattr(msg.sender, 'title'):
+                sender_name = msg.sender.title
+        date_str = msg.date.strftime('%m/%d %H:%M')
+        text = (msg.text or '').replace(chr(10), ' | ')
+        reply = f' [reply:{msg.reply_to_msg_id}]' if msg.reply_to else ''
+        print(f'[{date_str}] {sender_name}: {text}{reply}')
+    
+    print(f'\\n--- Total: {len(filtered)} messages in last 7 days ---')
+    await client.disconnect()
+
+asyncio.run(main())
+" 2>&1 - Fetch last 7 days messages from 시스템팀 개발봉사자 전체
+ -> OUTPUT: [04/05 07:18] 김문정: 🎉 어제 이른아침, 12주 수련 프로그램 잘 입재하였습니다. |  | 날마다 새 날이니, | 오늘 시작하셔도 | 내일 시작하셔도 괜찮습니다. ^^ |  | 필요한건, 매 순간의 발심...? 😘 |  | 다음주 토요일에도 함께해요~ |  | * 우리 국제지부 도반님들 중에서도 혹시 시간이 맞으시면 언제든지 함께해 주셔요!! 대환영입니다~ | (한국시간 05:00~ 07:00까지 진행됩니다, 언제든지 결합해주셔요~)
+[04/05 05:35] YU WOOK KANG: 네넵 감사합니다 ^^ | 망설이다 이제 오늘입학을 하게되었습니다.
+[04/05 05:35] YU WOOK KANG: 
+[04/05 05:28] 재현 고: 
+[04/05 05:26] 김문정: 
+[04/05 05:25] 향위법사님: 강유욱님. | 불교대학 입학을 축하합니다.!!
+[04/05 05:25] 향위법사님: 
+[04/03 22:00] 김문정:  [reply:692]
+[04/03 22:00] 김문정: 🚌 시스템국 기도밴드 | https://band.us/n/afa5b0w6s0Hfe |  | ==> 밴드 설정에서 '상단고정'을 해두세요! |  | 🎁 천일결사 기도 (매일 경전) | https://www.jungto.org/edu/pray |  | 🎉 법륜스님의 하루 채널 | https://t.me/pomnyun
+[04/03 20:47] 김문정: 잠시 후 5:50분부터 나누기 프로그램 진행합니다~ | 어서오세요~ ^^ 🥳
+[04/03 19:55] 김문정: 
+[04/03 13:46] 김문정: 도반님들 편한 밤 보내시고 | (일찍 주무시고 ㅎㅎ) |  | 낼 만나요! 🥳 |  | https://meet.google.com/yvg-jacc-syg |  | 📌 04:55부터 입장하시면 됩니다.
+[04/03 03:28] 김문정: 투표도 참여해 주세요 ㅎㅎ [reply:653]
+[04/03 03:28] 김문정: 🙏 시스템국 봉사자를 위한 12주 수련, | **드디어 내일 입재입니다!** |  | 기존 안내드린 내용에서 | 담당 법사님과의 | 간담회 일정이 한 주씩 미뤄졌습니다.  | 참고하셔요~ |  | 💡**진행 기간: 4월 4일(토) ~ 6월 30일(토)** |  | ⏰**일정(매주 토요일) |   - 05:00~05:45 천일결사 공동정진 |   - 05:50~06:50 수련 프로그램 **(시간은 변경될 수 있음) |  | 📖 **프로그램 안내 **(변경될 수 있음) |  | • 1주차(4/4) 입재식 | • 2주차(4/11) 수행문 | • 3주차(4/18) 참회문 | • 4주차(4/25) 정진1 | • **5주차(5/2) 시스템국 담당 법사님과의 간담회** | • 6주차(5/9) 정토행자의 서원 | • 7주차(5/16) 천일결사의 목표 | • 8주차(5/23) 정진2 | • **9주차(5/30) 시스템국 담당 법사님과의 간담회** | • 10주차(6/6) 수행자의 자세 | • 11주차(6/13) 갈무리 | • 12주차(6/20) 회향식(오프 예정) |  | **--> 그리고, 6/28일 2-2차 입재식!** |  | 내일 04:55에 뵙겠습니다.! 🥳 |  | https://meet.google.com/yvg-jacc-syg
+[04/03 03:00] 영규 박: https://youtu.be/1XWaAhnBI0U?si=oSQURFTX7GqA4_ah | Ai 와 관련된 아주 통찰력 있는 대화입니다. 한번씩 보실만한것 같아요. 마지막에 ai 학습 프리트레이닝 단계에서 지식을 엄청 밀어넣다는 것을 들으면서 우리 어릴적 암기 교육이 ai 시대에도 유효하구나 싶어 살짝 웃음이 났습니다 시간되실때 봐두면 많은 도움이 될것 같습니다!
+[04/02 09:45] 김문정: 💡 아참, | 정토회 소식 채널의 공지 보셨어요? |  | 4/1일부터 10일까지 | 열흘간 개발봉사자 정기모집 시작했답니다. |  | 함께 모자이크 붓다 되어주실 도반님들이 얼마나 오실지... ㅎㅎ | 기대되는데요, | 모집 완료되면 소식 공유드릴게요! |  | 혹~시 주변 도반들 중에 | 같이 하실 분 계시면 소개해주세요 ^^ |  | https://t.me/c/1507740208/2254
+[04/02 09:43] 김문정: 도반님들~ |  | 투표합시다~~ 🥳🥳🥳 |  | 일주일에 하루  | 12번의 토요일. | 한 번 해보십시다요~ |  | 물론 매일 하시면 더좋고 ㅎㅎ |  | * 기존에 정진하시는 분들도 당근 같이해주세요~ | (지회 공동정진 참여하시는 경우는 나누기 프로그램부터 함께하셔도 좋아요!) [reply:653]
+[03/31 07:39] 김문정: 지금 [향위 김도영 법사님](tg://user?id=28084155) 께 확인요청 드렸어요 ^^;; | 기다리게 해드려 죄송합니다~ 잠시만요~
+[03/31 07:39] 인환: [김문정](tg://user?id=57057514) 이 소통은 국장님께서 해주셔야 할 듯합니다. 저도 이제 누가 담당인지 몰라서요.
+[03/31 06:58] 비봉 박: 네 제가 문의하면 될까요? 어떤 분께 문의해야 할까요? [reply:680]
+[03/31 06:53] 인환: 한국JTS 테크숩 계정은 JTS에 문의해봐야 할 것 같습니다.
+[03/31 06:48] 비봉 박: 아니요. 테크숩에 등록되었다고 인정 하는건 아니고 테크숩의 정보와 연동되어 있어 이미 테크숩에 정보가 있으면 그 정보를 끌어다 평가 할 수 있는 시스템 입니다. | 현재 단체 중 한국JTS 를 좀 덜 종교적인 느낌으로 신청하려고 합니다. 종교와 상관없이 해외에 다양한 지원을 하는 것으로요. 다른 법인은 안될 것 같고요. [reply:678]
+[03/31 06:33] 인환: 깃헙이 테크숩 인정을 해준다고 하나요? 테크숩이 인정이 된다면, 굳이 JTS가 아니라 정토법당도 테크숩 계정이 있습니다.
+[03/31 06:33] 비봉 박: 네! 그럼 (사)한국JTS 이름으로 된 테크숩 계정 필요합니다. [reply:676]
+[03/31 06:32] 인환: 정토법당, (재)정토회가 있고, (사)한국JTS, (사)에코붓다, (사)좋은벗들, 평화재단은 전부 법적으로는 독립된 단체입니다. [reply:675]
+[03/31 06:28] 비봉 박: 사이트는 별도로 있네요. 다른건가요? 헷갈리네요 ㅎㅎ | 정토회(JTS) 산하에 | 4개의 비영리단체 있는 건가요? | 한국JTS, 에코붓다, 좋은벗들, 평화재단
+[03/31 06:26] 비봉 박: 같은거군요 ㅎㅎ JTS, 에코붓다, 좋은벗들, 평화재단 이렇게 4개로 구성 맞나요?
+[03/31 06:24] 비봉 박: 네 등록된 단체가 JTS 말고 한국JTS 로 된 계정 있다는 거죠? 계정 전달 받을 수 있을까요? 아니면 멤버 추가 가능하면 구조라면 jtc182@jungto.org 계정 추가해 주셔도 좋습니다.
+[03/31 06:23] 인환: 있습니다. JTS에서 관리합니다. [reply:671]
+[03/31 06:10] 비봉 박: 혹시 한국JTS에서 TechSoup 계정 있을까요?
+[03/31 04:51] 인환: 조직 계정의 Owner 권한으로 초대했습니다. [reply:669]
+[03/31 04:42] 비봉 박: Github https://github.com/jungtodev  | id : jungto182 | email : jtc182@jungto.org | 계정 초대 및 관리자 권한 추가 부탁합니다. | 대부분 종교단체 정토회 산하라서 어려울 것 같기는 하지만 한국JTS가 UN ECOSOC 지위라는 점을 어필해서 한번 지원해 볼게요.
+[03/31 04:26] 비봉 박: 맞아요. 종교 단체로 등록되어 있으면 안됩니다. 그럼 한국제이티에스로 한번 진행해 볼게요! 다른 단체로 승인받아도 승인만 되면 사용하는데는 문제 없을 거 같아요.
+[03/31 04:16] 향위법사님: 너무 좋지요. | 아마도 전에, 정토회...는 종교 관련 단체라고 안 되었던 것 같아서... 확인이 필요할 겁니다...  | 만일 안 되면, 다음 단계로 | 혹시, 한국제이티에스나 에코붓다 등으로 승인을 받았을 때 | 우리가 원활하게 사용할 수 있을지 검토해보면 어떨까 싶어요.
+[03/31 03:55] 비봉 박: 승인되면 팀계정 무료 사용 가능합니다.
+[03/31 03:55] 비봉 박: 저희 Github 비영리 단체 신청 해보면 어떨까요? 제가 진행해도 될까요?
+[03/31 03:51] 비봉 박: 꽃내음이 나는 거 같아요~ [reply:663]
+[03/31 03:41] 향위법사님: 서울 양재 시민의 숲에 온 봄. | ㅎ
+[03/31 03:41] 향위법사님: 
+[03/31 03:41] 향위법사님: 
+[03/31 03:41] 향위법사님: 
+[03/31 03:41] 향위법사님: 
+[03/31 03:41] 향위법사님: 
+[03/29 12:27] 김문정:  [reply:652]
+[03/29 12:27] 김문정:  [reply:648]
+[03/29 12:13] 향위법사님: 정진과 교육 등등... | 봄을 맞아서인지 우리 시스템국도 활발하게 움직이는 것 같네요!!! | [정진 나누기 밴드방](https://www.band.us/band/92945052/post)에도 매일 12명 정도의 도반들께서 정진하시고 나누기를 올리고 계십니다. | 아직 안 올리셨던 분들도 한 번 와보세요... ㅎㅎ
+[03/29 11:22] 김문정: ㅋㅋㅋ 도반님들, | 우리 주1회라도 공동정진 같이 하고, | 천일결사 기도의 의미를 처음부터 다시 살펴보는 프로그램으로 |  | 수행자의 삶을 함께 맛보십시다요~ | 모두 투표 GOGO~
+[03/29 11:22] 김문정: 
+[03/29 11:21] 김문정: 🙏 시스템국 봉사자를 위한 12주 수련에 초대합니다. | (updated 2026. 4. 4) |  | **'내가 세상의 희망입니다'** |  | 괴로움이 없는 사람, 자유로운 사람이 되어 이웃과 세상에 잘 쓰이는  | 우리는 세상의 희망입니다. |  | 12주동안의 수련을 통해  | 내 삶의 변화를 시작해보세요! |  | 💡**진행 기간: 4월 4일(토) ~ 6월 30일(토)** |  | ⏰**일정(매주 토요일) |   - 05:00~05:45 천일결사 공동정진 |   - 05:50~06:50 수련 프로그램 **(시간은 변경될 수 있음) |  |  |  👉🏻 **04:55부터 **다음 주소줄로 입장합니다. | https://meet.google.com/yvg-jacc-syg |  |  | **📖 프로그램 안내 **(변경될 수 있음) |  | • 1주차(4/4) 입재식 | • 2주차(4/11) 수행문 | • 3주차(4/18) 참회문 | • 4주차(4/25) 정진1 | • **5주차(5/2) 시스템국 담당 법사님과의 간담회** | • 6주차(5/9) 정토행자의 서원 | • 7주차(5/16) 천일결사의 목표 | • 8주차(5/23) 정진2 | • **9주차(5/30) 시스템국 담당 법사님과의 간담회** | • 10주차(6/6) 수행자의 자세 | • 11주차(6/13) 갈무리 | • 12주차(6/20) 회향식(오프 예정) |  | **--> 그리고, 6/28일 2-2차 입재식!** |  |  | 매주 토요일 12번의 나누기 후 쌓이는 도반애는  | 덤으로 챙겨지는 선물이겠지요? 😉 |  | 도반님들, 망설이지 말고  | 함께 시작해봐요! 🥳
+
+--- Total: 49 messages in last 7 days ---, ERROR: 
+.venv/bin/python -c "
+import asyncio, json, os
+from dotenv import load_dotenv
+from pathlib import Path
+from telethon import TelegramClient
+from datetime import datetime, timezone, timedelta
+
+load_dotenv()
+API_ID = int(os.environ['TELEGRAM_API_ID'])
+API_HASH = os.environ['TELEGRAM_API_HASH']
+SESSION_PATH = str(Path('.') / 'telegram_session')
+
+async def main():
+    client = TelegramClient(SESSION_PATH, API_ID, API_HASH)
+    await client.start()
+    
+    entity = await client.get_entity(-1003839782776)
+    since = datetime.now(timezone.utc) - timedelta(days=7)
+    
+    messages = await client.get_messages(entity, limit=500)
+    filtered = [m for m in messages if m.date and m.date >= since]
+    
+    for msg in filtered:
+        sender_name = ''
+        if msg.sender:
+            if hasattr(msg.sender, 'first_name'):
+                parts = [msg.sender.first_name or '', msg.sender.last_name or '']
+                sender_name = ' '.join(p for p in parts if p)
+            elif hasattr(msg.sender, 'title'):
+                sender_name = msg.sender.title
+        date_str = msg.date.strftime('%m/%d %H:%M')
+        text = (msg.text or '').replace(chr(10), ' | ')
+        reply = f' [reply:{msg.reply_to_msg_id}]' if msg.reply_to else ''
+        print(f'[{date_str}] {sender_name}: {text}{reply}')
+    
+    print(f'\n--- Total: {len(filtered)} messages in last 7 days ---')
+    await client.disconnect()
+
+asyncio.run(main())
+" 2>&1 - Fetch 법회출석 시스템 소통방 messages
+ -> OUTPUT: [04/04 06:57] 김문정: 사무처장님은 전체 활지추 프로젝트 추진총괄이셔서, 모든 프로젝트 방에서 참관으로 함께하실 예정입니다. 어서오세요~
+[04/04 06:57] 김문정: 
+
+--- Total: 2 messages in last 7 days ---, ERROR: 
+.venv/bin/python -c "
+import asyncio, json, os
+from dotenv import load_dotenv
+from pathlib import Path
+from telethon import TelegramClient
+from datetime import datetime, timezone, timedelta
+
+load_dotenv()
+API_ID = int(os.environ['TELEGRAM_API_ID'])
+API_HASH = os.environ['TELEGRAM_API_HASH']
+SESSION_PATH = str(Path('.') / 'telegram_session')
+
+async def main():
+    client = TelegramClient(SESSION_PATH, API_ID, API_HASH)
+    await client.start()
+    
+    entity = await client.get_entity(-1003839782776)
+    since = datetime.now(timezone.utc) - timedelta(days=30)
+    
+    messages = await client.get_messages(entity, limit=500)
+    filtered = [m for m in messages if m.date and m.date >= since]
+    
+    for msg in filtered:
+        sender_name = ''
+        if msg.sender:
+            if hasattr(msg.sender, 'first_name'):
+                parts = [msg.sender.first_name or '', msg.sender.last_name or '']
+                sender_name = ' '.join(p for p in parts if p)
+            elif hasattr(msg.sender, 'title'):
+                sender_name = msg.sender.title
+        date_str = msg.date.strftime('%m/%d %H:%M')
+        text = (msg.text or '').replace(chr(10), ' | ')
+        reply = f' [reply:{msg.reply_to_msg_id}]' if msg.reply_to else ''
+        print(f'[{date_str}] {sender_name}: {text}{reply}')
+    
+    print(f'\n--- Total: {len(filtered)} messages in last 30 days ---')
+    await client.disconnect()
+
+asyncio.run(main())
+" 2>&1 - Fetch 30 days of messages for more context
+ -> OUTPUT: [04/04 06:57] 김문정: 사무처장님은 전체 활지추 프로젝트 추진총괄이셔서, 모든 프로젝트 방에서 참관으로 함께하실 예정입니다. 어서오세요~
+[04/04 06:57] 김문정: 
+[03/24 13:02] 소영 전: 추가로 대구경북지부 제안사항도 공유드립니다 |  | 3) 대경지부 법회참석 지회간 이동관련 |  | https://docs.google.com/document/d/1qqDbyImmRSPLl8g5GWfWi6rillm9uPLogG_Z1oQGW40/edit?tab=t.0 [reply:9]
+[03/24 12:54] 김문정: 📣 법회 참석 관련 제안사항 공유드립니다. |  | 1) 해외지부 법회 이동참석 허용 관련 | https://docs.google.com/document/d/1U22YdWfnDQWDtPxUaA1CxDqtVh1fU_W0pFC0Y7DsZhM/edit?tab=t.0 |  | 2) 유럽지회 주간법회 개설관련  | https://docs.google.com/document/d/1PpSH0tLXgJY514liozzUjbf68DkszXF4qOEJ7ySGB0I/edit?tab=t.0 |  | 일단 지부장회의에서 의결된 건이라 | 실무적으로 공유가 되겠지만 | 제가 우선 가져옵니다. 확인해보세요~ | 법회팀 도반님들
+[03/18 00:24] 노정숙: 슈퍼그룹이어도  안보이는군요.  이유가 뭔지 모르겠네요. |  개인당  슈퍼그룹 지정하는 한도가 있는 걸까요? [reply:5]
+[03/18 00:23] 소영 전: 회원국장 강선미님 초대하였습니다. |  | 선미님~법회출석 시스템 프로젝트 소통방입니다.
+[03/18 00:22] 소영 전: 
+[03/18 00:22] 소영 전: 반갑습니다☺️ | 이전글이 안 보이네요. | 설계도 보고 잘 따라가도록 하겠습니다🙏 [reply:3]
+[03/18 00:19] 노정숙: 처음 설계할 때는 이동이 많지 않기 때문에  수기로 출석체크하기로 하였는데  앞으로 오프법회도  늘어날 것 같고   이동참석도 인정하면  수기로 출석체크하는 일이 많아질 것 같습니다.  |   | 오프라인 참여는 어쨋튼 수기로 출석체크 해야 할 것 같고 | 논의할 부분이  | 온라인 이동참여 인정 여부를 확인하고  인정이 된다면  |  온라인 법회를 하는 주간지회 회원의 경우 저녁지회 온라인 법회로 이동하는 경우를 마이정토로 출석이 가능하게 하는 부분을 논의해 보는거죠? [reply:None]
+[03/17 23:44] 노정숙: 전소영님 | 이전 글 보이시는지요?
+[03/17 23:44] 노정숙: 안녕하세요.  | 신임 법회팀장 전소영님 초대드렸습니다.
+[03/17 23:42] : 
+
+--- Total: 12 messages in last 30 days ---, ERROR: 

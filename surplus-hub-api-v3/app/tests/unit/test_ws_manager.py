@@ -371,8 +371,11 @@ class TestHeartbeat:
         manager = ConnectionManager()
         ws = create_mock_ws()
 
-        # Set initial timestamp
-        initial_time = 1000.0
+        # Set initial timestamp relative to the monotonic clock: record_pong()
+        # stores time.monotonic(), which starts near 0 on freshly booted
+        # machines (e.g. CI runners), so a fixed 1000.0 baseline can be in the
+        # future there.
+        initial_time = time.monotonic() - 100.0
         manager._last_pong[ws] = initial_time
 
         # Wait a bit and record pong

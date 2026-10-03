@@ -61,6 +61,27 @@ class CRUDDashboard:
             "pendingReports": pending_reports,
         }
 
+    @staticmethod
+    def _bucket_rows(rows, period: str) -> list[dict]:
+        """Roll daily (date, count) rows up into day/week/month buckets.
+
+        SQL always groups by calendar day (portable across the SQLite test DB
+        and Postgres prod); week/month aggregation happens here in Python so no
+        dialect-specific date_trunc is needed. Row count is bounded by days<=365.
+        """
+        buckets: dict[str, int] = {}
+        for r in rows:
+            d = date.fromisoformat(str(r.date)[:10])
+            if period == "week":
+                key = d - timedelta(days=d.weekday())  # Monday of that ISO week
+            elif period == "month":
+                key = d.replace(day=1)
+            else:  # day
+                key = d
+            bk = key.isoformat()
+            buckets[bk] = buckets.get(bk, 0) + r.count
+        return [{"date": k, "count": buckets[k]} for k in sorted(buckets)]
+
     def get_user_stats(self, db: Session, period: str, days: int = 30) -> list[dict]:
         """User registration trends grouped by day/week/month."""
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
@@ -76,10 +97,10 @@ class CRUDDashboard:
             .all()
         )
 
-        return [{"date": str(r.date), "count": r.count} for r in rows]
+        return self._bucket_rows(rows, period)
 
     def get_material_stats(self, db: Session, period: str, days: int = 30) -> list[dict]:
-        """Material listing trends grouped by day."""
+        """Material listing trends grouped by day/week/month."""
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
         rows = (
@@ -93,10 +114,10 @@ class CRUDDashboard:
             .all()
         )
 
-        return [{"date": str(r.date), "count": r.count} for r in rows]
+        return self._bucket_rows(rows, period)
 
     def get_transaction_stats(self, db: Session, period: str, days: int = 30) -> list[dict]:
-        """Transaction trends grouped by day."""
+        """Transaction trends grouped by day/week/month."""
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
         rows = (
@@ -110,7 +131,7 @@ class CRUDDashboard:
             .all()
         )
 
-        return [{"date": str(r.date), "count": r.count} for r in rows]
+        return self._bucket_rows(rows, period)
 
     def export_csv(
         self,

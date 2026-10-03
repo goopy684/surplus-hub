@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Lint (web)
+        run: npx turbo run lint --filter=web
+      - name: Check types (web)
+        run: npx turbo run check-types --filter=web
+      - name: Test (web)
+        run: npm run test --workspace=web
+      - name: Build (web)
+        env:
+          # NOTE: client reads NEXT_PUBLIC_API_URL (not *_API_BASE_URL).
+          NEXT_PUBLIC_API_URL: https://api.example.com
+        run: npx turbo run build --filter=web
+
+  mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Check types (mobile)
+        run: npm run check-types --workspace=mobile

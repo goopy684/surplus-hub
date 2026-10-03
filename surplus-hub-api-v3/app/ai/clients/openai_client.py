@@ -27,6 +27,31 @@ def _map_model(model: str) -> str:
     return model
 
 
+def _ollama_native_chat(messages: List[dict], max_tokens: int, temperature: float) -> str:
+    """Generate via Ollama's NATIVE /api/chat with thinking disabled.
+
+    The OpenAI-compatible /v1 path cannot turn off "thinking" for reasoning
+    models (e.g. gemma4), which makes them very slow and low-quality. The native
+    endpoint can, via think:false. See dev/research/local-llm-setup-guide.md (#1).
+    """
+    import httpx
+
+    base = settings.LOCAL_LLM_BASE_URL.rstrip("/")
+    if base.endswith("/v1"):
+        base = base[:-3].rstrip("/")
+    payload = {
+        "model": settings.LOCAL_LLM_MODEL,
+        "stream": False,
+        "think": settings.LOCAL_LLM_THINK,
+        "messages": messages,
+        "options": {"temperature": temperature, "num_predict": max_tokens},
+    }
+    with httpx.Client(timeout=settings.LOCAL_LLM_TIMEOUT) as client:
+        resp = client.post(f"{base}/api/chat", json=payload)
+        resp.raise_for_status()
+        return resp.json().get("message", {}).get("content", "") or ""
+
+
 def _get_client():
     """Thread-safe singleton — returns OpenAI client or google.genai Client."""
     global _client
@@ -60,6 +85,16 @@ def generate_text(
     temperature: float = 0.7,
 ) -> str:
     """Generate text with a single user message."""
+    if settings.use_local_llm:
+        return _ollama_native_chat(
+            [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            max_tokens,
+            temperature,
+        )
+
     client = _get_client()
     model = model or DEFAULT_MODEL
 
@@ -103,6 +138,13 @@ def generate_text_with_history(
     Args:
         messages: List of dicts with 'role' and 'content' keys.
     """
+    if settings.use_local_llm:
+        return _ollama_native_chat(
+            [{"role": "system", "content": system_prompt}] + messages,
+            max_tokens,
+            temperature,
+        )
+
     client = _get_client()
     model = model or DEFAULT_MODEL
 

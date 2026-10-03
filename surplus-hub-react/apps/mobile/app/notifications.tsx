@@ -1,49 +1,110 @@
 import { ActivityIndicator, FlatList, SafeAreaView, Text, TouchableOpacity, View } from "react-native";
-import { useChatRooms } from "@repo/core";
+import {
+  Notification,
+  useMarkAllNotificationsRead,
+  useMarkNotificationRead,
+  useNotifications,
+} from "@repo/core";
 import { useRouter } from "expo-router";
+import { notificationRoute } from "../hooks/usePushNotifications";
+
+const formatRelativeTime = (dateStr: string): string => {
+  const minutes = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
+  if (!Number.isFinite(minutes)) return "";
+  if (minutes < 1) return "방금 전";
+  if (minutes < 60) return `${minutes}분 전`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}시간 전`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}일 전`;
+  return new Date(dateStr).toLocaleDateString();
+};
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const { data, isLoading, error } = useChatRooms({ page: 1, limit: 20 });
-  const unreadRooms = (data?.data ?? []).filter((room) => room.unreadCount > 0);
+  const { data, isLoading, error } = useNotifications();
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
+
+  const notifications = data?.data ?? [];
+  const unreadCount = notifications.filter((item) => !item.isRead).length;
+
+  const handlePress = async (notification: Notification) => {
+    if (!notification.isRead) {
+      try {
+        // 훅이 성공 시 목록·미읽음 카운트를 자동 무효화한다.
+        await markRead.mutateAsync(notification.id);
+      } catch {
+        // 읽음 처리 실패는 이동을 막지 않는다.
+      }
+    }
+    // 라우트 매핑은 푸시 탭 핸들러와 공유한다 — 두 곳에서 분기하면 갈라진다.
+    // null은 이 화면에서 갈 곳이 없다는 뜻이라 그대로 머문다 (커뮤니티 게시글 상세 화면은 없음).
+    const route = notificationRoute(notification);
+    if (route) router.push(route);
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      await markAllRead.mutateAsync();
+    } catch {
+      // 무시 — 다음 새로고침에서 서버 상태가 반영된다.
+    }
+  };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <View className="px-4 pt-4">
-        <Text className="text-2xl font-bold text-gray-900">알림</Text>
-        <Text className="mt-1 text-sm text-gray-500">읽지 않은 메시지 알림을 확인하세요.</Text>
+    <SafeAreaView className="flex-1 bg-paper">
+      <View className="flex-row items-center justify-between border-b border-line bg-surface px-5 pt-4 pb-4">
+        <Text className="text-[19px] font-bold tracking-[-0.4px] text-ink">알림</Text>
+        {unreadCount > 0 ? (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="알림 전체 읽음 처리"
+            onPress={() => void handleMarkAllAsRead()}
+            className="min-h-[44px] justify-center rounded-btn border border-line px-4"
+          >
+            <Text className="text-[13px] font-semibold text-ink">전체 읽음</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       {isLoading ? (
         <View className="mt-8 items-center">
-          <ActivityIndicator size="large" color="#2563eb" />
+          <ActivityIndicator size="large" color="#ed701d" />
         </View>
       ) : null}
 
-      {error ? <Text className="px-4 pt-6 text-sm text-red-500">알림을 불러오지 못했습니다.</Text> : null}
+      {error ? <Text className="px-5 pt-6 text-base text-ink-2">알림을 불러오지 못했습니다.</Text> : null}
 
       {!isLoading && !error ? (
         <FlatList
-          data={unreadRooms}
+          data={notifications}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16, paddingBottom: 24 }}
+          contentContainerStyle={{ paddingBottom: 24 }}
           renderItem={({ item }) => (
             <TouchableOpacity
-              onPress={() => router.push(`/chat/${item.id}`)}
-              className="mb-3 flex-row items-center justify-between rounded-xl border border-gray-200 bg-white p-4"
+              accessibilityRole="button"
+              accessibilityLabel={item.title || "알림"}
+              onPress={() => void handlePress(item)}
+              className={`min-h-[44px] border-b border-line-2 px-5 py-4 ${item.isRead ? "bg-surface" : "bg-accent"}`}
             >
-              <View className="flex-1 pr-3">
-                <Text className="text-sm font-bold text-gray-900">{item.otherUser.name}</Text>
-                <Text className="mt-1 text-xs text-gray-500" numberOfLines={1}>
-                  {item.lastMessage?.content || "새 메시지가 도착했습니다."}
+              <View className="flex-row items-center gap-2">
+                {item.isRead ? null : <View className="h-2 w-2 rounded-full bg-primary" />}
+                <Text className="flex-1 text-[15px] font-semibold text-ink" numberOfLines={1}>
+                  {item.title || "알림"}
                 </Text>
+                <Text className="text-[12.5px] text-ink-2">{formatRelativeTime(item.createdAt)}</Text>
               </View>
-              <Text className="rounded-full bg-blue-600 px-2 py-1 text-xs font-bold text-white">{item.unreadCount}</Text>
+              {item.message ? (
+                <Text className="mt-1 text-[13.5px] text-ink-2" numberOfLines={2}>
+                  {item.message}
+                </Text>
+              ) : null}
             </TouchableOpacity>
           )}
           ListEmptyComponent={
-            <View className="rounded-xl border border-dashed border-gray-300 bg-white p-6">
-              <Text className="text-center text-sm text-gray-500">새 알림이 없습니다.</Text>
+            <View className="items-center px-5 pt-12">
+              <Text className="text-base text-ink-2">새로운 알림이 없습니다.</Text>
             </View>
           }
         />

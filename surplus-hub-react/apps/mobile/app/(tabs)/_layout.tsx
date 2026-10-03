@@ -1,4 +1,4 @@
-import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import type { BottomTabBarProps } from "expo-router/js-tabs";
 import { Tabs, usePathname, useRouter } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
 
@@ -54,27 +54,23 @@ function AppTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         accessibilityState={isFocused ? { selected: true } : {}}
         onPress={onPress}
         onLongPress={onLongPress}
-        style={{
-          flex: 1,
-          alignItems: "center",
-          justifyContent: "center",
-          minHeight: 56,
-        }}
+        className="flex-1 items-center justify-center"
+        style={{ minHeight: 56 }}
       >
         <Text
+          className={isFocused ? "text-primary" : "text-muted-foreground"}
           style={{
-            fontSize: 20,
-            color: isFocused ? "#2563eb" : "#9ca3af",
+            fontSize: 22,
             marginBottom: 2,
           }}
         >
           {config.icon}
         </Text>
         <Text
+          className={isFocused ? "text-foreground" : "text-muted-foreground"}
           style={{
-            fontSize: 11,
-            fontWeight: "600",
-            color: isFocused ? "#2563eb" : "#9ca3af",
+            fontSize: 12,
+            fontWeight: isFocused ? "600" : "500",
           }}
         >
           {config.label}
@@ -85,10 +81,8 @@ function AppTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
   return (
     <View
+      className="border-t border-border bg-card"
       style={{
-        borderTopWidth: 1,
-        borderTopColor: "#e5e7eb",
-        backgroundColor: "#ffffff",
         paddingHorizontal: 8,
         paddingTop: 4,
         paddingBottom: 8,
@@ -102,7 +96,8 @@ function AppTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel="자재 등록"
-          onPress={() => router.push("/register")}
+          onPress={() => router.push("/material/register")}
+          className="bg-primary border-card items-center justify-center"
           style={{
             position: "absolute",
             left: "50%",
@@ -111,19 +106,17 @@ function AppTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             width: 56,
             height: 56,
             borderRadius: 28,
-            backgroundColor: "#2563eb",
             borderWidth: 4,
-            borderColor: "#ffffff",
-            alignItems: "center",
-            justifyContent: "center",
-            shadowColor: "#2563eb",
-            shadowOpacity: 0.3,
-            shadowOffset: { width: 0, height: 4 },
-            shadowRadius: 8,
+            shadowColor: "#ed701d",
+            shadowOpacity: 0.28,
+            shadowOffset: { width: 0, height: 6 },
+            shadowRadius: 16,
             elevation: 8,
           }}
         >
-          <Text style={{ color: "#ffffff", fontSize: 30, lineHeight: 30, marginTop: -2 }}>+</Text>
+          <Text className="text-primary-foreground" style={{ fontSize: 30, lineHeight: 30, marginTop: -2 }}>
+            +
+          </Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -71,7 +71,7 @@ class TestWSMessaging:
         """Test sending a text message and receiving confirmation."""
         with patch("app.api.endpoints.ws.get_db_session", side_effect=lambda: TestingSessionLocal()), \
              patch("app.api.endpoints.ws.authenticate_ws_token", return_value=test_user.id), \
-             patch("app.core.push.send_chat_notification"):
+             patch("app.core.notify.send_push_notification"):
 
             try:
                 with client.websocket_connect(f"/ws/chat/{test_room.id}?token={user1_token}") as websocket:
@@ -97,7 +97,7 @@ class TestWSMessaging:
         """Test sending an image message with correct messageType."""
         with patch("app.api.endpoints.ws.get_db_session", side_effect=lambda: TestingSessionLocal()), \
              patch("app.api.endpoints.ws.authenticate_ws_token", return_value=test_user.id), \
-             patch("app.core.push.send_chat_notification"):
+             patch("app.core.notify.send_push_notification"):
 
             try:
                 with client.websocket_connect(f"/ws/chat/{test_room.id}?token={user1_token}") as websocket:
@@ -121,7 +121,7 @@ class TestWSMessaging:
         """Test that sending empty content returns error message."""
         with patch("app.api.endpoints.ws.get_db_session", side_effect=lambda: TestingSessionLocal()), \
              patch("app.api.endpoints.ws.authenticate_ws_token", return_value=test_user.id), \
-             patch("app.core.push.send_chat_notification"):
+             patch("app.core.notify.send_push_notification"):
 
             try:
                 with client.websocket_connect(f"/ws/chat/{test_room.id}?token={user1_token}") as websocket:
@@ -144,7 +144,7 @@ class TestWSMessaging:
         """Test that WebSocket messages are persisted to database."""
         with patch("app.api.endpoints.ws.get_db_session", side_effect=lambda: TestingSessionLocal()), \
              patch("app.api.endpoints.ws.authenticate_ws_token", return_value=test_user.id), \
-             patch("app.core.push.send_chat_notification"):
+             patch("app.core.notify.send_push_notification"):
 
             db = TestingSessionLocal()
             try:
@@ -180,7 +180,7 @@ class TestWSMessaging:
         """Test read receipt updates is_read in database for messages from other users."""
         with patch("app.api.endpoints.ws.get_db_session", side_effect=lambda: TestingSessionLocal()), \
              patch("app.api.endpoints.ws.authenticate_ws_token", return_value=test_user.id), \
-             patch("app.core.push.send_chat_notification"):
+             patch("app.core.notify.send_push_notification"):
 
             db = TestingSessionLocal()
             try:
@@ -219,7 +219,7 @@ class TestWSMessaging:
         """Test typing indicator is processed without error."""
         with patch("app.api.endpoints.ws.get_db_session", side_effect=lambda: TestingSessionLocal()), \
              patch("app.api.endpoints.ws.authenticate_ws_token", return_value=test_user.id), \
-             patch("app.core.push.send_chat_notification"):
+             patch("app.core.notify.send_push_notification"):
 
             try:
                 with client.websocket_connect(f"/ws/chat/{test_room.id}?token={user1_token}") as websocket:
@@ -245,7 +245,7 @@ class TestWSMessaging:
         """Test that pong message is processed without error."""
         with patch("app.api.endpoints.ws.get_db_session", side_effect=lambda: TestingSessionLocal()), \
              patch("app.api.endpoints.ws.authenticate_ws_token", return_value=test_user.id), \
-             patch("app.core.push.send_chat_notification"):
+             patch("app.core.notify.send_push_notification"):
 
             try:
                 with client.websocket_connect(f"/ws/chat/{test_room.id}?token={user1_token}") as websocket:

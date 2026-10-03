@@ -1,9 +1,5 @@
-import { styled } from "nativewind";
 import { View, Text } from "react-native";
 import { ChatMessage } from "@repo/core";
-
-const StyledView = styled(View);
-const StyledText = styled(Text);
 
 interface ChatBubbleProps {
   message: ChatMessage;
@@ -12,24 +8,26 @@ interface ChatBubbleProps {
 
 export const ChatBubble = ({ message, isMe }: ChatBubbleProps) => {
   return (
-    <StyledView
-      className={`max-w-[80%] rounded-2xl p-3 mb-2 ${
-        isMe ? "bg-blue-600 self-end rounded-tr-none" : "bg-gray-200 self-start rounded-tl-none"
+    <View
+      className={`max-w-[80%] rounded-thumb px-4 py-3 mb-2 ${
+        isMe
+          ? "bg-accent self-end rounded-tr-none"
+          : "bg-card border border-border self-start rounded-tl-none"
       }`}
     >
-      <StyledText className={`${isMe ? "text-white" : "text-gray-900"}`}>
+      <Text className="text-base leading-6 text-foreground">
         {message.content}
-      </StyledText>
-      <StyledView className="flex-row justify-end items-center mt-1">
+      </Text>
+      <View className="flex-row justify-end items-center mt-1">
         {isMe && message.isRead && (
-          <StyledText className="text-xs text-blue-200 mr-1">
+          <Text className="text-xs text-muted-foreground mr-1">
             읽음
-          </StyledText>
+          </Text>
         )}
-        <StyledText className={`text-xs ${isMe ? "text-blue-200" : "text-gray-500"}`}>
+        <Text className="text-xs text-muted-foreground">
           {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </StyledText>
-      </StyledView>
-    </StyledView>
+        </Text>
+      </View>
+    </View>
   );
 };

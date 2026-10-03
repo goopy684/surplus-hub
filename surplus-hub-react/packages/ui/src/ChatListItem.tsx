@@ -1,11 +1,5 @@
-import { styled } from "nativewind";
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import { ChatRoom } from "@repo/core";
-
-const StyledTouchable = styled(TouchableOpacity);
-const StyledView = styled(View);
-const StyledText = styled(Text);
-const StyledImage = styled(Image);
 
 interface ChatListItemProps {
   room: ChatRoom;
@@ -14,32 +8,32 @@ interface ChatListItemProps {
 
 export const ChatListItem = ({ room, onPress }: ChatListItemProps) => {
   return (
-    <StyledTouchable
-      className="flex-row items-center p-4 bg-white border-b border-gray-100 active:bg-gray-50"
+    <TouchableOpacity
+      className="flex-row items-center p-4 bg-card border-b border-border-secondary active:bg-background"
       onPress={onPress}
     >
-      <StyledImage
+      <Image
         source={{ uri: room.otherUser.avatarUrl }}
-        className="w-12 h-12 rounded-full bg-gray-200 mr-3"
+        className="w-12 h-12 rounded-full bg-muted mr-3"
       />
-      <StyledView className="flex-1">
-        <StyledView className="flex-row justify-between mb-1">
-          <StyledText className="font-bold text-gray-900">{room.otherUser.name}</StyledText>
-          <StyledText className="text-xs text-gray-500">
+      <View className="flex-1">
+        <View className="flex-row justify-between mb-1">
+          <Text className="font-bold text-base text-foreground">{room.otherUser.name}</Text>
+          <Text className="text-sm text-muted-foreground">
             {new Date(room.updatedAt).toLocaleDateString()}
-          </StyledText>
-        </StyledView>
-        <StyledView className="flex-row justify-between items-center">
-          <StyledText className="text-gray-600 text-sm" numberOfLines={1}>
+          </Text>
+        </View>
+        <View className="flex-row justify-between items-center">
+          <Text className="text-muted-foreground text-sm" numberOfLines={1}>
             {room.lastMessage?.content || "No messages yet"}
-          </StyledText>
+          </Text>
           {room.unreadCount > 0 && (
-            <StyledView className="bg-red-500 rounded-full w-5 h-5 items-center justify-center">
-              <StyledText className="text-white text-xs font-bold">{room.unreadCount}</StyledText>
-            </StyledView>
+            <View className="bg-primary rounded-full min-w-5 h-5 px-1.5 items-center justify-center ml-2">
+              <Text className="text-primary-foreground text-xs font-bold">{room.unreadCount}</Text>
+            </View>
           )}
-        </StyledView>
-      </StyledView>
-    </StyledTouchable>
+        </View>
+      </View>
+    </TouchableOpacity>
   );
 };

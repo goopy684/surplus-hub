@@ -9,17 +9,66 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AuthGate } from "../../../../components/AuthGate";
 
+// 모노라인 카테고리 아이콘 (viewBox 0 0 24 24, stroke currentColor, 1.8)
+function CategoryIcon({ name, className }: { name: string; className?: string }) {
+  const common = {
+    xmlns: "http://www.w3.org/2000/svg",
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    className,
+  };
+  switch (name) {
+    case "조명": // 전구
+      return (
+        <svg {...common}>
+          <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.6.45.95 1.15 1 1.9l.1.8h5l.1-.8c.05-.75.4-1.45 1-1.9A6 6 0 0 0 12 3Z" />
+        </svg>
+      );
+    case "문/창호": // 문
+      return (
+        <svg {...common}>
+          <path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17M3 21h18M15 12h.01" />
+        </svg>
+      );
+    case "건축자재": // 벽돌
+      return (
+        <svg {...common}>
+          <path d="M3 8h18M3 16h18M3 4h18v16H3zM9 4v4M15 8v4M9 12v4M15 16v4" />
+        </svg>
+      );
+    case "전기": // 번개
+      return (
+        <svg {...common}>
+          <path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" />
+        </svg>
+      );
+    case "설비": // 렌치
+      return (
+        <svg {...common}>
+          <path d="M14.5 5.5a4 4 0 0 1-5.2 5.2L4 16.2 7.8 20l5.5-5.3a4 4 0 0 1 5.2-5.2l-2.6 2.6-2-2 2.6-2.6Z" />
+        </svg>
+      );
+    default: // 기타 — 박스
+      return (
+        <svg {...common}>
+          <path d="M21 8 12 3 3 8v8l9 5 9-5V8ZM3 8l9 5 9-5M12 13v8" />
+        </svg>
+      );
+  }
+}
+
+// 업종별 카테고리 — 백엔드 seed_categories / 홈 피드와 동기화
 const CATEGORIES = [
-  { emoji: "🔩", label: "볼트/너트" },
-  { emoji: "🪵", label: "목재" },
-  { emoji: "🔧", label: "공구" },
-  { emoji: "⚡", label: "전기자재" },
+  { emoji: "💡", label: "조명" },
+  { emoji: "🚪", label: "문/창호" },
   { emoji: "🧱", label: "건축자재" },
-  { emoji: "🛢️", label: "배관" },
-  { emoji: "🏗️", label: "철강" },
-  { emoji: "📦", label: "포장재" },
-  { emoji: "🧪", label: "화학소재" },
-  { emoji: "⚙️", label: "기타" },
+  { emoji: "⚡", label: "전기" },
+  { emoji: "🔧", label: "설비" },
+  { emoji: "📦", label: "기타" },
 ] as const;
 
 const TRADE_METHODS = [
@@ -141,32 +190,34 @@ function EditContent({ id }: { id: string }) {
       <div className="p-4 max-w-lg mx-auto pb-28 space-y-5">
         {/* Title */}
         <div>
-          <label className="block text-sm font-bold text-foreground mb-2">제목</label>
+          <label htmlFor="edit-title" className="block text-sm font-bold text-foreground mb-2">제목</label>
           <input
+            id="edit-title"
             type="text"
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
-            className="w-full p-3 border border-border rounded-lg text-sm bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+            className="w-full p-3 border border-border rounded-field text-sm bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
           />
         </div>
 
         {/* Category */}
         <div>
-          <label className="block text-sm font-bold text-foreground mb-2">카테고리</label>
-          <div className="flex flex-wrap gap-2">
+          <span id="edit-category-label" className="block text-sm font-bold text-foreground mb-2">카테고리</span>
+          <div role="group" aria-labelledby="edit-category-label" className="flex flex-wrap gap-2">
             {CATEGORIES.map((cat) => {
               const isSelected = form.category === `${cat.emoji} ${cat.label}`;
               return (
                 <button
                   key={cat.label}
                   onClick={() => setForm({ ...form, category: `${cat.emoji} ${cat.label}` })}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-chip text-sm font-medium transition-colors ${
                     isSelected
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-secondary text-foreground hover:bg-accent"
+                      ? "bg-accent text-accent-foreground border border-transparent"
+                      : "bg-card text-foreground border border-border"
                   }`}
                 >
-                  {cat.emoji} {cat.label}
+                  <CategoryIcon name={cat.label} className="w-4 h-4" />
+                  {cat.label}
                 </button>
               );
             })}
@@ -175,66 +226,70 @@ function EditContent({ id }: { id: string }) {
 
         {/* Description */}
         <div>
-          <label className="block text-sm font-bold text-foreground mb-2">상세 설명</label>
+          <label htmlFor="edit-description" className="block text-sm font-bold text-foreground mb-2">상세 설명</label>
           <textarea
+            id="edit-description"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            className="w-full p-3 border border-border rounded-lg text-sm h-28 resize-none bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+            className="w-full p-3 border border-border rounded-field text-sm h-28 resize-none bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
           />
         </div>
 
         {/* Price */}
         <div>
-          <label className="block text-sm font-bold text-foreground mb-2">가격</label>
+          <label htmlFor="edit-price" className="block text-sm font-bold text-foreground mb-2">가격</label>
           <div className="relative">
             <input
+              id="edit-price"
               type="text"
               value={form.price}
               inputMode="numeric"
               onChange={(e) => setForm({ ...form, price: e.target.value.replace(/\D/g, "") })}
-              className="w-full p-3 border border-border rounded-lg text-sm bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none pr-12"
+              className="tabular w-full p-3 border border-border rounded-field text-lg font-bold text-foreground bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none pr-12"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-bold">원</span>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">원</span>
           </div>
         </div>
 
         {/* Quantity */}
         <div className="flex gap-3">
           <div className="flex-1">
-            <label className="block text-sm font-bold text-foreground mb-2">수량</label>
+            <label htmlFor="edit-quantity" className="block text-sm font-bold text-foreground mb-2">수량</label>
             <input
+              id="edit-quantity"
               type="text"
               value={form.quantity}
               inputMode="numeric"
               onChange={(e) => setForm({ ...form, quantity: e.target.value.replace(/\D/g, "") })}
-              className="w-full p-3 border border-border rounded-lg text-sm bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+              className="tabular w-full p-3 border border-border rounded-field text-sm bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
             />
           </div>
           <div className="w-24">
-            <label className="block text-sm font-bold text-foreground mb-2">단위</label>
+            <label htmlFor="edit-unit" className="block text-sm font-bold text-foreground mb-2">단위</label>
             <input
+              id="edit-unit"
               type="text"
               value={form.quantityUnit}
               onChange={(e) => setForm({ ...form, quantityUnit: e.target.value })}
-              className="w-full p-3 border border-border rounded-lg text-sm bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+              className="w-full p-3 border border-border rounded-field text-sm bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
             />
           </div>
         </div>
 
         {/* Trade Method */}
         <div>
-          <label className="block text-sm font-bold text-foreground mb-2">거래 방식</label>
-          <div className="flex gap-2">
+          <span id="edit-trade-label" className="block text-sm font-bold text-foreground mb-2">거래 방식</span>
+          <div role="group" aria-labelledby="edit-trade-label" className="flex gap-2">
             {TRADE_METHODS.map((method) => {
               const isSelected = form.tradeMethod === method.value;
               return (
                 <button
                   key={method.value}
                   onClick={() => setForm({ ...form, tradeMethod: method.value })}
-                  className={`flex-1 py-3 rounded-lg text-sm font-medium border transition-colors ${
+                  className={`flex-1 py-3 rounded-field text-sm font-medium border transition-colors ${
                     isSelected
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-border bg-card text-foreground hover:bg-accent"
+                      ? "border-transparent bg-accent text-accent-foreground font-bold"
+                      : "border-border bg-card text-foreground"
                   }`}
                 >
                   {method.label}
@@ -246,18 +301,18 @@ function EditContent({ id }: { id: string }) {
 
         {/* Status */}
         <div>
-          <label className="block text-sm font-bold text-foreground mb-2">판매 상태</label>
-          <div className="flex gap-2">
+          <span id="edit-status-label" className="block text-sm font-bold text-foreground mb-2">판매 상태</span>
+          <div role="group" aria-labelledby="edit-status-label" className="flex gap-2">
             {STATUS_OPTIONS.map((option) => {
               const isSelected = form.status === option.value;
               return (
                 <button
                   key={option.value}
                   onClick={() => setForm({ ...form, status: option.value })}
-                  className={`flex-1 py-3 rounded-lg text-sm font-medium border transition-colors ${
+                  className={`flex-1 py-3 rounded-field text-sm font-medium border transition-colors ${
                     isSelected
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-border bg-card text-foreground hover:bg-accent"
+                      ? "border-transparent bg-accent text-accent-foreground font-bold"
+                      : "border-border bg-card text-foreground"
                   }`}
                 >
                   {option.label}
@@ -269,13 +324,14 @@ function EditContent({ id }: { id: string }) {
 
         {/* Location */}
         <div>
-          <label className="block text-sm font-bold text-foreground mb-2">거래 위치</label>
+          <label htmlFor="edit-location" className="block text-sm font-bold text-foreground mb-2">거래 위치</label>
           <input
+            id="edit-location"
             type="text"
             value={form.location}
             onChange={(e) => setForm({ ...form, location: e.target.value })}
             placeholder="거래 위치를 입력하세요"
-            className="w-full p-3 border border-border rounded-lg text-sm bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+            className="w-full p-3 border border-border rounded-field text-sm bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
           />
         </div>
       </div>
@@ -286,7 +342,7 @@ function EditContent({ id }: { id: string }) {
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || !form.title.trim() || !form.price}
-            className="w-full fab-gradient text-white rounded-xl py-4 font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
+            className="w-full bg-primary text-primary-foreground rounded-btn py-4 font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
           >
             {isSubmitting ? "수정 중..." : "수정 완료"}
           </button>

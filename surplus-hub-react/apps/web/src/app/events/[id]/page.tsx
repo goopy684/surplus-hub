@@ -25,7 +25,7 @@ export default function EventDetailPage() {
     <div className="min-h-screen bg-background pb-24">
       <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-4 py-3">
         <button onClick={() => router.back()} className="p-1">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-5 w-5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
           </svg>
         </button>
@@ -39,7 +39,7 @@ export default function EventDetailPage() {
       ) : null}
 
       {error ? (
-        <div className="p-8 text-center text-sm text-red-500">이벤트를 불러오지 못했습니다.</div>
+        <div className="p-8 text-center text-sm text-destructive">이벤트를 불러오지 못했습니다.</div>
       ) : null}
 
       {!isLoading && !error && event ? (
@@ -53,14 +53,14 @@ export default function EventDetailPage() {
               />
             </div>
           ) : (
-            <div className="flex h-56 w-full items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+            <div className="flex h-56 w-full items-center justify-center border-b border-border bg-muted">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
-                strokeWidth={1.5}
+                strokeWidth={1.8}
                 stroke="currentColor"
-                className="h-16 w-16 text-primary/30"
+                className="h-16 w-16 text-muted-foreground"
               >
                 <path
                   strokeLinecap="round"
@@ -77,12 +77,10 @@ export default function EventDetailPage() {
                 const ongoing = isEventOngoing(event.startDate, event.endDate);
                 return (
                   <span
-                    className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${
+                    className={`inline-block rounded-chip border px-3 py-1 text-xs font-semibold ${
                       ongoing
-                        ? "bg-green-100 text-green-700"
-                        : event.isActive
-                        ? "bg-blue-100 text-blue-700"
-                        : "bg-gray-100 text-gray-500"
+                        ? "border-olive-bd bg-olive-bg text-olive-tx"
+                        : "border-border bg-card text-muted-foreground"
                     }`}
                   >
                     {ongoing ? "진행중" : event.isActive ? "예정" : "종료"}
@@ -98,7 +96,7 @@ export default function EventDetailPage() {
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
-                strokeWidth={1.5}
+                strokeWidth={1.8}
                 stroke="currentColor"
                 className="h-4 w-4"
               >
@@ -111,7 +109,7 @@ export default function EventDetailPage() {
               <span>{formatDate(event.startDate)} ~ {formatDate(event.endDate)}</span>
             </div>
 
-            <div className="rounded-xl border border-border bg-muted/30 p-4">
+            <div className="rounded-thumb border border-border bg-card p-4">
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{event.description}</p>
             </div>
           </div>

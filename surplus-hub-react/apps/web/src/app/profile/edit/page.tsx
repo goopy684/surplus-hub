@@ -141,7 +141,7 @@ function ProfileEditContent() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white shadow-md hover:bg-primary/90"
+              className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground card-shadow hover:bg-primary/90"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -172,7 +172,7 @@ function ProfileEditContent() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:bg-accent"
+              className="rounded-btn border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-accent"
             >
               이미지 변경
             </button>
@@ -180,7 +180,7 @@ function ProfileEditContent() {
               <button
                 type="button"
                 onClick={handleRemoveImage}
-                className="rounded-lg border border-destructive/30 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10"
+                className="rounded-btn border border-destructive/30 px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10"
               >
                 이미지 제거
               </button>
@@ -199,7 +199,7 @@ function ProfileEditContent() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="이름을 입력하세요"
-            className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            className="w-full rounded-field border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
             required
           />
         </div>
@@ -215,7 +215,7 @@ function ProfileEditContent() {
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="예: 서울특별시 강남구"
-            className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            className="w-full rounded-field border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
           />
         </div>
 
@@ -225,14 +225,14 @@ function ProfileEditContent() {
             type="button"
             onClick={() => router.back()}
             disabled={isPending}
-            className="flex-1 rounded-lg border border-border bg-card py-3 text-sm font-medium text-foreground hover:bg-accent disabled:opacity-50"
+            className="flex-1 rounded-btn border border-border bg-card py-3 text-sm font-medium text-foreground hover:bg-accent disabled:opacity-50"
           >
             취소
           </button>
           <button
             type="submit"
             disabled={isPending || !name.trim()}
-            className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-medium text-primary-foreground disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-2 rounded-btn bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-50"
           >
             {isPending && (
               <svg

@@ -1,7 +1,7 @@
 """Environment-based embedding provider with thread-safe singleton pattern.
 
 Supports three providers:
-- LocalEmbeddingProvider: sentence-transformers/BAAI/bge-m3 (APP_ENV=local)
+- LocalEmbeddingProvider: Ollama (OpenAI-compatible) e.g. bge-m3 (APP_ENV=local)
 - OpenAIEmbeddingProvider: OpenAI text-embedding-3-small (APP_ENV=dev/stage/prod)
 - VertexEmbeddingProvider: Gemini embedding via Vertex AI (AI_PROVIDER=vertex)
 """
@@ -19,32 +19,59 @@ _provider_lock = threading.Lock()
 
 
 class LocalEmbeddingProvider:
-    """sentence-transformers based local embedding provider."""
+    """Local embeddings via Ollama's OpenAI-compatible /v1/embeddings endpoint.
+
+    Avoids a heavy torch / sentence-transformers dependency (which is not in
+    requirements.txt). The configured model (settings.LOCAL_EMBED_MODEL, e.g.
+    bge-m3) must output EMBEDDING_DIMENSION values to match the DB vector column.
+    Install with `ollama pull bge-m3`. See dev/research/local-llm-setup-guide.md.
+    """
 
     def __init__(self):
-        self._model = None
+        self._client = None
         self._lock = threading.Lock()
 
-    def _load_model(self):
-        if self._model is None:
+    def _get_client(self):
+        if self._client is None:
             with self._lock:
-                if self._model is None:
-                    from sentence_transformers import SentenceTransformer
+                if self._client is None:
+                    import openai
 
-                    logger.info("Loading local embedding model: %s", settings.EMBEDDING_MODEL_NAME)
-                    self._model = SentenceTransformer(settings.EMBEDDING_MODEL_NAME)
-                    logger.info("Local embedding model loaded successfully")
-        return self._model
+                    self._client = openai.OpenAI(
+                        base_url=settings.LOCAL_LLM_BASE_URL,
+                        api_key=settings.LOCAL_API_KEY,
+                    )
+                    logger.info(
+                        "Local (Ollama) embedding client initialized (model=%s, base=%s)",
+                        settings.LOCAL_EMBED_MODEL,
+                        settings.LOCAL_LLM_BASE_URL,
+                    )
+        return self._client
+
+    def _check_dim(self, vector: List[float]) -> List[float]:
+        if len(vector) != settings.EMBEDDING_DIMENSION:
+            raise ValueError(
+                f"Local embedding model '{settings.LOCAL_EMBED_MODEL}' returned dimension "
+                f"{len(vector)}, but EMBEDDING_DIMENSION / the DB vector column is "
+                f"{settings.EMBEDDING_DIMENSION}. Use a matching model (bge-m3 = 1024) or "
+                "align EMBEDDING_DIMENSION and the migration."
+            )
+        return vector
 
     def generate(self, text: str) -> List[float]:
-        model = self._load_model()
-        vector = model.encode(text, normalize_embeddings=True)
-        return vector.tolist()
+        client = self._get_client()
+        resp = client.embeddings.create(model=settings.LOCAL_EMBED_MODEL, input=text)
+        return self._check_dim(resp.data[0].embedding)
 
     def generate_batch(self, texts: List[str], batch_size: int = 32) -> List[List[float]]:
-        model = self._load_model()
-        vectors = model.encode(texts, batch_size=batch_size, normalize_embeddings=True)
-        return [v.tolist() for v in vectors]
+        client = self._get_client()
+        all_embeddings: List[List[float]] = []
+        for i in range(0, len(texts), batch_size):
+            chunk = texts[i : i + batch_size]
+            resp = client.embeddings.create(model=settings.LOCAL_EMBED_MODEL, input=chunk)
+            ordered = sorted(resp.data, key=lambda d: d.index)
+            all_embeddings.extend(self._check_dim(d.embedding) for d in ordered)
+        return all_embeddings
 
 
 class OpenAIEmbeddingProvider:
@@ -187,8 +214,11 @@ def _get_provider():
 def _get_model():
     """Backward-compatible warm-up. Called from main.py startup."""
     provider = _get_provider()
-    if isinstance(provider, LocalEmbeddingProvider):
+    # Initialize the underlying client/model so the first request isn't cold.
+    if hasattr(provider, "_load_model"):
         provider._load_model()
+    elif hasattr(provider, "_get_client"):
+        provider._get_client()
     return provider
 
 

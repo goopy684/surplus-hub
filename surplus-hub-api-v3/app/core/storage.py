@@ -42,6 +42,9 @@ class S3Storage(BaseStorage):
             if settings.AWS_ACCESS_KEY_ID:
                 kwargs["aws_access_key_id"] = settings.AWS_ACCESS_KEY_ID
                 kwargs["aws_secret_access_key"] = settings.AWS_SECRET_ACCESS_KEY
+            if settings.AWS_S3_ENDPOINT_URL:
+                # S3-compatible storage (Cloudflare R2 등) — explicit endpoint.
+                kwargs["endpoint_url"] = settings.AWS_S3_ENDPOINT_URL
             self._client = boto3.client(**kwargs)
         return self._client
 

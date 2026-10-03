@@ -19,10 +19,10 @@ const STATUS_LABELS: Record<Report["status"], string> = {
 };
 
 const STATUS_COLORS: Record<Report["status"], string> = {
-  pending: "bg-warning/10 text-warning",
-  reviewed: "bg-info/10 text-info",
-  resolved: "bg-success/10 text-success",
-  dismissed: "bg-muted text-muted-foreground",
+  pending: "bg-accent text-accent-foreground",
+  reviewed: "bg-card text-muted-foreground border border-border",
+  resolved: "bg-olive-bg text-olive-tx border border-olive-bd",
+  dismissed: "bg-card text-muted-foreground border border-border",
 };
 
 type Tab = "pending" | "resolved" | "dismissed";
@@ -91,9 +91,9 @@ export default function AdminModerationPage() {
           >
             {tab.label}
             {activeTab === tab.key && !reportsLoading && reports.length > 0 && (
-              <span className={`rounded-full px-1.5 py-0.5 text-xs font-bold ${
+              <span className={`rounded-full px-1.5 py-0.5 text-xs font-bold tabular ${
                 tab.key === "pending"
-                  ? "bg-destructive text-white"
+                  ? "bg-accent text-accent-foreground"
                   : "bg-muted text-muted-foreground"
               }`}>
                 {reports.length}
@@ -107,15 +107,15 @@ export default function AdminModerationPage() {
       <div className="space-y-3">
         {reportsLoading ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-24 animate-pulse rounded-xl bg-muted" />
+            <div key={i} className="h-24 animate-pulse rounded-thumb bg-muted" />
           ))
         ) : reports.length === 0 ? (
-          <div className="rounded-xl border border-border bg-card py-12 text-center text-sm text-muted-foreground">
+          <div className="rounded-thumb border border-border bg-card py-12 text-center text-sm text-muted-foreground">
             해당 항목이 없습니다.
           </div>
         ) : (
           reports.map((report) => (
-            <div key={report.id} className="rounded-xl border border-border bg-card p-4">
+            <div key={report.id} className="rounded-thumb border border-border bg-card p-4 card-shadow">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -141,14 +141,14 @@ export default function AdminModerationPage() {
                     <button
                       onClick={() => handleUpdateStatus(report.id, "resolved")}
                       disabled={updateReport.isPending}
-                      className="rounded-lg bg-success/10 px-3 py-1.5 text-xs font-medium text-success hover:bg-success/20 disabled:opacity-50"
+                      className="rounded-btn bg-olive-bg px-3 py-1.5 text-xs font-bold text-olive-tx border border-olive-bd hover:bg-olive-bg/70 disabled:opacity-50"
                     >
                       해결
                     </button>
                     <button
                       onClick={() => handleUpdateStatus(report.id, "dismissed")}
                       disabled={updateReport.isPending}
-                      className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted disabled:opacity-50"
+                      className="rounded-btn border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
                     >
                       기각
                     </button>
@@ -161,7 +161,7 @@ export default function AdminModerationPage() {
       </div>
 
       {/* 금칙어 관리 */}
-      <div className="rounded-xl border border-border bg-card p-5">
+      <div className="rounded-thumb border border-border bg-card p-5 card-shadow">
         <h2 className="text-sm font-semibold text-foreground">금칙어 관리</h2>
         <p className="mt-1 text-xs text-muted-foreground">등록된 금칙어는 콘텐츠 자동 필터링에 사용됩니다.</p>
 
@@ -173,12 +173,12 @@ export default function AdminModerationPage() {
             value={newWord}
             onChange={(e) => setNewWord(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAddWord()}
-            className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="flex-1 rounded-field border border-border bg-field px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           <button
             onClick={handleAddWord}
             disabled={!newWord.trim() || createBannedWord.isPending}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary-dark disabled:opacity-50"
+            className="rounded-btn bg-primary px-4 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark disabled:opacity-50"
           >
             {createBannedWord.isPending ? "추가 중..." : "추가"}
           </button>

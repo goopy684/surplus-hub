@@ -1,11 +1,14 @@
 import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from "@tanstack/react-query";
 import { fetchCurrentUser, fetchUserStats, updateProfile, UserUpdateData } from "../api";
+import { hasAuthToken } from "../api/client";
 import { CurrentUser, UserStats } from "../types";
 
 export const useCurrentUser = (): UseQueryResult<CurrentUser> => {
   return useQuery<CurrentUser>({
     queryKey: ["currentUser"],
     queryFn: fetchCurrentUser,
+    enabled: hasAuthToken(),
+    retry: false,
   });
 };
 

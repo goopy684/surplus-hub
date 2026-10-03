@@ -16,13 +16,28 @@ const readRecord = (value: unknown): Record<string, unknown> =>
 const readString = (value: unknown): string | undefined =>
   typeof value === "string" && value.trim().length > 0 ? value : undefined;
 
+// design.md 정직성 규칙: 지어낸 지표 금지. API가 주지 않는 값은 undefined로 두어
+// 화면이 조건부로 숨길 수 있게 한다 (기본값을 주입하면 가짜 수치가 항상 렌더된다).
+const readOptionalNumber = (value: unknown): number | undefined => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim().length > 0) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : undefined;
+  }
+  return undefined;
+};
+
 const mapCurrentUser = (raw: Record<string, unknown>): CurrentUser => ({
   id: String(raw.id ?? ""),
+  email: readString(raw.email),
   name: readString(raw.name),
   profileImageUrl: readString(raw.profileImageUrl ?? raw.profile_image_url),
   location: readString(raw.location),
-  trustLevel: readNumber(raw.trustLevel ?? raw.trust_level, 0),
-  mannerTemperature: readNumber(raw.mannerTemperature ?? raw.manner_temperature, 36.5),
+  trustLevel: readOptionalNumber(raw.trustLevel ?? raw.trust_level),
+  mannerTemperature: readOptionalNumber(raw.mannerTemperature ?? raw.manner_temperature),
+  role: readString(raw.role),
+  adminRole: readString(raw.adminRole ?? raw.admin_role),
+  isSuperuser: Boolean(raw.isSuperuser ?? raw.is_superuser),
 });
 
 const fetchCurrentUserRaw = async (): Promise<Record<string, unknown>> => {
@@ -48,23 +63,14 @@ export const updateProfile = async (data: UserUpdateData): Promise<CurrentUser> 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const fetchUserStats = async (_userId: string): Promise<UserStats> => {
   const userData = await fetchCurrentUserRaw();
-  const currentUser = mapCurrentUser(userData);
-
   const stats = readRecord(userData.stats);
-  const trustLevel = currentUser.trustLevel ?? readNumber(userData.trustLevel ?? userData.trust_level, 0);
-  const mannerTemperature =
-    currentUser.mannerTemperature ??
-    readNumber(userData.mannerTemperature ?? userData.manner_temperature, 36.5);
-
-  const ratingFromStats = readNumber(stats.rating, Number.NaN);
-  const ratingFromTrustLevel = trustLevel > 0 ? trustLevel : Number((mannerTemperature / 20).toFixed(1));
-  const rating = Number.isFinite(ratingFromStats) ? ratingFromStats : ratingFromTrustLevel;
 
   return {
     materialsSold: readNumber(stats.salesCount ?? stats.materialsSold, 0),
     materialsBought: readNumber(stats.purchaseCount ?? stats.materialsBought, 0),
     activeListings: readNumber(stats.activeListings, 0),
-    rating,
+    // 서버가 평점을 주지 않으면 undefined. (이전에는 매너온도/20으로 평점을 만들어냈다)
+    rating: readOptionalNumber(stats.rating),
     reviews: readNumber(stats.reviewCount ?? stats.reviews, 0),
     wishlistCount: readNumber(stats.wishlistCount ?? stats.wishlist_count, 0),
     communityPostsCount: readNumber(stats.communityPostsCount ?? stats.community_posts_count, 0),

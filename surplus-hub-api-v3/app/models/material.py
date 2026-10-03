@@ -87,3 +87,6 @@ class Material(Base):
         if self.material_images:
             return self.material_images[0].url
         return None
+
+    def __str__(self) -> str:
+        return f"{self.title} (#{self.id})"

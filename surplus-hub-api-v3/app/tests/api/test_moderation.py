@@ -23,6 +23,10 @@ from fastapi.testclient import TestClient
 from app.core.config import settings
 from app.core.security import create_access_token
 from app.models.user import User
+from app.models.material import Material
+from app.models.transaction import Transaction
+from app.crud.crud_moderation import crud_moderation
+from app.schemas.moderation import SanctionCreate
 
 API_V1_STR = settings.API_V1_STR
 REPORTS_PREFIX = f"{API_V1_STR}/reports"
@@ -37,7 +41,9 @@ def _register_moderation_routers():
     from app.main import app
     from app.api.endpoints import reports, admin_users, admin_moderation
 
-    existing_paths = {r.path for r in app.routes}
+    # Newer starlette exposes deferred includes as _IncludedRouter objects
+    # without .path; skip those. Re-registering is harmless (first match wins).
+    existing_paths = {r.path for r in app.routes if hasattr(r, "path")}
     prefix = API_V1_STR
     if f"{prefix}/reports" not in existing_paths:
         from fastapi import APIRouter
@@ -714,3 +720,82 @@ class TestBannedWords:
             f"{ADMIN_MOD_PREFIX}/banned-words", headers=mod_reporter_headers
         )
         assert resp.status_code == 403
+
+# ---------------------------------------------------------------------------
+# Tests: BAN releases materials locked by cancelled transactions (H10)
+# ---------------------------------------------------------------------------
+
+
+class TestBanRestoresMaterial:
+    def _make_deal(self, db, *, material_status, txn_status="PENDING"):
+        """Seed a seller, buyer, listing and one transaction between them."""
+        import uuid
+
+        suffix = uuid.uuid4().hex[:8]
+        seller = User(email=f"seller_{suffix}@example.com", name="Seller", is_active=True)
+        buyer = User(email=f"buyer_{suffix}@example.com", name="Buyer", is_active=True)
+        db.add_all([seller, buyer])
+        db.commit()
+        db.refresh(seller)
+        db.refresh(buyer)
+
+        material = Material(
+            title=f"Rebar {suffix}",
+            description="surplus rebar",
+            price=10000,
+            location_address="Seoul",
+            seller_id=seller.id,
+            status=material_status,
+        )
+        db.add(material)
+        db.commit()
+        db.refresh(material)
+
+        txn = Transaction(
+            material_id=material.id,
+            seller_id=seller.id,
+            buyer_id=buyer.id,
+            price=10000,
+            status=txn_status,
+        )
+        db.add(txn)
+        db.commit()
+        db.refresh(txn)
+        return seller, buyer, material, txn
+
+    def test_ban_restores_reserved_material_to_active(self, db, mod_admin_user):
+        seller, buyer, material, txn = self._make_deal(db, material_status="RESERVED")
+
+        crud_moderation.create_sanction(
+            db,
+            user_id=buyer.id,
+            admin_id=mod_admin_user.id,
+            admin_role="ADMIN",
+            data=SanctionCreate(sanction_type="BAN", reason="fraud"),
+        )
+
+        db.refresh(txn)
+        db.refresh(material)
+        db.refresh(buyer)
+        assert txn.status == "CANCELLED"
+        assert material.status == "ACTIVE"  # released, no longer dead stock
+        assert buyer.is_active is False
+
+    def test_ban_does_not_touch_sold_material(self, db, mod_admin_user):
+        # A COMPLETED-then-SOLD listing must stay SOLD even when a party is banned.
+        seller, buyer, material, txn = self._make_deal(
+            db, material_status="SOLD", txn_status="CONFIRMED"
+        )
+
+        crud_moderation.create_sanction(
+            db,
+            user_id=buyer.id,
+            admin_id=mod_admin_user.id,
+            admin_role="ADMIN",
+            data=SanctionCreate(sanction_type="BAN", reason="abuse"),
+        )
+
+        db.refresh(txn)
+        db.refresh(material)
+        assert txn.status == "CANCELLED"
+        assert material.status == "SOLD"  # untouched

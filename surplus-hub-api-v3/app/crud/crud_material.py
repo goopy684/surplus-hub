@@ -4,6 +4,7 @@ from sqlalchemy import desc
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.crud.base import CRUDBase
+from app.models.like import MaterialLike
 from app.models.material import Material
 from app.models.material_image import MaterialImage
 from app.schemas.material import MaterialCreate, MaterialUpdate
@@ -197,6 +198,29 @@ class CRUDMaterial(CRUDBase[Material, MaterialCreate, MaterialUpdate]):
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
+
+        # Let users who liked this material know it got reserved or sold.
+        # Lives here so every caller (status endpoint, transaction completion) notifies.
+        if status in ("RESERVED", "SOLD"):
+            from app.core.notify import notify_many  # 지연 import: app.core.notify -> app.crud 순환 회피
+
+            liker_ids = [
+                uid for (uid,) in db.query(MaterialLike.user_id).filter(
+                    MaterialLike.material_id == db_obj.id,
+                    MaterialLike.user_id != db_obj.seller_id,
+                ).all()
+            ]
+            if liker_ids:
+                label = "예약 중" if status == "RESERVED" else "판매 완료"
+                notify_many(
+                    db,
+                    user_ids=liker_ids,
+                    type="MATERIAL_STATUS",
+                    title="관심 자재 상태가 변경되었어요",
+                    body=f"'{db_obj.title}' 자재가 {label}(으)로 변경되었습니다.",
+                    reference_type="material",
+                    reference_id=db_obj.id,
+                )
         return db_obj
 
     def get_multi_cursor(
