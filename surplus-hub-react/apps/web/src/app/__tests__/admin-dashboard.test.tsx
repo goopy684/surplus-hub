@@ -5,6 +5,7 @@ import {
   useAdminUserStats,
   useAdminMaterialStats,
   useAdminTransactionStats,
+  useAdminActiveUserStats,
   useExportCsv,
 } from '@repo/core'
 
@@ -13,6 +14,7 @@ jest.mock('@repo/core', () => ({
   useAdminUserStats: jest.fn(),
   useAdminMaterialStats: jest.fn(),
   useAdminTransactionStats: jest.fn(),
+  useAdminActiveUserStats: jest.fn(),
   useExportCsv: jest.fn(),
 }))
 
@@ -28,13 +30,14 @@ const mutate = jest.fn()
 
 const setup = (points: { date: string; count: number }[] | undefined) => {
   ;(useDashboardSummary as jest.Mock).mockReturnValue({
-    data: { totalUsers: 10, activeUsers: 5, newUsersToday: 1, totalMaterials: 3, activeMaterials: 2, totalTransactions: 4, completedTransactions: 4, pendingReports: 0 },
+    data: { totalUsers: 10, newUsersToday: 1, dau: 2, wau: 4, mau: 5, totalMaterials: 3, activeMaterials: 2, totalTransactions: 4, completedTransactions: 4, completedTransactionAmount: 1234000, pendingReports: 0 },
     isLoading: false,
     isError: false,
   })
   ;(useAdminUserStats as jest.Mock).mockReturnValue(stats(points))
   ;(useAdminMaterialStats as jest.Mock).mockReturnValue(stats(points))
   ;(useAdminTransactionStats as jest.Mock).mockReturnValue(stats(points))
+  ;(useAdminActiveUserStats as jest.Mock).mockReturnValue(stats(points))
   ;(useExportCsv as jest.Mock).mockReturnValue({
     mutate,
     isPending: false,
@@ -49,7 +52,17 @@ describe('Admin Dashboard Page', () => {
     jest.clearAllMocks()
   })
 
-  it('renders a bar per data point for all three charts', () => {
+  it('renders DAU/WAU/MAU and completed transaction amount KPIs', () => {
+    setup([])
+    render(<AdminDashboardPage />)
+
+    expect(screen.getByText('DAU').nextSibling).toHaveTextContent('2')
+    expect(screen.getByText('WAU').nextSibling).toHaveTextContent('4')
+    expect(screen.getByText('MAU').nextSibling).toHaveTextContent('5')
+    expect(screen.getByText('₩1,234,000')).toBeInTheDocument()
+  })
+
+  it('renders a bar per data point for all four charts', () => {
     setup([
       { date: '2026-08-01', count: 3 },
       { date: '2026-08-02', count: 7 },
@@ -59,10 +72,11 @@ describe('Admin Dashboard Page', () => {
     expect(screen.getByText('사용자 증가 추이')).toBeInTheDocument()
     expect(screen.getByText('자재 등록 현황')).toBeInTheDocument()
     expect(screen.getByText('거래 추이')).toBeInTheDocument()
+    expect(screen.getByText('활성 사용자')).toBeInTheDocument()
 
-    // 2 points x 3 charts
+    // 2 points x 4 charts
     const bars = screen.getAllByTestId('trend-bar')
-    expect(bars).toHaveLength(6)
+    expect(bars).toHaveLength(8)
     expect(bars[1]).toHaveStyle({ height: '100%' })
     // 3 / 7 of the max
     expect(bars[0]?.getAttribute('style')).toContain('42.85')
@@ -72,7 +86,7 @@ describe('Admin Dashboard Page', () => {
     setup([])
     render(<AdminDashboardPage />)
 
-    expect(screen.getAllByText('표시할 데이터가 없습니다.')).toHaveLength(3)
+    expect(screen.getAllByText('표시할 데이터가 없습니다.')).toHaveLength(4)
     expect(screen.queryAllByTestId('trend-bar')).toHaveLength(0)
   })
 
@@ -84,7 +98,7 @@ describe('Admin Dashboard Page', () => {
     render(<AdminDashboardPage />)
 
     const bars = screen.getAllByTestId('trend-bar')
-    expect(bars).toHaveLength(6)
+    expect(bars).toHaveLength(8)
     bars.forEach((bar) => expect(bar).toHaveStyle({ height: '0%' }))
   })
 
@@ -93,8 +107,8 @@ describe('Admin Dashboard Page', () => {
     ;(useAdminUserStats as jest.Mock).mockReturnValue(stats(undefined, { isLoading: true, isFetching: true }))
     render(<AdminDashboardPage />)
 
-    // user chart is a skeleton, the other two still render their single bar
-    expect(screen.queryAllByTestId('trend-bar')).toHaveLength(2)
+    // user chart is a skeleton, the other three still render their single bar
+    expect(screen.queryAllByTestId('trend-bar')).toHaveLength(3)
     expect(document.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0)
   })
 
@@ -106,6 +120,7 @@ describe('Admin Dashboard Page', () => {
     fireEvent.click(screen.getByText('월'))
     expect(useAdminUserStats).toHaveBeenLastCalledWith('month')
     expect(useAdminTransactionStats).toHaveBeenLastCalledWith('month')
+    expect(useAdminActiveUserStats).toHaveBeenLastCalledWith('month')
   })
 
   it('invokes the export mutation when an export button is clicked', () => {

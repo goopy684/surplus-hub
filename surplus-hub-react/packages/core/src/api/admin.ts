@@ -50,6 +50,15 @@ export const fetchAdminTransactionStats = async (
   return unwrapApiData<StatsResponse>(response.data);
 };
 
+export const fetchActiveUserStats = async (
+  period: "day" | "week" | "month" = "week"
+): Promise<StatsResponse> => {
+  const response = await apiClient.get("/api/v1/admin/dashboard/stats/active-users", {
+    params: { period },
+  });
+  return unwrapApiData<StatsResponse>(response.data);
+};
+
 // ─── Admin Role Users (GET /admin/roles) ─────────────────────────────────────
 
 export const fetchAdminUsers = async (

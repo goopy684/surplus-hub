@@ -7,6 +7,7 @@ import {
   useAdminUserStats,
   useAdminMaterialStats,
   useAdminTransactionStats,
+  useAdminActiveUserStats,
   useExportCsv,
 } from "@repo/core";
 
@@ -121,6 +122,7 @@ export default function AdminDashboardPage() {
   const userStats = useAdminUserStats(period);
   const materialStats = useAdminMaterialStats(period);
   const transactionStats = useAdminTransactionStats(period);
+  const activeUserStats = useAdminActiveUserStats(period);
   const exportCsv = useExportCsv();
 
   const pending = summary?.pendingReports ?? 0;
@@ -154,9 +156,11 @@ export default function AdminDashboardPage() {
       )}
 
       {/* KPI 카드 그리드 */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <KpiCard label="총 사용자" value={summary?.totalUsers ?? 0} sub="전체 가입자 수" loading={isLoading} />
-        <KpiCard label="활성 사용자" value={summary?.activeUsers ?? 0} sub="최근 30일 기준" loading={isLoading} />
+        <KpiCard label="DAU" value={summary?.dau ?? 0} sub="오늘 접속" loading={isLoading} />
+        <KpiCard label="WAU" value={summary?.wau ?? 0} sub="최근 7일 접속" loading={isLoading} />
+        <KpiCard label="MAU" value={summary?.mau ?? 0} sub="최근 30일 접속" loading={isLoading} />
         <KpiCard label="신규 가입 (오늘)" value={summary?.newUsersToday ?? 0} loading={isLoading} />
         <KpiCard
           label="등록 자재"
@@ -165,6 +169,12 @@ export default function AdminDashboardPage() {
           loading={isLoading}
         />
         <KpiCard label="총 거래" value={summary?.totalTransactions ?? 0} loading={isLoading} />
+        <KpiCard
+          label="거래액"
+          value={`₩${(summary?.completedTransactionAmount ?? 0).toLocaleString()}`}
+          sub="완료 거래 기준"
+          loading={isLoading}
+        />
         <KpiCard
           label="미처리 신고"
           value={pending}
@@ -196,7 +206,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <TrendChart
           title="사용자 증가 추이"
           data={userStats.data?.data}
@@ -214,6 +224,12 @@ export default function AdminDashboardPage() {
           data={transactionStats.data?.data}
           loading={transactionStats.isLoading || transactionStats.isFetching}
           error={transactionStats.isError}
+        />
+        <TrendChart
+          title="활성 사용자"
+          data={activeUserStats.data?.data}
+          loading={activeUserStats.isLoading || activeUserStats.isFetching}
+          error={activeUserStats.isError}
         />
       </div>
 

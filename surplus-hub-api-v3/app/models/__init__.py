@@ -14,4 +14,4 @@ from app.models.subscription import Subscription
 from app.models.search_log import SearchLog
 from app.models.admin import AdminAuditLog
 from app.models.moderation import Report, UserSanction, AdminNote, BannedWord
-from app.models.stats import DailyStats
+from app.models.stats import DailyStats, UserDailyActivity
