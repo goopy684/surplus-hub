@@ -1,5 +1,6 @@
 from typing import Optional
 from pydantic import BaseModel, EmailStr
+from app.schemas.stored_url import StoredUrl
 
 class Token(BaseModel):
     access_token: str
@@ -21,7 +22,7 @@ class UserCreate(UserBase):
 class UserUpdate(UserBase):
     password: Optional[str] = None
     name: Optional[str] = None
-    profile_image_url: Optional[str] = None
+    profile_image_url: Optional[StoredUrl] = None
     location: Optional[str] = None
 
 class UserInDBBase(UserBase):

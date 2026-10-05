@@ -1,6 +1,7 @@
 from typing import Optional, List
 from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
+from app.schemas.stored_url import StoredUrl
 
 class Location(BaseModel):
     address: str
@@ -31,7 +32,7 @@ class MaterialBase(BaseModel):
         populate_by_name = True
 
 class MaterialCreate(MaterialBase):
-    photo_urls: Optional[List[str]] = Field(None, alias="photoUrls")
+    photo_urls: Optional[List[StoredUrl]] = Field(None, alias="photoUrls")
 
 class MaterialUpdate(MaterialBase):
     pass

@@ -77,6 +77,22 @@ class TestCreateMaterial:
         _created_material_id = data["id"]
         assert _created_material_id > 0
 
+    def test_create_material_rejects_inline_data_url(
+        self, client: TestClient, auth_headers: dict
+    ):
+        """Base64 data URLs must be uploaded first, never stored in the DB."""
+        payload = {
+            "title": "Inline Image",
+            "description": "x",
+            "price": 1000,
+            "location": {"address": "Seoul"},
+            "photoUrls": ["data:image/png;base64,iVBORw0KGgo="],
+        }
+        response = client.post(
+            f"{API_V1_STR}/materials/", json=payload, headers=auth_headers
+        )
+        assert response.status_code == 422
+
     def test_create_material_minimal_fields(
         self, client: TestClient, auth_headers: dict
     ):

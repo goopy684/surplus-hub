@@ -2,6 +2,7 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 from datetime import datetime
 from app.schemas.response import StandardResponse
+from app.schemas.stored_url import StoredUrl
 
 class PostBase(BaseModel):
     title: str
@@ -10,6 +11,8 @@ class PostBase(BaseModel):
     image_url: Optional[str] = Field(None, alias="imageUrl")
 
 class PostCreate(PostBase):
+    image_url: Optional[StoredUrl] = Field(None, alias="imageUrl")
+
     model_config = {"populate_by_name": True}
 
 class Post(PostBase):
