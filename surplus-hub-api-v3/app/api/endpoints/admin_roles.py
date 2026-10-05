@@ -16,13 +16,6 @@ from app.core.permissions import ROLE_HIERARCHY
 router = APIRouter()
 
 
-def _get_client_ip(request: Request) -> str:
-    forwarded_for = request.headers.get("X-Forwarded-For")
-    if forwarded_for:
-        return forwarded_for.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
-
-
 @router.get("", summary="List admin users")
 def list_admin_users(
     skip: int = Query(0, ge=0),
@@ -102,7 +95,7 @@ def update_admin_role(
         target_type="user",
         target_id=user_id,
         details={"old_role": old_role, "new_role": new_role},
-        ip_address=_get_client_ip(request),
+        ip_address=deps.get_client_ip(request),
     )
 
     return {"status": "success", "data": AdminUserResponse.model_validate(updated_user)}

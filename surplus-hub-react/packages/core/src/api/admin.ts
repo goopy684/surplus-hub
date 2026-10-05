@@ -18,6 +18,9 @@ import {
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
+// 기간별 조회 범위. 백엔드 기본값(30일)이면 "월" 차트가 막대 1~2개뿐이다. 상한 365.
+const STATS_DAYS = { day: 30, week: 84, month: 365 } as const;
+
 export const fetchDashboardSummary = async (): Promise<DashboardSummary> => {
   const response = await apiClient.get("/api/v1/admin/dashboard/summary");
   return unwrapApiData<DashboardSummary>(response.data);
@@ -27,7 +30,7 @@ export const fetchAdminUserStats = async (
   period: "day" | "week" | "month" = "week"
 ): Promise<StatsResponse> => {
   const response = await apiClient.get("/api/v1/admin/dashboard/stats/users", {
-    params: { period },
+    params: { period, days: STATS_DAYS[period] },
   });
   return unwrapApiData<StatsResponse>(response.data);
 };
@@ -36,7 +39,7 @@ export const fetchAdminMaterialStats = async (
   period: "day" | "week" | "month" = "week"
 ): Promise<StatsResponse> => {
   const response = await apiClient.get("/api/v1/admin/dashboard/stats/materials", {
-    params: { period },
+    params: { period, days: STATS_DAYS[period] },
   });
   return unwrapApiData<StatsResponse>(response.data);
 };
@@ -45,7 +48,7 @@ export const fetchAdminTransactionStats = async (
   period: "day" | "week" | "month" = "week"
 ): Promise<StatsResponse> => {
   const response = await apiClient.get("/api/v1/admin/dashboard/stats/transactions", {
-    params: { period },
+    params: { period, days: STATS_DAYS[period] },
   });
   return unwrapApiData<StatsResponse>(response.data);
 };
@@ -97,9 +100,9 @@ export const fetchManagedUsers = async (
       skip: params.skip ?? 0,
       limit: params.limit ?? 50,
       ...(params.search ? { search: params.search } : {}),
-      // 백엔드 파라미터명: is_active (snake_case)
-      ...(params.isActive !== undefined ? { is_active: params.isActive } : {}),
-      ...(params.adminRole ? { admin_role: params.adminRole } : {}),
+      // 백엔드 Query alias가 camelCase(isActive/adminRole)다. snake_case로 보내면 필터가 조용히 무시된다.
+      ...(params.isActive !== undefined ? { isActive: params.isActive } : {}),
+      ...(params.adminRole ? { adminRole: params.adminRole } : {}),
     },
   });
   const raw = unwrapApiData<{ items: AdminUser[]; total: number }>(response.data);

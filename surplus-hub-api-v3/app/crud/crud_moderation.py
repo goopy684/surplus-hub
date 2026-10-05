@@ -206,7 +206,17 @@ class CRUDModeration:
     def create_banned_word(
         self, db: Session, *, word: str, created_by: Optional[int]
     ) -> BannedWord:
-        bw = BannedWord(word=word.lower().strip(), created_by=created_by)
+        """Raises ValueError if the word is already active."""
+        normalized = word.lower().strip()
+        bw = db.query(BannedWord).filter(BannedWord.word == normalized).first()
+        if bw and bw.is_active:
+            raise ValueError("Banned word already exists")
+        if bw:
+            # `word` is UNIQUE and delete is soft — revive the row instead of inserting.
+            bw.is_active = True
+            bw.created_by = created_by
+        else:
+            bw = BannedWord(word=normalized, created_by=created_by)
         db.add(bw)
         db.commit()
         db.refresh(bw)

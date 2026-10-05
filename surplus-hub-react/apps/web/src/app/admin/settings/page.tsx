@@ -24,7 +24,9 @@ export default function AdminSettingsPage() {
 
   const adminName = user?.name ?? "관리자";
   const adminEmail = user?.email ?? "";
-  const adminRoleLabel = user?.adminRole ?? (user?.isSuperuser ? "슈퍼관리자" : user?.role ?? "관리자");
+  const adminRoleLabel = user?.adminRole
+    ? ROLE_LABELS[user.adminRole as AdminRole] ?? user.adminRole
+    : user?.isSuperuser ? "슈퍼관리자" : user?.role ?? "관리자";
 
   // 서버(get_current_admin_user)와 동일한 판정 — 슈퍼유저는 admin_role 없이도 통과한다.
   const canManageRoles = user?.adminRole === "SUPER_ADMIN" || user?.isSuperuser === true;
@@ -168,9 +170,10 @@ export default function AdminSettingsPage() {
               <div key={log.id} className="flex items-start justify-between gap-3 rounded-field bg-muted/50 px-3 py-2.5">
                 <div className="min-w-0">
                   <p className="text-xs font-medium text-foreground">{log.action}</p>
-                  {log.targetType && log.targetId && (
+                  {(log.targetType || log.details) && (
                     <p className="mt-0.5 text-xs text-muted-foreground truncate">
-                      {log.targetType} #{log.targetId}
+                      {log.targetType ?? ""}
+                      {log.targetId ? ` #${log.targetId}` : ""}
                       {log.details ? ` · ${log.details}` : ""}
                     </p>
                   )}

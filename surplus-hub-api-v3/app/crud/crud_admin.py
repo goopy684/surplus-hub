@@ -51,7 +51,7 @@ class CRUDAdmin:
             action=action,
             target_type=target_type,
             target_id=target_id,
-            details=json.dumps(details) if details else None,
+            details=json.dumps(details, ensure_ascii=False, default=str) if details else None,
             ip_address=ip_address,
         )
         db.add(log)

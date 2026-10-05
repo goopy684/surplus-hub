@@ -165,7 +165,7 @@ export default function AdminNotificationsPage() {
               type="text"
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              placeholder="예: seller"
+              placeholder="예: user, admin"
               className="mt-1 w-full rounded-field border border-border bg-field px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>

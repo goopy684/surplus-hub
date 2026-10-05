@@ -11,6 +11,12 @@ from app.models.material import Material
 from app.models.transaction import Transaction
 
 
+def _csv_cell(value) -> str:
+    # CSV injection: Excel evaluates cells starting with these as formulas.
+    s = "" if value is None else str(value)
+    return "'" + s if s[:1] in ("=", "+", "-", "@", "\t", "\r") else s
+
+
 class CRUDDashboard:
 
     def get_summary(self, db: Session) -> dict:
@@ -144,38 +150,44 @@ class CRUDDashboard:
         output = io.StringIO()
         writer = csv.writer(output)
 
+        def writerow(row):
+            writer.writerow([_csv_cell(c) for c in row])
+
         sd = datetime.fromisoformat(start_date) if start_date else None
         ed = datetime.fromisoformat(end_date) if end_date else None
+        if ed and len(end_date) == 10:
+            # A bare date means "through the end of that day", not its midnight.
+            ed = ed + timedelta(days=1) - timedelta(microseconds=1)
 
         if export_type == "users":
-            writer.writerow(["id", "email", "name", "role", "is_active", "created_at"])
+            writerow(["id", "email", "name", "role", "is_active", "created_at"])
             query = db.query(User)
             if sd:
                 query = query.filter(User.created_at >= sd)
             if ed:
                 query = query.filter(User.created_at <= ed)
             for u in query.all():
-                writer.writerow([u.id, u.email, u.name, u.role, u.is_active, u.created_at])
+                writerow([u.id, u.email, u.name, u.role, u.is_active, u.created_at])
 
         elif export_type == "materials":
-            writer.writerow(["id", "title", "price", "status", "category", "seller_id", "created_at"])
+            writerow(["id", "title", "price", "status", "category", "seller_id", "created_at"])
             query = db.query(Material)
             if sd:
                 query = query.filter(Material.created_at >= sd)
             if ed:
                 query = query.filter(Material.created_at <= ed)
             for m in query.all():
-                writer.writerow([m.id, m.title, m.price, m.status, m.category, m.seller_id, m.created_at])
+                writerow([m.id, m.title, m.price, m.status, m.category, m.seller_id, m.created_at])
 
         elif export_type == "transactions":
-            writer.writerow(["id", "material_id", "seller_id", "buyer_id", "price", "status", "created_at"])
+            writerow(["id", "material_id", "seller_id", "buyer_id", "price", "status", "created_at"])
             query = db.query(Transaction)
             if sd:
                 query = query.filter(Transaction.created_at >= sd)
             if ed:
                 query = query.filter(Transaction.created_at <= ed)
             for t in query.all():
-                writer.writerow([t.id, t.material_id, t.seller_id, t.buyer_id, t.price, t.status, t.created_at])
+                writerow([t.id, t.material_id, t.seller_id, t.buyer_id, t.price, t.status, t.created_at])
 
         return output.getvalue()
 

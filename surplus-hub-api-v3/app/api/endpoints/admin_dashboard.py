@@ -1,11 +1,12 @@
 import io
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.crud.crud_admin import crud_admin
 from app.crud.crud_dashboard import crud_dashboard
 from app.models.user import User
 
@@ -59,6 +60,7 @@ def get_transaction_stats(
 @router.get("/export/{export_type}", summary="Export data as CSV (ADMIN+ required)")
 def export_data(
     export_type: str,
+    request: Request,
     start_date: str = Query(None, alias="startDate"),
     end_date: str = Query(None, alias="endDate"),
     db: Session = Depends(deps.get_db),
@@ -69,9 +71,22 @@ def export_data(
             status_code=400,
             detail=f"Invalid export_type. Must be one of: {', '.join(_VALID_EXPORT_TYPES)}",
         )
-    csv_content = crud_dashboard.export_csv(db, export_type, start_date=start_date, end_date=end_date)
+    try:
+        csv_content = crud_dashboard.export_csv(db, export_type, start_date=start_date, end_date=end_date)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="startDate/endDate must be ISO dates (YYYY-MM-DD)")
+    # The CSV carries personal data (emails, names) — record who pulled it.
+    crud_admin.create_audit_log(
+        db,
+        admin_id=current_user.id,
+        action="EXPORT_DATA",
+        target_type=export_type,
+        details={"startDate": start_date, "endDate": end_date},
+        ip_address=deps.get_client_ip(request),
+    )
     return StreamingResponse(
-        io.StringIO(csv_content),
+        # BOM so Excel opens the UTF-8 file without mangling Korean text.
+        io.StringIO("\ufeff" + csv_content),
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={export_type}_export.csv"},
     )

@@ -156,7 +156,7 @@ export default function AdminDashboardPage() {
       {/* KPI 카드 그리드 */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <KpiCard label="총 사용자" value={summary?.totalUsers ?? 0} sub="전체 가입자 수" loading={isLoading} />
-        <KpiCard label="활성 사용자" value={summary?.activeUsers ?? 0} sub="최근 30일 기준" loading={isLoading} />
+        <KpiCard label="활성 사용자" value={summary?.activeUsers ?? 0} sub="정지·차단 제외 계정" loading={isLoading} />
         <KpiCard label="신규 가입 (오늘)" value={summary?.newUsersToday ?? 0} loading={isLoading} />
         <KpiCard
           label="등록 자재"

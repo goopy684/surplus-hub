@@ -25,10 +25,20 @@ const STATUS_COLORS: Record<Report["status"], string> = {
   dismissed: "bg-card text-muted-foreground border border-border",
 };
 
-type Tab = "pending" | "resolved" | "dismissed";
+// 신고 사유 코드 (백엔드 reports.VALID_REASONS)
+const REASON_LABELS: Record<string, string> = {
+  spam: "스팸·광고",
+  abuse: "욕설·괴롭힘",
+  fraud: "사기·허위 매물",
+  inappropriate: "부적절한 콘텐츠",
+  other: "기타",
+};
+
+type Tab = "pending" | "reviewed" | "resolved" | "dismissed";
 
 const TAB_STATUS_MAP: Record<Tab, string | undefined> = {
   pending: "pending",
+  reviewed: "reviewed",
   resolved: "resolved",
   dismissed: "dismissed",
 };
@@ -66,6 +76,7 @@ export default function AdminModerationPage() {
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "pending", label: "신고 대기" },
+    { key: "reviewed", label: "검토 중" },
     { key: "resolved", label: "처리 완료" },
     { key: "dismissed", label: "기각" },
   ];
@@ -126,7 +137,7 @@ export default function AdminModerationPage() {
                       {TARGET_TYPE_LABELS[report.targetType] ?? report.targetType} 신고
                     </span>
                   </div>
-                  <p className="mt-1.5 text-sm font-medium text-foreground">{report.reason}</p>
+                  <p className="mt-1.5 text-sm font-medium text-foreground">{REASON_LABELS[report.reason] ?? report.reason}</p>
                   {report.description && (
                     <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{report.description}</p>
                   )}
@@ -183,6 +194,14 @@ export default function AdminModerationPage() {
             {createBannedWord.isPending ? "추가 중..." : "추가"}
           </button>
         </div>
+
+        {createBannedWord.isError && (
+          <p className="mt-2 text-xs text-destructive">
+            {(createBannedWord.error as { response?: { status?: number } })?.response?.status === 409
+              ? "이미 등록된 금칙어입니다."
+              : "금칙어를 추가하지 못했습니다. 관리자 이상만 추가할 수 있습니다."}
+          </p>
+        )}
 
         {/* 금칙어 태그 목록 */}
         <div className="mt-3 flex flex-wrap gap-2">
