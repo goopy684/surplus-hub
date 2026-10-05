@@ -47,16 +47,17 @@ def create_sample_data():
 
         print("Creating materials...")
         material_data = [
-            ("남은 벽지 팝니다", "인테리어 후 남은 실크 벽지 2롤입니다. 상태 좋아요.", "벽지/바닥재", 30000, "https://images.unsplash.com/photo-1615873968403-89e068629265?auto=format&fit=crop&q=80&w=400"),
-            ("목재 자투리 나눔해요", "DIY하다 남은 각목들입니다. 가져가실 분?", "목재", 0, "https://images.unsplash.com/photo-1610557892470-55d9e80c0bce?auto=format&fit=crop&q=80&w=400"),
-            ("타일 박스 채로 팝니다", "화장실 공사하고 남은 타일 3박스입니다.", "타일", 50000, "https://images.unsplash.com/photo-1620626011761-996317b8d101?auto=format&fit=crop&q=80&w=400"),
-            ("페인트 4L 미개봉", "색상을 잘못 사서 팝니다. 벤자민무어 화이트.", "페인트", 45000, "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=400"),
-            ("철근 13mm 남은 것", "공사 현장에서 남은 철근입니다. 1톤 트럭 필요해요.", "철물", 100000, "https://images.unsplash.com/photo-1535063406549-def9bb10afc6?auto=format&fit=crop&q=80&w=400"),
-            ("단열재 아이소핑크", "두께 50mm, 10장 남았습니다.", "단열재", 8000, "https://images.unsplash.com/photo-1600607686527-6fb886090705?auto=format&fit=crop&q=80&w=400"),
+            # category는 업종별 6종(조명/문/창호/건축자재/전기/설비/기타) 중 하나여야 홈 칩 필터에 잡힌다
+            ("남은 벽지 팝니다", "인테리어 후 남은 실크 벽지 2롤입니다. 상태 좋아요.", "건축자재", 30000, "https://images.unsplash.com/photo-1615873968403-89e068629265?auto=format&fit=crop&q=80&w=400"),
+            ("목재 자투리 나눔해요", "DIY하다 남은 각목들입니다. 가져가실 분?", "건축자재", 0, "https://images.unsplash.com/photo-1610557892470-55d9e80c0bce?auto=format&fit=crop&q=80&w=400"),
+            ("타일 박스 채로 팝니다", "화장실 공사하고 남은 타일 3박스입니다.", "건축자재", 50000, "https://images.unsplash.com/photo-1620626011761-996317b8d101?auto=format&fit=crop&q=80&w=400"),
+            ("페인트 4L 미개봉", "색상을 잘못 사서 팝니다. 벤자민무어 화이트.", "건축자재", 45000, "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=400"),
+            ("철근 13mm 남은 것", "공사 현장에서 남은 철근입니다. 1톤 트럭 필요해요.", "건축자재", 100000, "https://upload.wikimedia.org/wikipedia/commons/thumb/a/af/Rebar_on_a_pallet.jpg/500px-Rebar_on_a_pallet.jpg"),
+            ("단열재 아이소핑크", "두께 50mm, 10장 남았습니다.", "건축자재", 8000, "https://images.unsplash.com/photo-1600607686527-6fb886090705?auto=format&fit=crop&q=80&w=400"),
             ("LED 조명기구", "새 제품인데 사이즈가 안 맞아서 팝니다.", "조명", 25000, "https://images.unsplash.com/photo-1565814329452-e1efa11c5b89?auto=format&fit=crop&q=80&w=400"),
-            ("시멘트 1포대", "미장하다 남았습니다. 빨리 가져가세요.", "기타", 5000, "https://images.unsplash.com/photo-1518709766631-a6a7f459ea8c?auto=format&fit=crop&q=80&w=400"),
-            ("창호 샷시", "이중창 샷시 철거한 것 드립니다.", "창호", 0, "https://images.unsplash.com/photo-1600585152220-90363fe7e115?auto=format&fit=crop&q=80&w=400"),
-            ("데크용 방부목", "야외 데크 깔고 남은 자재입니다.", "목재", 60000, "https://images.unsplash.com/photo-1534349762230-e0cadf78f5da?auto=format&fit=crop&q=80&w=400")
+            ("시멘트 1포대", "미장하다 남았습니다. 빨리 가져가세요.", "기타", 5000, "https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/Portland_Cement_Bags.jpg/500px-Portland_Cement_Bags.jpg"),
+            ("창호 샷시", "이중창 샷시 철거한 것 드립니다.", "문/창호", 0, "https://images.unsplash.com/photo-1600585152220-90363fe7e115?auto=format&fit=crop&q=80&w=400"),
+            ("데크용 방부목", "야외 데크 깔고 남은 자재입니다.", "건축자재", 60000, "https://images.unsplash.com/photo-1534349762230-e0cadf78f5da?auto=format&fit=crop&q=80&w=400")
         ]
 
         materials = []
