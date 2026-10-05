@@ -216,6 +216,22 @@ class TestDeletePost:
         get_resp = client.get(f"{API}/community/posts/{post_id}")
         assert get_resp.status_code == 404
 
+    def test_delete_post_with_likes_and_comments(
+        self, client: TestClient, auth_headers, auth_headers2
+    ):
+        """Likes/comments must not block deletion (post_likes FK used to 500)."""
+        post_id = _create_post(client, auth_headers, title="Liked").json()["data"]["id"]
+        client.post(f"{API}/community/posts/{post_id}/like", headers=auth_headers2)
+        client.post(
+            f"{API}/community/posts/{post_id}/comments",
+            json={"content": "hi"},
+            headers=auth_headers2,
+        )
+
+        resp = client.delete(f"{API}/community/posts/{post_id}", headers=auth_headers)
+        assert resp.status_code == 200
+        assert client.get(f"{API}/community/posts/{post_id}").status_code == 404
+
     def test_delete_nonexistent_post_returns_404(self, client: TestClient, auth_headers):
         resp = client.delete(
             f"{API}/community/posts/999999", headers=auth_headers

@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql import func
 from app.db.base import Base
 
@@ -36,7 +36,7 @@ class Comment(Base):
     content = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    post = relationship("Post", backref="comments")
+    post = relationship("Post", backref=backref("comments", cascade="all, delete-orphan"))
     author = relationship("User")
 
     def __str__(self) -> str:

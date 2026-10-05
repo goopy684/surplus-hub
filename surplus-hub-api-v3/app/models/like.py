@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, ForeignKey, DateTime, UniqueConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql import func
 from app.db.base import Base
 
@@ -29,7 +29,7 @@ class PostLike(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User")
-    post = relationship("Post")
+    post = relationship("Post", backref=backref("likes", cascade="all, delete-orphan"))
 
     __table_args__ = (
         UniqueConstraint("user_id", "post_id", name="uq_post_like"),
