@@ -5,6 +5,7 @@ from sqlalchemy import desc, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.crud.base import CRUDBase
+from app.models.chat import ChatRoom
 from app.models.material import Material
 from app.models.transaction import Transaction
 from app.schemas.transaction import TransactionCreate
@@ -90,6 +91,54 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, dict]):
         db.commit()
         db.refresh(db_obj)
         return db_obj
+
+    def close_sale(
+        self, db: Session, *, material: Material, buyer_id: Optional[int]
+    ) -> None:
+        """Listing is going SOLD: record the sale to buyer_id (if named) and void other open requests.
+
+        Sellers mark SOLD themselves, so this is where most completed transactions
+        come from. The buyer must have chatted about this listing — anything else
+        would let a seller fabricate sales (and reviews) with arbitrary users.
+        Caller commits.
+        """
+        if buyer_id is not None and not db.query(ChatRoom.id).filter(
+            ChatRoom.material_id == material.id,
+            ChatRoom.seller_id == material.seller_id,
+            ChatRoom.buyer_id == buyer_id,
+        ).first():
+            raise ValueError("buyerId must be a chat partner on this material")
+
+        open_txs = db.query(Transaction).filter(
+            Transaction.material_id == material.id,
+            Transaction.status.in_(("PENDING", "CONFIRMED")),
+        ).all()
+        sale = next((t for t in open_txs if t.buyer_id == buyer_id), None)
+        for t in open_txs:
+            if t is not sale:
+                t.status = "CANCELLED"
+        if buyer_id is None:
+            return
+
+        now = datetime.now(timezone.utc)
+        if sale is None:
+            sale = Transaction(
+                material_id=material.id,
+                seller_id=material.seller_id,
+                buyer_id=buyer_id,
+                price=material.price,
+                confirmed_at=now,
+            )
+            db.add(sale)
+        sale.status = "COMPLETED"
+        sale.completed_at = now
+
+    def cancel_completed(self, db: Session, *, material_id: int) -> None:
+        """Seller put a SOLD listing back on sale: the sale didn't happen. Caller commits."""
+        db.query(Transaction).filter(
+            Transaction.material_id == material_id,
+            Transaction.status == "COMPLETED",
+        ).update({"status": "CANCELLED"}, synchronize_session=False)
 
 
 crud_transaction = CRUDTransaction(Transaction)

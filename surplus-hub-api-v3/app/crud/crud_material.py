@@ -4,6 +4,7 @@ from sqlalchemy import desc
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.crud.base import CRUDBase
+from app.crud.crud_transaction import crud_transaction
 from app.models.like import MaterialLike
 from app.models.material import Material
 from app.models.material_image import MaterialImage
@@ -164,6 +165,8 @@ class CRUDMaterial(CRUDBase[Material, MaterialCreate, MaterialUpdate]):
             update_data = obj_in
         else:
             update_data = obj_in.model_dump(exclude_unset=True)
+        status = update_data.pop("status", None)
+        buyer_id = update_data.pop("buyer_id", None)
 
         # Handle nested location
         if "location" in update_data and isinstance(update_data["location"], dict):
@@ -179,6 +182,10 @@ class CRUDMaterial(CRUDBase[Material, MaterialCreate, MaterialUpdate]):
             if hasattr(db_obj, field):
                 setattr(db_obj, field, value)
 
+        # Status goes through update_status so SOLD records the sale and likers get notified.
+        if status is not None and status != db_obj.status:
+            return self.update_status(db, db_obj=db_obj, status=status, buyer_id=buyer_id)
+
         db.add(db_obj)
         db.commit()
         db.refresh(db_obj)
@@ -192,8 +199,13 @@ class CRUDMaterial(CRUDBase[Material, MaterialCreate, MaterialUpdate]):
         return db_obj
 
     def update_status(
-        self, db: Session, *, db_obj: Material, status: str
+        self, db: Session, *, db_obj: Material, status: str, buyer_id: Optional[int] = None
     ) -> Material:
+        if status == "SOLD" and db_obj.status != "SOLD":
+            crud_transaction.close_sale(db, material=db_obj, buyer_id=buyer_id)
+        elif db_obj.status == "SOLD" and status in ("ACTIVE", "RESERVED"):
+            # Back on sale = the sale fell through. SOLD -> HIDDEN just tidies a sold listing; keep it.
+            crud_transaction.cancel_completed(db, material_id=db_obj.id)
         db_obj.status = status
         db.add(db_obj)
         db.commit()

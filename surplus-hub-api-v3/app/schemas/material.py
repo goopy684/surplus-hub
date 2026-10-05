@@ -34,7 +34,8 @@ class MaterialCreate(MaterialBase):
     photo_urls: Optional[List[str]] = Field(None, alias="photoUrls")
 
 class MaterialUpdate(MaterialBase):
-    pass
+    # With status=SOLD: who bought it (a chat partner on this listing) -> recorded as a completed transaction.
+    buyer_id: Optional[int] = Field(None, alias="buyerId")
 
 class Seller(BaseModel):
     id: int

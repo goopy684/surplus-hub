@@ -75,6 +75,7 @@ export interface MaterialUpdateInput {
   tradeMethod?: string;
   category?: string;
   status?: string;
+  buyerId?: number;
 }
 
 export interface MaterialLikeStatus {

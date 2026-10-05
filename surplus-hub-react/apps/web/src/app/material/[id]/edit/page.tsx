@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useChatRooms,
   useCurrentUser,
   useMaterialDetail,
   useUpdateMaterial,
@@ -87,6 +88,17 @@ function EditContent({ id }: { id: string }) {
   const { data: item, isLoading: isLoadingItem } = useMaterialDetail(id);
   const { data: currentUser } = useCurrentUser();
   const { mutateAsync: updateMaterial, isPending: isSubmitting } = useUpdateMaterial(id);
+  const { data: chatRooms } = useChatRooms({ limit: 100 });
+  const [buyerId, setBuyerId] = useState("");
+
+  // 이 자재로 대화한 상대 = 구매자 후보 (같은 상대의 방이 여러 개면 하나로)
+  const buyerOptions = Array.from(
+    new Map(
+      (chatRooms?.data ?? [])
+        .filter((room) => String(room.materialId) === String(id))
+        .map((room) => [room.otherUser.id, room.otherUser.name])
+    )
+  );
 
   const [form, setForm] = useState({
     title: "",
@@ -153,6 +165,7 @@ function EditContent({ id }: { id: string }) {
         status: form.status,
         location: { address: form.location || "위치 미정" },
         category: categoryLabel,
+        ...(form.status === "SOLD" && buyerId ? { buyerId: Number(buyerId) } : {}),
       });
       router.push(`/material/${id}`);
     } catch {
@@ -321,6 +334,31 @@ function EditContent({ id }: { id: string }) {
             })}
           </div>
         </div>
+
+        {/* Buyer — 판매중/예약중 → 거래완료로 바꿀 때만 */}
+        {form.status === "SOLD" && item.status !== "SOLD" && (
+          <div>
+            {buyerOptions.length > 0 ? (
+              <>
+                <label htmlFor="edit-buyer" className="block text-sm font-bold text-foreground mb-2">구매자 선택</label>
+                <select
+                  id="edit-buyer"
+                  value={buyerId}
+                  onChange={(e) => setBuyerId(e.target.value)}
+                  className="w-full p-3 border border-border rounded-field text-sm bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                >
+                  <option value="">선택 안 함 (채팅 외 거래)</option>
+                  {buyerOptions.map(([userId, name]) => (
+                    <option key={userId} value={userId}>{name}</option>
+                  ))}
+                </select>
+                <p className="mt-2 text-xs text-muted-foreground">구매자를 선택하면 거래 내역과 통계에 반영돼요.</p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">이 자재로 대화한 상대가 없어요.</p>
+            )}
+          </div>
+        )}
 
         {/* Location */}
         <div>
