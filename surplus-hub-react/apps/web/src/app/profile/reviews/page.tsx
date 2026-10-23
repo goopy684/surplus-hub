@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCurrentUser, useUserReviews } from "@repo/core";
 import { AuthGate } from "../../../components/AuthGate";
 
@@ -34,10 +35,11 @@ const StarRating = ({ rating }: { rating: number }) => {
   );
 };
 
-function ReviewsContent() {
+function ReviewsContent({ targetUserId, targetName }: { targetUserId?: string; targetName?: string }) {
   const router = useRouter();
   const { data: currentUser } = useCurrentUser();
-  const userId = currentUser?.id ?? "";
+  const userId = targetUserId || currentUser?.id || "";
+  const headerTitle = targetName ? `${targetName}님의 거래 후기` : "받은 리뷰";
 
   const { data, isLoading, error } = useUserReviews(userId, { limit: 50 });
   const reviews = data?.data ?? [];
@@ -55,7 +57,7 @@ function ReviewsContent() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
           </svg>
         </button>
-        <h1 className="text-[17px] font-extrabold tracking-[-0.4px] text-foreground">받은 리뷰</h1>
+        <h1 className="text-[17px] font-extrabold tracking-[-0.4px] text-foreground">{headerTitle}</h1>
       </div>
 
       {isLoading ? (
@@ -145,10 +147,26 @@ function ReviewsContent() {
   );
 }
 
-export default function ReviewsPage() {
+function ReviewsRouteInner() {
+  const searchParams = useSearchParams();
+  const targetUserId = searchParams.get("userId")?.trim() || undefined;
+  const targetName = searchParams.get("name")?.trim() || undefined;
+
+  if (targetUserId) {
+    return <ReviewsContent targetUserId={targetUserId} targetName={targetName} />;
+  }
+
   return (
     <AuthGate title="리뷰는 로그인 후 이용 가능합니다">
       <ReviewsContent />
     </AuthGate>
+  );
+}
+
+export default function ReviewsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-paper" />}>
+      <ReviewsRouteInner />
+    </Suspense>
   );
 }

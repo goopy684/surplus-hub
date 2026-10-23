@@ -64,3 +64,11 @@
   - `packages/core/src/api/client.ts`에 싱글 플라이트(`refreshPromise`) 기반 `/api/v1/auth/refresh` 호출 및 원 요청 1회 자동 재시도 응답 인터셉터 구현.
 - **자재 상세 위치 지도 연동 & 모바일 자재 상세 `사업자 인증` 배지 동기화**:
   - 웹(`apps/web/src/app/material/[id]/page.tsx`) 및 모바일(`apps/mobile/app/material/[id].tsx`) 자재 상세 위치 행에 카카오맵 **`지도 보기`** 바로가기 연결 및 모바일 판매자 프로필 **`사업자 인증`** 배지 반영.
+
+### ~~TODO: 거래 후기 동선 완성·운영 시드 및 잔여 기술 부채 전수 해결 (P5)~~ ✅ DONE (2026-10-24)
+- **좋아요 동시성 `IntegrityError` 방어 (`crud_like.py`)**:
+  - `CRUDMaterialLike.toggle` 및 `CRUDPostLike.toggle`에서 동시 더블클릭 시 발생할 수 있는 `IntegrityError`를 롤백 후 현재 상태로 안전하게 반환하도록 방어.
+- **채팅방 AI 스마트 답장(`loadSmartReplies`) 비동기 언마운트 가드 (`chat/[id]/page.tsx`)**:
+  - `cancelled` 플래그 및 `useEffect` 의존성 정규화로 언마운트 후 상태 업데이트 경고(`act(...)`) 및 ESLint 기술 부채 제거.
+- **판매자 및 내 거래 후기(`reviews`) 조회 동선 연결 + 운영 DB B2B 거래 후기 시드**:
+  - 마이페이지(`/profile`)에 `받은 거래 후기` 메뉴 연결, `/profile/reviews?userId=...` 공개 판매자 후기 조회 지원, 자재 상세(`material/[id]`) 판매자 영역에 `거래 후기 보기` 링크 연결 및 운영 DB 4대 판매처 실거래 후기 시드 완료.

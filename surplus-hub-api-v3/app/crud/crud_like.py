@@ -28,7 +28,11 @@ class CRUDMaterialLike:
                     else_=0
                 ))
             )
-            db.commit()
+            try:
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+                return self.is_liked(db, user_id=user_id, material_id=material_id)
             return False
         else:
             db_obj = MaterialLike(user_id=user_id, material_id=material_id)
@@ -39,7 +43,11 @@ class CRUDMaterialLike:
                 .where(Material.id == material_id)
                 .values(likes_count=Material.likes_count + 1)
             )
-            db.commit()
+            try:
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+                return self.is_liked(db, user_id=user_id, material_id=material_id)
             return True
 
     def is_liked(self, db: Session, *, user_id: int, material_id: int) -> bool:
@@ -82,7 +90,11 @@ class CRUDPostLike:
                     else_=0
                 ))
             )
-            db.commit()
+            try:
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+                return self.is_liked(db, user_id=user_id, post_id=post_id)
             return False
         else:
             db_obj = PostLike(user_id=user_id, post_id=post_id)
@@ -93,7 +105,11 @@ class CRUDPostLike:
                 .where(Post.id == post_id)
                 .values(likes_count=Post.likes_count + 1)
             )
-            db.commit()
+            try:
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+                return self.is_liked(db, user_id=user_id, post_id=post_id)
             return True
 
     def is_liked(self, db: Session, *, user_id: int, post_id: int) -> bool:

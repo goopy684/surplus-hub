@@ -220,9 +220,9 @@ __table_args__ = (
 |---------|------|------|
 | ~~Medium~~ ✅ 완료 (2026-10-24) | 401 인터셉터 | `packages/core/src/api/client.ts`에 싱글 플라이트(`refreshPromise`) 기반 `/api/v1/auth/refresh` 토큰 자동 재발급 + 원 요청 재시도 인터셉터 구현 완료 |
 | ~~Medium~~ ✅ 완료 (2026-10-24) | reviewedTxIds 서버 동기화 | 백엔드 `transactions.py` 응답에 `hasReviewed: bool` 추가 및 `purchases/page.tsx` 연동 완료 |
-| Low | 좋아요 IntegrityError 처리 | 동일 사용자 빠른 더블클릭 시 500 에러 가능 |
+| ~~Low~~ ✅ 완료 (2026-10-24) | 좋아요 IntegrityError 처리 | `crud_like.py` (`CRUDMaterialLike.toggle`, `CRUDPostLike.toggle`) `IntegrityError` 롤백 및 상태 반환 방어 완료 |
 | Low | 번역 배치 처리 | 현재 20개 제한, 전체 번역은 배치 API 필요 |
-| Low | `loadSmartReplies` deps 경고 | ESLint exhaustive-deps 위반 (기능 영향 없음) |
+| ~~Low~~ ✅ 완료 (2026-10-24) | `loadSmartReplies` deps 경고 | `chat/[id]/page.tsx` `useEffect` 인라인 및 `cancelled` 언마운트 가드로 해결 완료 |
 | ~~Low~~ ✅ 완료 (2026-10-24) | 자재 상세 지도 | 웹·모바일 자재 상세(`material/[id]`) 위치 행에 카카오맵 위치/좌표 검색 **`지도 보기`** 연동 완료 |
 | Info | Presigned URL | BE 구현됨, FE 미사용 (직접 업로드만 사용) |
 | Info | FCM 토큰 등록 | BE 구현됨, 웹앱에서는 불필요 (모바일 전용) |

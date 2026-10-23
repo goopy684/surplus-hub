@@ -97,6 +97,7 @@ function ProfileContent() {
 
   const settingsItems = [
     { label: "프로필 및 B2B 사업자 인증", href: "/profile/edit" },
+    { label: "받은 거래 후기", href: "/profile/reviews" },
     { label: "알림 설정", href: "/notifications" },
     { label: "커뮤니티", href: "/community" },
     { label: "앱 정보", href: null as string | null },

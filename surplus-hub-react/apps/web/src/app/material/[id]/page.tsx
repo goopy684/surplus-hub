@@ -239,7 +239,17 @@ export default function MaterialDetailPage({ params }: { params: { id: string } 
               <div className="flex items-center gap-1 text-[12.5px] text-muted-foreground">
                 <span>{locationLabel}</span>
                 <span>•</span>
-                <span className="font-medium">판매자 정보</span>
+                {item.sellerId ? (
+                  <Link
+                    href={`/profile/reviews?userId=${encodeURIComponent(item.sellerId)}&name=${encodeURIComponent(sellerDisplayName)}`}
+                    data-testid="seller-reviews-link"
+                    className="font-semibold text-primary hover:underline"
+                  >
+                    거래 후기 보기
+                  </Link>
+                ) : (
+                  <span className="font-medium">판매자 정보</span>
+                )}
               </div>
             </div>
           </div>

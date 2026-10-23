@@ -176,28 +176,35 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
   const [smartReplies, setSmartReplies] = useState<string[]>([]);
   const [smartRepliesLoading, setSmartRepliesLoading] = useState(false);
 
-  const loadSmartReplies = useCallback(async () => {
-    if (!data?.data || data.data.length === 0) return;
-    setSmartRepliesLoading(true);
-    try {
-      const result = await getChatSuggestions(
-        params.id,
-        data.data.map((msg) => ({ content: msg.content, senderId: msg.senderId }))
-      );
-      if (result.suggestions.length > 0) {
-        setSmartReplies(result.suggestions);
-      }
-    } catch {
-      // 실패 시 기본 빠른 답장만 노출
-    } finally {
-      setSmartRepliesLoading(false);
-    }
-  }, [params.id, data?.data]);
-
-  // 채팅방 진입 시 또는 새 메시지 수신 시 AI 추천 답변 로딩
+  // 채팅방 진입 시 또는 새 메시지 수신 시 AI 추천 답변 로딩 (언마운트 안전 처리)
   useEffect(() => {
-    loadSmartReplies();
-  }, [data?.data?.length]);
+    const messages = data?.data;
+    if (!messages || messages.length === 0) return;
+
+    let cancelled = false;
+    setSmartRepliesLoading(true);
+    void (async () => {
+      try {
+        const result = await getChatSuggestions(
+          params.id,
+          messages.map((msg) => ({ content: msg.content, senderId: msg.senderId }))
+        );
+        if (!cancelled && result.suggestions.length > 0) {
+          setSmartReplies(result.suggestions);
+        }
+      } catch {
+        // 실패 시 기본 빠른 답장만 노출
+      } finally {
+        if (!cancelled) {
+          setSmartRepliesLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [params.id, data?.data]);
 
   const replyChips = Array.from(new Set<string>([...QUICK_REPLIES, ...smartReplies]));
 
