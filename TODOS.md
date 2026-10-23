@@ -10,15 +10,15 @@
 
 ## Phase 1 — 남은 작업
 
-### ~~TODO: 프론트엔드 당근마켓 UX 재설계~~ ✅ MOSTLY DONE (2026-05-16)
-- **적용 위치:** `surplus-hub-react/apps/web` (신규 monorepo)
+### ~~TODO: 프론트엔드 당근마켓 UX 재설계~~ ✅ DONE (2026-10-23)
+- **적용 위치:** `surplus-hub-react/apps/web` 및 `surplus-hub-react/apps/mobile`
 - **완료:**
   - 홈 피드 2열 그리드 (md:3-col / lg:4-col) + 빈 상태 ("아직 등록된 자재가 없어요" + 등록하기 버튼)
-  - BottomNav 5탭 (홈 / 검색 / 등록 FAB / 채팅 / 프로필) — 기존 구현 확인
+  - BottomNav 5탭 (홈 / 검색 / 등록 FAB / 채팅 / 프로필) — 모바일 소형 뷰포트(360px) 말줄임 방어 및 플로팅 액션바 오프셋(bottom-20) 적용
   - 채팅 리스트 빈 상태 — 기존 구현 확인
   - 카테고리 emoji/label 일관성 — home, register, material-edit 동일
-- **남은 갭:**
-  - 채팅방 상단 자재 미니 카드 미구현 → `@repo/core`에 `useChatRoomDetail({materialId})` 같은 훅 추가 필요. 별도 PR로 분리 권장.
+  - 채팅방 상단 자재 미니 카드 구현 완료 (`GET /api/v1/chats/rooms/{room_id}`, `@repo/core` `useChatRoomDetail`, 웹·모바일 채팅방 상단 카드 및 삭제된 자재 폴백 표시)
+  - 모바일 커뮤니티 게시글 상세 화면(`apps/mobile/app/community/[id].tsx`) 및 댓글 푸시 딥링크(`/community/{id}`) 구현 완료
 
 ### ~~TODO: 카테고리 시드 데이터 업종별 재구성~~ ✅ DONE (2026-05-16)
 - **What:** 백엔드 `crud_category.seed_categories()` 6항목으로 재구성 — 조명/문창호/건축자재/전기/설비/기타
@@ -26,3 +26,23 @@
   - `surplus-hub-api-v3/app/crud/crud_category.py`
   - `surplus-hub-api-v3/app/tests/api/test_categories.py`
 - **주의:** 기존 DB에 시드된 카테고리는 `seed_categories()`가 idempotent하게 동작(존재 시 skip)하므로, **운영 DB는 수동 마이그레이션 필요** (구 카테고리 비활성화 + 신규 6개 insert).
+
+### ~~TODO: 모바일 실기기 푸시 설정 및 EAS 빌드 (P1)~~ ✅ DONE (2026-10-24)
+- **Firebase Android 앱 연동**: GCP `surplus-502901` 프로젝트에 Firebase 활성화 및 `com.surplushub.mobile` 등록 완료 (App ID: `1:131608276147:android:4d2c099cb1c90a62eb14c6`).
+- **Google Services & FCM V1 키 주입**:
+  - `google-services.json` 다운로드 및 `.gitignore` 등록, EAS file secret `GOOGLE_SERVICES_JSON`으로 등록 완료.
+  - `apps/mobile/app.config.js`에 `process.env.GOOGLE_SERVICES_JSON` 및 `./google-services.json` 동적 fallback 연동 완료.
+  - `firebase-adminsdk-fbsvc@surplus-502901.iam.gserviceaccount.com` 키를 EAS Android FCM V1 Service Account Key(ID: `d19c5460-2d1e-47a4-98eb-e0e2000d3ba7`)로 등록 완료.
+- **EAS Android Preview (APK) 빌드**:
+  - `apps/mobile/eas.json`에 `preview` 프로파일의 `environment: preview` 및 `buildType: apk` 설정.
+  - Build ID: `907a3aef-6844-4f52-be52-f83bf6b6e122` (대시보드: https://expo.dev/accounts/seongchae/projects/surplus-hub-mobile/builds/907a3aef-6844-4f52-be52-f83bf6b6e122).
+
+### ~~TODO: 넥스트 기능 보완 (N1·N2·N3)~~ ✅ DONE (2026-10-24)
+- **N1 커뮤니티 카테고리 크로스플랫폼 동기화 & 모바일 글쓰기**:
+  - 백엔드 `crud_community.py` 카테고리 양방향 별칭 및 정규화 매핑 지원.
+  - 웹 `community/write` 및 모바일 `(tabs)/community` 카테고리 통일 (`QnA`, `노하우`, `안전`, `정보`).
+  - 모바일 글쓰기 화면(`apps/mobile/app/community/write.tsx`) 및 `(tabs)/community` 진입 버튼 구현.
+- **N2 신고 모달(ReportModal) UI 연결**:
+  - 공통 신고 모달(`ReportModal.tsx`) 신설 및 자재 상세(`material/[id]`), 커뮤니티 상세(`community/[id]`) 상단 액션바 연동 (`createReport` API 연결).
+- **N3 B2B 이벤트 자동 시드**:
+  - 백엔드 `crud_event.seed_events()` 및 스타트업 훅 연동으로 산단 특화 3대 프로모션 자동 시드 및 운영 노출 완료.
