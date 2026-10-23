@@ -18,6 +18,7 @@ export interface Transaction {
   price: number;
   quantity?: number;
   status: string;
+  hasReviewed?: boolean;
   note?: string;
   createdAt: string;
   confirmedAt?: string;

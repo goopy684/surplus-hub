@@ -73,6 +73,7 @@ function PurchasesContent() {
         <div className="divide-y divide-line-2">
           {purchases.map((tx) => {
             const st = statusLabel(tx.status);
+            const isReviewed = Boolean(tx.hasReviewed) || reviewedTxIds.has(tx.id);
             return (
               <div key={tx.id} className="bg-surface px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
@@ -97,7 +98,7 @@ function PurchasesContent() {
                         {pendingId === tx.id ? "처리중..." : "완료"}
                       </button>
                     )}
-                    {tx.status === "COMPLETED" && !reviewedTxIds.has(tx.id) && (
+                    {tx.status === "COMPLETED" && !isReviewed && (
                       <button
                         onClick={() => {
                           setReviewTarget({ txId: tx.id, sellerId: tx.sellerId, materialId: tx.materialId });
@@ -109,7 +110,7 @@ function PurchasesContent() {
                         리뷰 작성
                       </button>
                     )}
-                    {tx.status === "COMPLETED" && reviewedTxIds.has(tx.id) && (
+                    {tx.status === "COMPLETED" && isReviewed && (
                       <span className="mt-1 inline-block rounded-chip bg-olive-bg px-3 py-1 text-xs font-semibold text-olive-tx border border-olive-bd">
                         리뷰 완료
                       </span>

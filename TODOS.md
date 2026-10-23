@@ -55,3 +55,12 @@
   - 웹·모바일 UI: `@repo/core` `verifyBusiness` / `useVerifyBusiness` 훅 추가, 프로필 수정(`/profile/edit`) 및 모바일 프로필 화면 사업자 인증 카드 탑재, 자재 상세(`material/[id]`) 판매자명 우측 **`사업자 인증`** 배지 노출.
   - 모바일 신뢰도 등급 버그 수정: 신규 가입 기본값(`trust_level = 1`)에서 `"관리 필요"`로 오표기되던 레이블을 `"일반 회원"` / `"우수 회원"` / `"사업자 인증 완료"`로 정상화.
   - 운영 DB 4대 B2B 판매처 계정(`(주)반월철강자재`, `온수산단전설`, `시화배관자재`, `성수인테리어하우징`) 사업자 인증 적용 완료.
+
+### ~~TODO: 잔여 기술 부채 및 웹·모바일 UX 정합성 마무리 (P4)~~ ✅ DONE (2026-10-24)
+- **거래 내역 리뷰 완료(`hasReviewed`) 서버 동기화**:
+  - 백엔드 `GET /api/v1/transactions/` 및 `GET /api/v1/transactions/{id}` 응답에 `Review` 테이블 조회 기반 `hasReviewed: bool` 반환.
+  - `@repo/core` `Transaction` 타입 및 웹 구매 내역(`/profile/purchases`) 연동으로 새로고침 후에도 **`리뷰 완료`** 배지 유지(409 에러 방지).
+- **401 토큰 만료 시 Refresh Token 자동 재발급 인터셉터 (`@repo/core`)**:
+  - `packages/core/src/api/client.ts`에 싱글 플라이트(`refreshPromise`) 기반 `/api/v1/auth/refresh` 호출 및 원 요청 1회 자동 재시도 응답 인터셉터 구현.
+- **자재 상세 위치 지도 연동 & 모바일 자재 상세 `사업자 인증` 배지 동기화**:
+  - 웹(`apps/web/src/app/material/[id]/page.tsx`) 및 모바일(`apps/mobile/app/material/[id].tsx`) 자재 상세 위치 행에 카카오맵 **`지도 보기`** 바로가기 연결 및 모바일 판매자 프로필 **`사업자 인증`** 배지 반영.

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, Image, ScrollView, ActivityIndicator, TouchableOpacity, SafeAreaView, Alert } from "react-native";
+import { View, Text, Image, ScrollView, ActivityIndicator, TouchableOpacity, SafeAreaView, Alert, Linking } from "react-native";
 import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import {
   TRADE_METHOD_LABELS,
@@ -166,7 +166,25 @@ export default function MaterialDetailScreen() {
             </View>
             <View className="flex-row items-center justify-between">
               <Text className="text-sm text-ink-2">위치</Text>
-              <Text className="text-sm font-semibold text-ink">{locationLabel}</Text>
+              <View className="flex-row items-center gap-2">
+                <Text className="text-sm font-semibold text-ink">{locationLabel}</Text>
+                {item.location ? (
+                  <TouchableOpacity
+                    accessibilityRole="link"
+                    accessibilityLabel="지도 보기"
+                    onPress={() => {
+                      const mapUrl =
+                        item.locationLat !== undefined && item.locationLng !== undefined
+                          ? `https://map.kakao.com/link/map/${encodeURIComponent(locationLabel)},${item.locationLat},${item.locationLng}`
+                          : `https://map.kakao.com/?q=${encodeURIComponent(locationLabel)}`;
+                      void Linking.openURL(mapUrl);
+                    }}
+                    className="rounded-chip border border-line bg-field px-2 py-0.5"
+                  >
+                    <Text className="text-xs font-bold text-primary">지도 보기</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
             </View>
           </View>
 
@@ -180,7 +198,14 @@ export default function MaterialDetailScreen() {
               </View>
             )}
             <View className="flex-1">
-              <Text className="text-base font-bold text-ink">{sellerDisplayName}</Text>
+              <View className="flex-row items-center gap-1.5">
+                <Text className="text-base font-bold text-ink">{sellerDisplayName}</Text>
+                {(item.sellerTrustLevel ?? 0) >= 80 ? (
+                  <View className="rounded-chip border border-olive-bd bg-olive-bg px-2 py-0.5">
+                    <Text className="text-[11px] font-bold text-olive-tx">사업자 인증</Text>
+                  </View>
+                ) : null}
+              </View>
               <Text className="text-xs text-ink-2">{locationLabel}</Text>
             </View>
           </View>

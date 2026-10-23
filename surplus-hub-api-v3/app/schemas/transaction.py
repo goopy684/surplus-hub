@@ -22,6 +22,7 @@ class TransactionResponse(BaseModel):
     price: int
     quantity: Optional[int] = None
     status: str
+    has_reviewed: bool = Field(False, alias="hasReviewed")
     note: Optional[str] = None
     created_at: datetime = Field(..., alias="createdAt")
     confirmed_at: Optional[datetime] = Field(None, alias="confirmedAt")

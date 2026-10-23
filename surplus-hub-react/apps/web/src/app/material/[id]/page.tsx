@@ -294,9 +294,26 @@ export default function MaterialDetailPage({ params }: { params: { id: string } 
               <span className="text-muted-foreground">거래 방식</span>
               <span className="font-semibold text-foreground">{tradeMethodLabel}</span>
             </div>
-            <div className="flex min-h-[44px] items-center justify-between text-sm">
-              <span className="text-muted-foreground">위치</span>
-              <span className="font-semibold text-foreground">{locationLabel}</span>
+            <div className="flex min-h-[44px] items-center justify-between gap-2 text-sm">
+              <span className="shrink-0 text-muted-foreground">위치</span>
+              <div className="flex items-center gap-2 text-right">
+                <span className="font-semibold text-foreground">{locationLabel}</span>
+                {item.location && (
+                  <a
+                    href={
+                      item.locationLat !== undefined && item.locationLng !== undefined
+                        ? `https://map.kakao.com/link/map/${encodeURIComponent(locationLabel)},${item.locationLat},${item.locationLng}`
+                        : `https://map.kakao.com/?q=${encodeURIComponent(locationLabel)}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-testid="material-map-link"
+                    className="shrink-0 rounded-chip border border-line bg-field px-2 py-0.5 text-xs font-bold text-primary transition-colors hover:bg-accent"
+                  >
+                    지도 보기
+                  </a>
+                )}
+              </div>
             </div>
           </div>
 

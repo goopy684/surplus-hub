@@ -7,13 +7,14 @@ from app.api import deps
 from app.core.notify import notify
 from app.crud.crud_material import crud_material
 from app.crud.crud_transaction import crud_transaction
+from app.models.review import Review
 from app.models.user import User
 from app.schemas.transaction import TransactionCreate
 
 router = APIRouter()
 
 
-def _format_transaction(t):
+def _format_transaction(t, has_reviewed: bool = False):
     return {
         "id": t.id,
         "materialId": t.material_id,
@@ -25,6 +26,7 @@ def _format_transaction(t):
         "price": t.price,
         "quantity": t.quantity,
         "status": t.status,
+        "hasReviewed": bool(has_reviewed),
         "note": t.note,
         "createdAt": t.created_at.isoformat() if t.created_at else None,
         "confirmedAt": t.confirmed_at.isoformat() if t.confirmed_at else None,
@@ -95,11 +97,27 @@ def list_transactions(
         db, user_id=current_user.id, skip=skip, limit=limit, role=role
     )
 
+    material_ids = [t.material_id for t in transactions if t.material_id is not None]
+    reviewed_material_ids = set()
+    if material_ids:
+        rows = (
+            db.query(Review.material_id)
+            .filter(
+                Review.reviewer_id == current_user.id,
+                Review.material_id.in_(material_ids),
+            )
+            .all()
+        )
+        reviewed_material_ids = {r[0] for r in rows if r[0] is not None}
+
     total_pages = (total + limit - 1) // limit if total > 0 else 0
 
     return {
         "status": "success",
-        "data": [_format_transaction(t) for t in transactions],
+        "data": [
+            _format_transaction(t, has_reviewed=(t.material_id in reviewed_material_ids))
+            for t in transactions
+        ],
         "meta": {
             "totalCount": total,
             "page": page,
@@ -127,7 +145,13 @@ def get_transaction(
     if tx.seller_id != current_user.id and tx.buyer_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    return {"status": "success", "data": _format_transaction(tx)}
+    has_reviewed = (
+        db.query(Review.id)
+        .filter(Review.reviewer_id == current_user.id, Review.material_id == tx.material_id)
+        .first()
+        is not None
+    )
+    return {"status": "success", "data": _format_transaction(tx, has_reviewed=has_reviewed)}
 
 
 @router.patch(
