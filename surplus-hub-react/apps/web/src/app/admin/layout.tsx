@@ -59,7 +59,7 @@ function AdminGuard({ children }: { children: ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
+      <div className="flex min-h-screen items-center justify-center bg-paper">
         <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-primary" />
       </div>
     );
@@ -67,13 +67,13 @@ function AdminGuard({ children }: { children: ReactNode }) {
 
   if (!isSignedIn) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <div className="w-full max-w-sm rounded-thumb border border-border bg-card p-8 text-center card-shadow">
-          <h1 className="text-xl font-bold text-foreground">접근 권한이 없습니다</h1>
+      <div className="flex min-h-screen items-center justify-center bg-paper px-4">
+        <div className="w-full max-w-sm rounded-card border border-line-2 bg-surface p-8 text-center">
+          <h1 className="text-[22px] font-extrabold tracking-[-0.6px] text-foreground">접근 권한이 없습니다</h1>
           <p className="mt-2 text-sm text-muted-foreground">관리자 계정으로 로그인이 필요합니다.</p>
           <a
             href="/sign-in"
-            className="mt-5 inline-block rounded-btn bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark"
+            className="mt-5 inline-block rounded-btn bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark min-h-[48px] active:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             로그인 하러 가기
           </a>
@@ -88,13 +88,13 @@ function AdminGuard({ children }: { children: ReactNode }) {
     !!user?.isSuperuser || (!!adminRole && ["SUPER_ADMIN", "ADMIN", "MODERATOR"].includes(adminRole));
   if (!isAdmin) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <div className="w-full max-w-sm rounded-thumb border border-border bg-card p-8 text-center card-shadow">
-          <h1 className="text-xl font-bold text-foreground">관리자 권한이 필요합니다</h1>
+      <div className="flex min-h-screen items-center justify-center bg-paper px-4">
+        <div className="w-full max-w-sm rounded-card border border-line-2 bg-surface p-8 text-center">
+          <h1 className="text-[22px] font-extrabold tracking-[-0.6px] text-foreground">관리자 권한이 필요합니다</h1>
           <p className="mt-2 text-sm text-muted-foreground">이 페이지는 관리자만 접근할 수 있습니다.</p>
           <a
             href="/"
-            className="mt-5 inline-block rounded-btn bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark"
+            className="mt-5 inline-block rounded-btn bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark min-h-[48px] active:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             홈으로 돌아가기
           </a>
@@ -117,7 +117,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <AdminGuard>
-      <div className="flex min-h-screen bg-background">
+      <div className="flex min-h-screen bg-paper">
         {/* 모바일 오버레이 */}
         {sidebarOpen && (
           <div
@@ -129,12 +129,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
         {/* 사이드바 */}
         <aside
-          className={`fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-border bg-card transition-transform duration-200 md:static md:translate-x-0 ${
+          className={`fixed inset-y-0 left-0 z-30 flex w-64 flex-col border-r border-line bg-surface transition-transform duration-200 md:static md:translate-x-0 ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
           {/* 로고 */}
-          <div className="flex h-16 items-center gap-2 border-b border-border px-5">
+          <div className="flex h-16 items-center gap-2 border-b border-line px-5">
             <div className="flex h-8 w-8 items-center justify-center rounded-btn bg-primary">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-4 w-4 text-primary-foreground">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
@@ -157,7 +157,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     className={`flex items-center gap-3 rounded-field px-3 py-2.5 text-sm font-medium transition-colors ${
                       isActive(item.href)
                         ? "bg-accent text-accent-foreground"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                        : "text-muted-foreground hover:bg-field hover:text-foreground"
                     }`}
                   >
                     {item.icon}
@@ -169,7 +169,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </nav>
 
           {/* 사이드바 하단 */}
-          <div className="border-t border-border p-4">
+          <div className="border-t border-line p-4">
             <Link
               href="/"
               className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground"
@@ -185,10 +185,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         {/* 메인 콘텐츠 */}
         <div className="flex flex-1 flex-col min-w-0">
           {/* 상단 헤더 (모바일) */}
-          <header className="flex h-16 items-center gap-3 border-b border-border bg-card px-4 md:hidden">
+          <header className="flex h-16 items-center gap-3 border-b border-line-2 bg-surface px-4 md:hidden">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="rounded-field p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="rounded-field p-2 text-muted-foreground hover:bg-field hover:text-foreground"
               aria-label="메뉴 열기"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-5 w-5">

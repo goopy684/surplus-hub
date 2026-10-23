@@ -7,6 +7,7 @@ import {
   useAdminUserStats,
   useAdminMaterialStats,
   useAdminTransactionStats,
+  useAdminActiveUserStats,
   useExportCsv,
 } from "@repo/core";
 
@@ -42,8 +43,8 @@ interface KpiCardProps {
 function KpiCard({ label, value, sub, accent, loading }: KpiCardProps) {
   return (
     <div
-      className={`rounded-thumb border p-5 card-shadow ${
-        accent ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"
+      className={`rounded-card border p-5 ${
+        accent ? "border-destructive/30 bg-destructive/5" : "border-line bg-surface"
       }`}
     >
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
@@ -73,7 +74,7 @@ function TrendChart({ title, data, loading, error }: TrendChartProps) {
   const dense = points.length > 12;
 
   return (
-    <div className="rounded-thumb border border-border bg-card p-5 card-shadow">
+    <div className="rounded-card border border-line-2 bg-surface p-5">
       <p className="text-sm font-semibold text-foreground">{title}</p>
       {loading ? (
         <div className="mt-4 h-40 animate-pulse rounded bg-muted" />
@@ -97,7 +98,7 @@ function TrendChart({ title, data, loading, error }: TrendChartProps) {
               <div className="flex h-32 w-full items-end">
                 <div
                   data-testid="trend-bar"
-                  className="min-h-[2px] w-full rounded-chip bg-primary"
+                  className="mx-auto min-h-[2px] w-full max-w-[40px] rounded-t bg-primary"
                   style={{ height: `${max === 0 ? 0 : (d.count / max) * 100}%` }}
                 />
               </div>
@@ -121,6 +122,7 @@ export default function AdminDashboardPage() {
   const userStats = useAdminUserStats(period);
   const materialStats = useAdminMaterialStats(period);
   const transactionStats = useAdminTransactionStats(period);
+  const activeUserStats = useAdminActiveUserStats(period);
   const exportCsv = useExportCsv();
 
   const pending = summary?.pendingReports ?? 0;
@@ -143,7 +145,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-foreground">대시보드</h1>
+        <h1 className="text-[22px] font-extrabold tracking-[-0.6px] text-foreground">대시보드</h1>
         <p className="mt-1 text-sm text-muted-foreground">서비스 현황을 한눈에 확인하세요.</p>
       </div>
 
@@ -154,9 +156,11 @@ export default function AdminDashboardPage() {
       )}
 
       {/* KPI 카드 그리드 */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <KpiCard label="총 사용자" value={summary?.totalUsers ?? 0} sub="전체 가입자 수" loading={isLoading} />
-        <KpiCard label="활성 사용자" value={summary?.activeUsers ?? 0} sub="최근 30일 기준" loading={isLoading} />
+        <KpiCard label="DAU" value={summary?.dau ?? 0} sub="오늘 접속" loading={isLoading} />
+        <KpiCard label="WAU" value={summary?.wau ?? 0} sub="최근 7일 접속" loading={isLoading} />
+        <KpiCard label="MAU" value={summary?.mau ?? 0} sub="최근 30일 접속" loading={isLoading} />
         <KpiCard label="신규 가입 (오늘)" value={summary?.newUsersToday ?? 0} loading={isLoading} />
         <KpiCard
           label="등록 자재"
@@ -165,6 +169,12 @@ export default function AdminDashboardPage() {
           loading={isLoading}
         />
         <KpiCard label="총 거래" value={summary?.totalTransactions ?? 0} loading={isLoading} />
+        <KpiCard
+          label="거래액"
+          value={`₩${(summary?.completedTransactionAmount ?? 0).toLocaleString()}`}
+          sub="완료 거래 기준"
+          loading={isLoading}
+        />
         <KpiCard
           label="미처리 신고"
           value={pending}
@@ -177,7 +187,7 @@ export default function AdminDashboardPage() {
       {/* 추이 차트 */}
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-foreground">추이</h2>
-        <div className="flex gap-1 rounded-btn border border-border bg-card p-1">
+        <div className="flex gap-1 rounded-btn border border-line bg-surface p-1">
           {PERIODS.map((p) => (
             <button
               key={p.key}
@@ -196,7 +206,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <TrendChart
           title="사용자 증가 추이"
           data={userStats.data?.data}
@@ -215,10 +225,16 @@ export default function AdminDashboardPage() {
           loading={transactionStats.isLoading || transactionStats.isFetching}
           error={transactionStats.isError}
         />
+        <TrendChart
+          title="활성 사용자"
+          data={activeUserStats.data?.data}
+          loading={activeUserStats.isLoading || activeUserStats.isFetching}
+          error={activeUserStats.isError}
+        />
       </div>
 
       {/* CSV 내보내기 */}
-      <div className="rounded-thumb border border-border bg-card p-5 card-shadow">
+      <div className="rounded-card border border-line-2 bg-surface p-5">
         <h2 className="text-sm font-semibold text-foreground">데이터 내보내기</h2>
         <p className="mt-1 text-xs text-muted-foreground">현재 데이터를 CSV 파일로 내려받습니다.</p>
         <div className="mt-4 flex flex-wrap gap-2">
@@ -228,7 +244,7 @@ export default function AdminDashboardPage() {
               type="button"
               onClick={() => handleExport(type)}
               disabled={exportCsv.isPending}
-              className="rounded-btn border border-border bg-card px-4 py-3 text-sm font-medium text-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-btn border border-line bg-surface px-4 py-3 text-sm font-medium text-foreground hover:bg-field disabled:cursor-not-allowed disabled:opacity-50"
             >
               {exportCsv.isPending && exportCsv.variables === type
                 ? `${label} 내려받는 중...`
@@ -246,7 +262,7 @@ export default function AdminDashboardPage() {
 
       {/* 신고 대기 바로가기 */}
       {!isLoading && pending > 0 && (
-        <div className="rounded-thumb border border-border bg-card p-5 card-shadow">
+        <div className="rounded-card border border-line-2 bg-surface p-5">
           <p className="text-sm font-semibold text-foreground">미처리 신고 대기</p>
           <div className="mt-3 flex items-center justify-between rounded-thumb bg-muted px-4 py-3">
             <div>
@@ -257,7 +273,7 @@ export default function AdminDashboardPage() {
             </div>
             <a
               href="/admin/moderation"
-              className="rounded-btn bg-primary px-4 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark"
+              className="rounded-btn bg-primary px-4 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark min-h-[48px] active:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               검토하기
             </a>

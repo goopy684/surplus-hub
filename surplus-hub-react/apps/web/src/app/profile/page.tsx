@@ -28,7 +28,7 @@ function ProfileContent() {
   if (!currentUser) {
     return (
       <div className="mx-auto max-w-xl px-4 py-10">
-        <div className="rounded-thumb border border-border bg-card p-8 text-center card-shadow">
+        <div className="rounded-card bg-surface p-8 text-center">
           <h2 className="text-lg font-bold text-foreground">프로필 정보를 불러오지 못했습니다</h2>
           <p className="mt-2 text-sm text-muted-foreground">
             인증 토큰이 없거나 만료되었을 수 있습니다. 다시 로그인해주세요.
@@ -93,18 +93,21 @@ function ProfileContent() {
     },
   ];
 
+  const isBusinessVerified = (currentUser.trustLevel ?? 0) >= 80;
+
   const settingsItems = [
+    { label: "프로필 및 B2B 사업자 인증", href: "/profile/edit" },
     { label: "알림 설정", href: "/notifications" },
     { label: "커뮤니티", href: "/community" },
     { label: "앱 정보", href: null as string | null },
   ];
 
   return (
-    <div className="bg-background min-h-screen pb-24">
+    <div className="bg-canvas min-h-screen pb-28">
       {/* Header - Mobile only */}
-      <div className="px-4 py-4 flex items-center justify-between md:hidden">
-        <h1 className="text-lg font-bold text-foreground">마이페이지</h1>
-        <button onClick={() => router.push("/profile/edit")} className="p-2">
+      <div className="px-5 pt-4 pb-2 flex items-center justify-between md:hidden">
+        <h1 className="text-[22px] font-extrabold tracking-[-0.6px] text-foreground">마이페이지</h1>
+        <button type="button" aria-label="프로필 설정" onClick={() => router.push("/profile/edit")} className="flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-6 h-6 text-foreground">
             <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
@@ -112,43 +115,50 @@ function ProfileContent() {
         </button>
       </div>
 
-      <div className="mx-4 space-y-4">
+      <div className="mx-auto max-w-xl space-y-3 px-4 md:pt-6">
         {/* Profile Card */}
-        <div className="bg-card border border-border rounded-thumb p-5 card-shadow">
+        <div className="bg-surface rounded-[20px] p-5">
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center">
+            <div className="w-14 h-14 rounded-full bg-accent flex items-center justify-center">
               {displayImage ? (
                 <img src={displayImage} alt={displayName} className="w-full h-full rounded-full object-cover" />
               ) : (
-                <span className="text-2xl font-bold text-foreground">{displayName.charAt(0)}</span>
+                <span className="text-[22px] font-extrabold text-primary">{displayName.charAt(0)}</span>
               )}
             </div>
             <div className="flex-1">
-              <h2 className="text-base font-bold text-foreground">{displayName}</h2>
-              <p className="text-xs text-muted-foreground">{locationLabel}</p>
+              <h2 className="text-lg font-extrabold text-foreground">{displayName}</h2>
+              <p className="text-[13px] text-muted-foreground">{locationLabel}</p>
             </div>
-            <div className="bg-olive-bg text-olive-tx border border-olive-bd rounded-full px-2.5 py-1 flex items-center gap-1">
+            <div
+              data-testid="profile-trust-badge"
+              className={
+                isBusinessVerified
+                  ? "flex items-center gap-1 rounded-chip border border-olive-bd bg-olive-bg px-2.5 py-1 text-olive-tx"
+                  : "flex items-center gap-1 rounded-chip bg-accent px-2.5 py-1 text-accent-foreground"
+              }
+            >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-3.5 h-3.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
               </svg>
-              <span className="text-xs font-bold">인증회원</span>
+              <span className="text-xs font-bold">{isBusinessVerified ? "사업자 인증 완료" : "인증회원"}</span>
             </div>
           </div>
 
           {/* Manner Temperature — 서버 값이 있을 때만 렌더 */}
           {mannerTemperature !== undefined && (
-          <div className="bg-secondary border border-border rounded-field p-3">
+          <div className="pt-1">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4 text-olive-tx">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-4 h-4 text-primary">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0 1 12 15a9.065 9.065 0 0 0-6.23-.693L5 14.5m14.8.8 1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0 1 12 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
                 </svg>
-                <span className="text-xs font-medium text-muted-foreground">매너온도</span>
+                <span className="text-[13px] font-medium text-muted-foreground">매너온도</span>
               </div>
-              <span className="text-sm font-bold text-olive-tx tabular">{mannerTemperature.toFixed(1)}°C</span>
+              <span className="num text-lg font-bold text-primary">{mannerTemperature.toFixed(1)}°C</span>
             </div>
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-olive-tx rounded-full" style={{ width: `${mannerBarWidth}%` }} />
+            <div className="h-2 bg-line-2 rounded-full overflow-hidden">
+              <div className="h-full bg-primary rounded-full" style={{ width: `${mannerBarWidth}%` }} />
             </div>
           </div>
           )}
@@ -160,13 +170,13 @@ function ProfileContent() {
             <Link
               key={card.label}
               href={card.href}
-              className="block cursor-pointer bg-card border border-border rounded-thumb p-4 card-shadow transition-colors hover:bg-muted/50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="block cursor-pointer rounded-[20px] bg-surface p-4 transition-colors hover:bg-surface/70 active:bg-field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <div className="flex items-center gap-2 mb-2">
                 {card.icon}
-                <span className="text-xs text-muted-foreground">{card.label}</span>
+                <span className="text-[13px] text-muted-foreground">{card.label}</span>
               </div>
-              <p className="text-2xl font-bold text-foreground tabular">
+              <p className="num text-2xl font-bold text-foreground">
                 {isStatsLoading ? "-" : card.value}
               </p>
             </Link>
@@ -174,11 +184,11 @@ function ProfileContent() {
         </div>
 
         {/* Settings Section */}
-        <div className="bg-card border border-border rounded-thumb card-shadow divide-y divide-border">
+        <div className="bg-surface rounded-[20px] overflow-hidden divide-y divide-line-2">
           {settingsItems.map((item, i) => {
             const row = (
               <>
-                <span className="text-sm font-medium text-foreground">{item.label}</span>
+                <span className="text-[15px] font-medium text-foreground">{item.label}</span>
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" aria-hidden="true" className="w-4 h-4 text-muted-foreground">
                   <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                 </svg>
@@ -188,12 +198,12 @@ function ProfileContent() {
               <Link
                 key={i}
                 href={item.href}
-                className="p-4 flex items-center justify-between hover:bg-muted/50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="min-h-[52px] px-5 py-3.5 flex items-center justify-between hover:bg-field cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 {row}
               </Link>
             ) : (
-              <div key={i} className="p-4 flex items-center justify-between opacity-60">
+              <div key={i} className="min-h-[52px] px-5 py-3.5 flex items-center justify-between opacity-60">
                 {row}
               </div>
             );
@@ -201,7 +211,7 @@ function ProfileContent() {
           <button
             type="button"
             onClick={() => void handleSignOut()}
-            className="w-full p-4 flex items-center justify-between text-left hover:bg-destructive/10 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="w-full min-h-[52px] px-5 py-3.5 flex items-center justify-between text-left hover:bg-destructive/10 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <span className="text-sm font-medium text-destructive">로그아웃</span>
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" aria-hidden="true" className="w-4 h-4 text-destructive">

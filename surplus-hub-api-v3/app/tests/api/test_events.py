@@ -72,3 +72,34 @@ class TestEventResponseShape:
         assert body["meta"]["totalCount"] == 0
         assert body["meta"]["hasNextPage"] is False
         assert body["meta"]["totalPages"] == 0
+
+    def test_seed_events_and_get_detail(self, client: TestClient):
+        """Seeding events populates 3 B2B promotions and allows detail lookup."""
+        from app.crud.crud_event import crud_event
+        from app.models.event import Event
+        from app.tests.conftest import TestingSessionLocal
+
+        db_session = TestingSessionLocal()
+        try:
+            seeded = crud_event.seed_events(db_session)
+            assert len(seeded) == 3
+
+            # Idempotent second call
+            seeded_again = crud_event.seed_events(db_session)
+            assert len(seeded_again) == 3
+
+            list_resp = client.get(f"{PREFIX}/")
+            assert list_resp.status_code == 200
+            list_body = list_resp.json()
+            assert list_body["meta"]["totalCount"] == 3
+
+            first_id = list_body["data"][0]["id"]
+            detail_resp = client.get(f"{PREFIX}/{first_id}")
+            assert detail_resp.status_code == 200
+            assert detail_resp.json()["data"]["id"] == first_id
+
+            # Clean up seeded events so other tests see empty DB if needed
+            db_session.query(Event).delete()
+            db_session.commit()
+        finally:
+            db_session.close()

@@ -96,10 +96,10 @@ function NotificationsContent() {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-paper">
       {/* Header */}
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-card px-4 py-4">
-        <h1 className="text-lg font-bold text-foreground">알림</h1>
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line-2 bg-surface px-4 py-4">
+        <h1 className="text-[22px] font-extrabold tracking-[-0.6px] text-foreground">알림</h1>
         {unreadCount > 0 && (
           <button
             onClick={handleMarkAllAsRead}
@@ -119,7 +119,7 @@ function NotificationsContent() {
           <p className="mb-4 text-sm text-muted-foreground">{error}</p>
           <button
             onClick={loadNotifications}
-            className="rounded-btn bg-primary px-4 py-3 text-sm font-bold text-primary-foreground"
+            className="rounded-btn bg-primary px-4 py-3 text-sm font-bold text-primary-foreground min-h-[48px] transition-colors hover:bg-primary-dark active:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             다시 시도
           </button>
@@ -145,14 +145,14 @@ function NotificationsContent() {
           <p className="text-sm font-medium text-muted-foreground">새로운 알림이 없습니다</p>
         </div>
       ) : (
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-line-2">
           {notifications.map((notification) => {
             const iconPath = NOTIFICATION_ICONS[notification.type] || DEFAULT_ICON_PATH;
             return (
               <button
                 key={notification.id}
                 onClick={() => handleNotificationClick(notification)}
-                className={`flex w-full items-start gap-3 px-4 py-4 text-left transition-colors hover:bg-accent/50 ${
+                className={`flex w-full items-start gap-3 px-4 py-4 text-left transition-colors hover:bg-field ${
                   !notification.isRead ? "bg-primary/5" : ""
                 }`}
               >

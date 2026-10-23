@@ -37,12 +37,12 @@ export default function AdminSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-foreground">설정</h1>
+        <h1 className="text-[22px] font-extrabold tracking-[-0.6px] text-foreground">설정</h1>
         <p className="mt-1 text-sm text-muted-foreground">관리자 정보 및 시스템 설정을 확인합니다.</p>
       </div>
 
       {/* 관리자 정보 */}
-      <section className="rounded-thumb border border-border bg-card p-5 card-shadow">
+      <section className="rounded-card border border-line-2 bg-surface p-5">
         <h2 className="text-sm font-semibold text-foreground">내 관리자 정보</h2>
         <div className="mt-4 flex items-center gap-4">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent text-accent-foreground text-xl font-bold">
@@ -66,7 +66,7 @@ export default function AdminSettingsPage() {
       </section>
 
       {/* 시스템 설정 */}
-      <section className="rounded-thumb border border-border bg-card p-5 card-shadow">
+      <section className="rounded-card border border-line-2 bg-surface p-5">
         <h2 className="text-sm font-semibold text-foreground">시스템 설정</h2>
         <p className="mt-1 text-xs text-muted-foreground">Phase 1.2에서 구현 예정입니다.</p>
         <div className="mt-4 space-y-3">
@@ -75,7 +75,7 @@ export default function AdminSettingsPage() {
             { label: "자동 필터링", desc: "금칙어 자동 차단 활성화" },
             { label: "유지보수 모드", desc: "서비스 임시 점검 모드" },
           ].map((item) => (
-            <div key={item.label} className="flex items-center justify-between rounded-field border border-border p-3">
+            <div key={item.label} className="flex items-center justify-between rounded-field border border-line p-3">
               <div>
                 <p className="text-sm font-medium text-foreground">{item.label}</p>
                 <p className="text-xs text-muted-foreground">{item.desc}</p>
@@ -87,7 +87,7 @@ export default function AdminSettingsPage() {
       </section>
 
       {/* 관리자 역할 관리 */}
-      <section className="rounded-thumb border border-border bg-card p-5 card-shadow">
+      <section className="rounded-card border border-line-2 bg-surface p-5">
         <h2 className="text-sm font-semibold text-foreground">관리자 역할 관리</h2>
         <p className="mt-1 text-xs text-muted-foreground">
           {canManageRoles
@@ -112,7 +112,7 @@ export default function AdminSettingsPage() {
             admins.map((admin) => (
               <div
                 key={admin.id}
-                className="flex items-center justify-between gap-3 rounded-field bg-muted/50 px-3 py-2.5"
+                className="flex items-center justify-between gap-3 rounded-field bg-field px-3 py-2.5"
               >
                 <div className="min-w-0">
                   <p className="text-xs font-medium text-foreground">{admin.name ?? "(이름 없음)"}</p>
@@ -126,7 +126,7 @@ export default function AdminSettingsPage() {
                     onChange={(e) =>
                       updateRole.mutate({ userId: admin.id, role: e.target.value as AdminRole })
                     }
-                    className="flex-shrink-0 rounded-field border border-border bg-card px-2 py-1 text-xs text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex-shrink-0 rounded-field border-[1.5px] border-line bg-surface px-2 py-1 text-xs text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {!admin.adminRole && (
                       <option value="" disabled>
@@ -151,7 +151,7 @@ export default function AdminSettingsPage() {
       </section>
 
       {/* 감사 로그 */}
-      <section className="rounded-thumb border border-border bg-card p-5 card-shadow">
+      <section className="rounded-card border border-line-2 bg-surface p-5">
         <h2 className="text-sm font-semibold text-foreground">최근 감사 로그</h2>
         <p className="mt-1 text-xs text-muted-foreground">
           관리자 활동 내역입니다.{auditTotal > 0 ? ` 총 ${auditTotal}건` : ""}
@@ -165,7 +165,7 @@ export default function AdminSettingsPage() {
             <p className="py-6 text-center text-xs text-muted-foreground">감사 로그가 없습니다.</p>
           ) : (
             (auditData?.items ?? []).map((log) => (
-              <div key={log.id} className="flex items-start justify-between gap-3 rounded-field bg-muted/50 px-3 py-2.5">
+              <div key={log.id} className="flex items-start justify-between gap-3 rounded-field bg-field px-3 py-2.5">
                 <div className="min-w-0">
                   <p className="text-xs font-medium text-foreground">{log.action}</p>
                   {log.targetType && log.targetId && (
@@ -187,7 +187,7 @@ export default function AdminSettingsPage() {
         </div>
 
         {auditTotalPages > 1 && (
-          <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+          <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
             <p className="text-xs text-muted-foreground">
               {auditPage}/{auditTotalPages} 페이지
             </p>
@@ -196,7 +196,7 @@ export default function AdminSettingsPage() {
                 type="button"
                 disabled={auditSkip === 0}
                 onClick={() => setAuditSkip((s) => Math.max(0, s - AUDIT_PER_PAGE))}
-                className="rounded-field border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-field border border-line px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-field focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40"
               >
                 이전
               </button>
@@ -204,7 +204,7 @@ export default function AdminSettingsPage() {
                 type="button"
                 disabled={auditPage >= auditTotalPages}
                 onClick={() => setAuditSkip((s) => s + AUDIT_PER_PAGE)}
-                className="rounded-field border border-border px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-field border border-line px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-field focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-40"
               >
                 다음
               </button>

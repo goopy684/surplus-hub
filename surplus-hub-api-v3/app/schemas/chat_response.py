@@ -19,6 +19,9 @@ class ChatRoom(BaseModel):
     id: int
     material_id: Optional[int] = Field(None, alias="materialId")
     material_title: Optional[str] = Field(None, alias="materialTitle")
+    material_price: Optional[int] = Field(None, alias="materialPrice")
+    material_status: Optional[str] = Field(None, alias="materialStatus")
+    material_image_url: Optional[str] = Field(None, alias="materialImageUrl")
     other_user_id: int = Field(..., alias="otherUserId")
     other_user_name: str = Field(..., alias="otherUserName")
     other_user_avatar: Optional[str] = Field(None, alias="otherUserAvatar")
@@ -29,6 +32,9 @@ class ChatRoom(BaseModel):
     class Config:
         populate_by_name = True
         from_attributes = True
+
+class ChatRoomDetailResponse(StandardResponse):
+    data: ChatRoom
 
 class ChatRoomListResponse(StandardResponse):
     data: List[ChatRoom]

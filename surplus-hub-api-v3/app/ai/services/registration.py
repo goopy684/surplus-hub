@@ -12,6 +12,7 @@ from app.ai.prompts.material import (
     DESCRIPTION_GENERATION_PROMPT,
     PRICE_SUGGESTION_PROMPT,
 )
+from app.crud.crud_category import TRADE_CATEGORIES
 from app.schemas.ai_schemas import (
     DescriptionGenerateResponse,
     ImageAnalysisResponse,
@@ -21,15 +22,48 @@ from app.schemas.ai_schemas import (
 logger = logging.getLogger(__name__)
 
 
+# Vision AI가 업종 카테고리 밖의 이름을 돌려줘도 6개 중 하나로 맞춘다 (위에서부터 먼저 걸리는 쪽 우선).
+_CATEGORY_KEYWORDS = {
+    "설비": ("설비", "배관", "밸브", "위생"),
+    "조명": ("조명", "LED", "등기구"),
+    "전기": ("전기", "전선", "케이블", "차단기"),
+    "건축자재": (
+        "건축자재", "철근", "시멘트", "목재", "타일", "단열재", "페인트",
+        "합판", "석고보드", "벽돌", "H빔", "각재",
+    ),
+    "문/창호": ("창호", "샷시", "새시", "문"),
+}
+
+_CONDITION_GRADES = {
+    "상": "상", "새제품": "상", "신품": "상", "미개봉": "상", "양호": "상", "A": "상",
+    "중": "중", "보통": "중", "B": "중",
+    "하": "하", "사용감있음": "하", "불량": "하", "C": "하",
+}
+
+
+def _normalize_category(raw: Optional[str]) -> str:
+    """AI 카테고리 출력을 업종 카테고리(TRADE_CATEGORIES) 중 하나로 정규화."""
+    text = str(raw or "").strip().upper()
+    for category, keywords in _CATEGORY_KEYWORDS.items():
+        if any(k in text for k in keywords):
+            return category
+    return "기타"
+
+
+def _normalize_condition_grade(raw: Optional[str]) -> Optional[str]:
+    """AI 상태 출력을 상/중/하 등급으로 정규화. 알 수 없으면 None."""
+    return _CONDITION_GRADES.get(str(raw or "").replace(" ", "").upper())
+
+
 def analyze_material_image(image_url: str) -> ImageAnalysisResponse:
     """Analyze a material image using Gemini Vision AI."""
-    result = analyze_image(image_url)
+    result = analyze_image(image_url, categories=list(TRADE_CATEGORIES))
 
     return ImageAnalysisResponse(
-        category=result.get("category"),
+        category=_normalize_category(result.get("category")),
         tags=result.get("tags", []),
         titleSuggestion=result.get("title_suggestion"),
-        condition=result.get("condition"),
+        condition=_normalize_condition_grade(result.get("condition")),
         materialType=result.get("material_type"),
         confidence=result.get("confidence", 0.0),
     )

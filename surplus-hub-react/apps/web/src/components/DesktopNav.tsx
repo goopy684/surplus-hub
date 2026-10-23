@@ -55,10 +55,11 @@ export function DesktopNav() {
         <Link
           key={item.href}
           href={item.href}
-          className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+          aria-current={isActive(item.href) ? "page" : undefined}
+          className={`flex min-h-[40px] items-center gap-1.5 rounded-chip px-3.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
             isActive(item.href)
-              ? "bg-accent text-accent-foreground"
-              : "text-muted-foreground hover:bg-secondary/50"
+              ? "bg-ink font-bold text-surface"
+              : "font-medium text-muted-foreground hover:bg-field hover:text-foreground"
           }`}
         >
           {getIcon(item.href)}

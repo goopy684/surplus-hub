@@ -56,6 +56,17 @@ def get_transaction_stats(
     return {"status": "success", "data": {"data": data, "period": period}}
 
 
+@router.get("/stats/active-users", summary="Distinct active users trend (DAU/WAU/MAU)")
+def get_active_user_stats(
+    period: str = Query("day", pattern="^(day|week|month)$"),
+    days: int = Query(30, ge=1, le=365),
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_admin_user("MODERATOR")),
+) -> Any:
+    data = crud_dashboard.get_active_user_stats(db, period=period, days=days)
+    return {"status": "success", "data": {"data": data, "period": period}}
+
+
 @router.get("/export/{export_type}", summary="Export data as CSV (ADMIN+ required)")
 def export_data(
     export_type: str,

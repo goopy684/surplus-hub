@@ -46,3 +46,12 @@
   - 공통 신고 모달(`ReportModal.tsx`) 신설 및 자재 상세(`material/[id]`), 커뮤니티 상세(`community/[id]`) 상단 액션바 연동 (`createReport` API 연결).
 - **N3 B2B 이벤트 자동 시드**:
   - 백엔드 `crud_event.seed_events()` 및 스타트업 훅 연동으로 산단 특화 3대 프로모션 자동 시드 및 운영 노출 완료.
+
+### ~~TODO: B2B 사업자등록번호 인증 및 운영 점검 (P1-5·P3-3)~~ ✅ DONE (2026-10-24)
+- **P1-5 운영 DB 푸시 설정 마이그레이션 검증**:
+  - Railway 운영 API `GET /api/v1/notifications/preferences` 호출 검증 완료 (`push_prefs_001` 5개 컬럼 정상 응답 확인).
+- **P3-3 B2B 사업자등록번호 진위·유효성 검증 및 '사업자 인증' 배지 시스템**:
+  - 백엔드 `POST /api/v1/users/me/verify-business`: 국세청 표준 10자리 사업자등록번호 체크섬 검증(`validate_korean_business_number`) 및 인증 시 `trustLevel = 85`, 매너온도 `+1.5°C` 승격, `Seller.trust_level` 스키마 노출.
+  - 웹·모바일 UI: `@repo/core` `verifyBusiness` / `useVerifyBusiness` 훅 추가, 프로필 수정(`/profile/edit`) 및 모바일 프로필 화면 사업자 인증 카드 탑재, 자재 상세(`material/[id]`) 판매자명 우측 **`사업자 인증`** 배지 노출.
+  - 모바일 신뢰도 등급 버그 수정: 신규 가입 기본값(`trust_level = 1`)에서 `"관리 필요"`로 오표기되던 레이블을 `"일반 회원"` / `"우수 회원"` / `"사업자 인증 완료"`로 정상화.
+  - 운영 DB 4대 B2B 판매처 계정(`(주)반월철강자재`, `온수산단전설`, `시화배관자재`, `성수인테리어하우징`) 사업자 인증 적용 완료.

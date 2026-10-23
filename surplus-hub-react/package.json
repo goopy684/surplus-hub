@@ -13,6 +13,7 @@
     "smoke:parity:local": "bash scripts/parity_local_smoke.sh",
     "e2e:web:auth": "npm run e2e --workspace web -- auth-flow.spec.ts",
     "e2e:web:business": "npm run e2e --workspace web -- business-flow.spec.ts",
+    "e2e:web:mobile-layout": "npm run e2e --workspace web -- mobile-layout.spec.ts",
     "e2e:mobile:auth": "npm run e2e --workspace mobile -- auth-flow.spec.ts",
     "e2e:mobile:business": "npm run e2e --workspace mobile -- business-flow.spec.ts"
   },

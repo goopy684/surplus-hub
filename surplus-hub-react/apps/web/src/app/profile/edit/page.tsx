@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { useCurrentUser, useUpdateProfile, useUploadImage } from "@repo/core";
+import { useCurrentUser, useUpdateProfile, useUploadImage, useVerifyBusiness } from "@repo/core";
 import { AuthGate } from "../../../components/AuthGate";
 
 function ProfileEditContent() {
@@ -10,9 +10,12 @@ function ProfileEditContent() {
   const { data: currentUser, isLoading } = useCurrentUser();
   const { mutate: updateProfile, isPending: isSaving } = useUpdateProfile();
   const { mutateAsync: uploadImage, isPending: isUploading } = useUploadImage();
+  const { mutate: verifyBusiness, isPending: isVerifyingBiz } = useVerifyBusiness();
 
   const [name, setName] = useState("");
   const [location, setLocation] = useState("");
+  const [businessNumber, setBusinessNumber] = useState("");
+  const [bizFeedback, setBizFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -99,12 +102,14 @@ function ProfileEditContent() {
   const isPending = isSaving || isUploading;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-paper">
       {/* Header */}
-      <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-4 py-4">
+      <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-line-2 bg-surface px-4 py-4">
         <button
+          type="button"
+          aria-label="뒤로 가기"
           onClick={() => router.back()}
-          className="text-foreground"
+          className="-ml-2 flex h-11 w-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
           disabled={isPending}
         >
           <svg
@@ -118,7 +123,7 @@ function ProfileEditContent() {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
           </svg>
         </button>
-        <h1 className="text-base font-semibold text-foreground">프로필 수정</h1>
+        <h1 className="text-[17px] font-extrabold tracking-[-0.4px] text-foreground">프로필 수정</h1>
       </header>
 
       <form onSubmit={handleSubmit} className="p-4 space-y-6">
@@ -141,7 +146,7 @@ function ProfileEditContent() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground card-shadow hover:bg-primary/90"
+              className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground hover:bg-primary-dark"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -172,7 +177,7 @@ function ProfileEditContent() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="rounded-btn border border-border bg-card px-3 py-1.5 text-xs text-foreground hover:bg-accent"
+              className="rounded-btn border border-line bg-surface px-3 py-1.5 text-xs text-foreground hover:bg-field"
             >
               이미지 변경
             </button>
@@ -199,7 +204,7 @@ function ProfileEditContent() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="이름을 입력하세요"
-            className="w-full rounded-field border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            className="w-full rounded-field border-[1.5px] border-line bg-surface px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
             required
           />
         </div>
@@ -215,8 +220,77 @@ function ProfileEditContent() {
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="예: 서울특별시 강남구"
-            className="w-full rounded-field border border-border bg-card px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            className="w-full rounded-field border-[1.5px] border-line bg-surface px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
           />
+        </div>
+
+        {/* B2B 사업자등록번호 인증 */}
+        <div className="rounded-card border border-line-2 bg-surface p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold text-foreground">B2B 사업자등록번호 인증</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                10자리 사업자등록번호 진위 확인 시 매물에 사업자 인증 배지가 부여됩니다.
+              </p>
+            </div>
+            {(currentUser?.trustLevel ?? 0) >= 80 && (
+              <span
+                data-testid="biz-verified-status"
+                className="rounded-chip border border-olive-bd bg-olive-bg px-2.5 py-1 text-xs font-bold text-olive-tx"
+              >
+                인증 완료
+              </span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <input
+              id="businessNumber"
+              type="text"
+              value={businessNumber}
+              onChange={(e) => setBusinessNumber(e.target.value)}
+              placeholder="예: 120-88-00767 (숫자 10자리)"
+              className="flex-1 rounded-field border-[1.5px] border-line bg-paper px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+            />
+            <button
+              type="button"
+              disabled={isVerifyingBiz || !businessNumber.trim()}
+              onClick={() => {
+                setBizFeedback(null);
+                verifyBusiness(
+                  { businessNumber: businessNumber.trim(), companyName: name.trim() || undefined },
+                  {
+                    onSuccess: (res) => {
+                      setBusinessNumber(res.businessNumber);
+                      setBizFeedback({
+                        type: "success",
+                        text: `사업자 인증이 완료되었습니다 (${res.businessNumber}).`,
+                      });
+                    },
+                    onError: () => {
+                      setBizFeedback({
+                        type: "error",
+                        text: "유효하지 않은 사업자등록번호입니다. 10자리 번호를 다시 확인해주세요.",
+                      });
+                    },
+                  }
+                );
+              }}
+              className="rounded-btn bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground transition-colors hover:bg-primary-dark disabled:opacity-50"
+            >
+              {isVerifyingBiz ? "확인 중..." : "사업자 인증"}
+            </button>
+          </div>
+          {bizFeedback && (
+            <p
+              className={
+                bizFeedback.type === "success"
+                  ? "text-xs font-semibold text-olive-tx"
+                  : "text-xs font-semibold text-destructive"
+              }
+            >
+              {bizFeedback.text}
+            </p>
+          )}
         </div>
 
         {/* 버튼 */}
@@ -225,14 +299,14 @@ function ProfileEditContent() {
             type="button"
             onClick={() => router.back()}
             disabled={isPending}
-            className="flex-1 rounded-btn border border-border bg-card py-3 text-sm font-medium text-foreground hover:bg-accent disabled:opacity-50"
+            className="flex-1 rounded-btn border border-line bg-surface py-3 text-sm font-medium text-foreground hover:bg-field disabled:opacity-50"
           >
             취소
           </button>
           <button
             type="submit"
             disabled={isPending || !name.trim()}
-            className="flex-1 flex items-center justify-center gap-2 rounded-btn bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-2 rounded-btn bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-50 min-h-[48px] transition-colors hover:bg-primary-dark active:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {isPending && (
               <svg

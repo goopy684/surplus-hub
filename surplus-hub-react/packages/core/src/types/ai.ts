@@ -2,7 +2,9 @@ export interface AiImageAnalysis {
   title: string;
   category: string;
   description: string;
+  /** 상 / 중 / 하 (백엔드에서 정규화) */
   condition?: string;
+  tags: string[];
 }
 
 export interface AiDescription {
@@ -57,6 +59,8 @@ export interface AiSearchResult {
   location?: string;
   imageUrl?: string;
   score?: number;
+  /** 검색 기준 좌표가 있을 때만 채워짐 */
+  distanceKm?: number;
 }
 
 export interface AiSearchResponse {

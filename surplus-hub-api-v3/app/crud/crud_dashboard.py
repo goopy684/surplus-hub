@@ -1,13 +1,15 @@
 import csv
 import io
-from datetime import datetime, timedelta, date, timezone
+from datetime import datetime, time, timedelta, date, timezone
 from typing import Optional
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.activity import KST, kst_today
 from app.models.user import User
 from app.models.material import Material
+from app.models.stats import UserDailyActivity
 from app.models.transaction import Transaction
 
 
@@ -15,10 +17,10 @@ class CRUDDashboard:
 
     def get_summary(self, db: Session) -> dict:
         """Get KPI summary by querying actual tables."""
-        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+        today = kst_today()
+        today_start = datetime.combine(today, time.min, tzinfo=KST)  # "오늘" = KST day, same as DAU
 
         total_users = db.query(func.count(User.id)).scalar() or 0
-        active_users = db.query(func.count(User.id)).filter(User.is_active == True).scalar() or 0
         new_users_today = (
             db.query(func.count(User.id))
             .filter(User.created_at >= today_start)
@@ -38,6 +40,11 @@ class CRUDDashboard:
             .filter(Transaction.status == "COMPLETED")
             .scalar()
         ) or 0
+        completed_amount = (
+            db.query(func.sum(Transaction.price))
+            .filter(Transaction.status == "COMPLETED")
+            .scalar()
+        ) or 0
 
         pending_reports = 0
         try:
@@ -52,14 +59,33 @@ class CRUDDashboard:
 
         return {
             "totalUsers": total_users,
-            "activeUsers": active_users,
+            "dau": self._active_users_between(db, today, today),
+            "wau": self._active_users_between(db, today - timedelta(days=6), today),
+            "mau": self._active_users_between(db, today - timedelta(days=29), today),
             "newUsersToday": new_users_today,
             "totalMaterials": total_materials,
             "activeMaterials": active_materials,
             "totalTransactions": total_transactions,
             "completedTransactions": completed_transactions,
+            "completedTransactionAmount": completed_amount,
             "pendingReports": pending_reports,
         }
+
+    @staticmethod
+    def _active_users_between(db: Session, start: date, end: date) -> int:
+        return (
+            db.query(func.count(func.distinct(UserDailyActivity.user_id)))
+            .filter(UserDailyActivity.date >= start, UserDailyActivity.date <= end)
+            .scalar()
+        ) or 0
+
+    @staticmethod
+    def _bucket_key(d: date, period: str) -> date:
+        if period == "week":
+            return d - timedelta(days=d.weekday())  # Monday of that ISO week
+        if period == "month":
+            return d.replace(day=1)
+        return d
 
     @staticmethod
     def _bucket_rows(rows, period: str) -> list[dict]:
@@ -72,13 +98,7 @@ class CRUDDashboard:
         buckets: dict[str, int] = {}
         for r in rows:
             d = date.fromisoformat(str(r.date)[:10])
-            if period == "week":
-                key = d - timedelta(days=d.weekday())  # Monday of that ISO week
-            elif period == "month":
-                key = d.replace(day=1)
-            else:  # day
-                key = d
-            bk = key.isoformat()
+            bk = CRUDDashboard._bucket_key(d, period).isoformat()
             buckets[bk] = buckets.get(bk, 0) + r.count
         return [{"date": k, "count": buckets[k]} for k in sorted(buckets)]
 
@@ -132,6 +152,36 @@ class CRUDDashboard:
         )
 
         return self._bucket_rows(rows, period)
+
+    def get_active_user_stats(self, db: Session, period: str, days: int = 30) -> list[dict]:
+        """Distinct active users per day/week/month bucket (KST days).
+
+        Unlike the other trends this can't sum daily rows — one user active on
+        three days of a week is still one weekly active user — so week/month
+        buckets each run their own COUNT(DISTINCT).
+        """
+        today = kst_today()
+        start = today - timedelta(days=days - 1)
+        if period == "day":
+            rows = (
+                db.query(UserDailyActivity.date, func.count(UserDailyActivity.user_id))
+                .filter(UserDailyActivity.date >= start)
+                .group_by(UserDailyActivity.date)
+                .order_by(UserDailyActivity.date)
+                .all()
+            )
+            return [{"date": str(d)[:10], "count": c} for d, c in rows]
+
+        # ponytail: one query per bucket (<=53 weeks / 13 months at days<=365); fold into SQL if it ever shows up in latency.
+        result = []
+        key = self._bucket_key(start, period)
+        while key <= today:
+            nxt = self._bucket_key(key + timedelta(days=7 if period == "week" else 32), period)
+            count = self._active_users_between(db, max(key, start), nxt - timedelta(days=1))
+            if count:
+                result.append({"date": key.isoformat(), "count": count})
+            key = nxt
+        return result
 
     def export_csv(
         self,

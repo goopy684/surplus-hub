@@ -124,7 +124,8 @@ def semantic_search(
     for r in results:
         m = r["material"]
         location = None
-        if m.location_lat is not None and m.location_lng is not None:
+        # 좌표 없이 주소만 있는 매물도 주소는 보여준다
+        if m.location_address or (m.location_lat is not None and m.location_lng is not None):
             location = {
                 "address": m.location_address,
                 "lat": m.location_lat,

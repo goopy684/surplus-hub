@@ -269,7 +269,14 @@ class TestChatLifecycle:
         room_ids2 = [r["id"] for r in rooms_resp2.json()["data"]]
         assert room_id in room_ids2
 
-        # 6. Read messages -- should contain both messages
+        # 6. Get single room detail
+        detail_resp = client.get(
+            f"{API}/chats/rooms/{room_id}", headers=auth_headers
+        )
+        assert detail_resp.status_code == 200
+        assert detail_resp.json()["data"]["id"] == room_id
+
+        # 7. Read messages -- should contain both messages
         msgs_resp = client.get(
             f"{API}/chats/rooms/{room_id}/messages", headers=auth_headers
         )

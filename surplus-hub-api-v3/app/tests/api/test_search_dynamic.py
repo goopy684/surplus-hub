@@ -414,3 +414,68 @@ class TestEmbeddingDeduplication:
         # Cleanup
         with _cache_lock:
             _embedding_cache.clear()
+
+
+# ---------------------------------------------------------------------------
+# 현장 은어 확장 + 거래방식 필터 (키워드 전용 검색, 실제 SQLite DB)
+# ---------------------------------------------------------------------------
+class TestFieldSlangSearch:
+    def test_expand_query(self):
+        from app.ai.services.search import expand_query
+
+        assert expand_query("아시바") == ["비계", "강관비계"]
+        assert expand_query("녹안스는 배관") == ["스테인리스", "SUS"]
+        assert expand_query("녹 안 스는 배관") == ["스테인리스", "SUS"]
+        assert expand_query("스뎅 스텐") == ["스테인리스", "SUS"]  # 중복 제거
+        assert expand_query("H빔") == []
+
+    @pytest.fixture
+    def scaffold_materials(self, db, test_user):
+        from app.models.material import Material
+
+        rows = {
+            method: Material(
+                title=title,
+                description="현장 잔여분",
+                price=10000,
+                location_address="Seoul",
+                trade_method=method,
+                status="ACTIVE",
+                seller_id=test_user.id,
+            )
+            for method, title in [
+                ("DIRECT", "강관비계 파이프 48.6"),
+                ("BOTH", "비계 클램프 묶음"),
+                ("DELIVERY", "강관비계 발판"),
+            ]
+        }
+        db.add_all(rows.values())
+        db.commit()
+        yield {method: m.id for method, m in rows.items()}
+        for m in rows.values():
+            db.delete(m)
+        db.commit()
+
+    def _keyword_search_ids(self, db, query, **filters):
+        from app.ai.services.search import hybrid_search
+
+        with patch(
+            "app.ai.services.search.get_or_generate_embedding",
+            side_effect=RuntimeError("embedding down"),
+        ):
+            results, _, mode = hybrid_search(db, query=query, **filters)
+        assert mode == "keyword_only"
+        return {r["material"].id for r in results}
+
+    def test_slang_query_finds_standard_title(self, db, scaffold_materials):
+        ids = self._keyword_search_ids(db, "아시바")
+        assert scaffold_materials["DIRECT"] in ids
+
+    def test_trade_method_filter_includes_both(self, db, scaffold_materials):
+        ids = self._keyword_search_ids(db, "아시바", trade_method="DIRECT")
+        assert {scaffold_materials["DIRECT"], scaffold_materials["BOTH"]} <= ids
+        assert scaffold_materials["DELIVERY"] not in ids
+
+        ids = self._keyword_search_ids(db, "아시바", trade_method="BOTH")
+        assert scaffold_materials["BOTH"] in ids
+        assert scaffold_materials["DIRECT"] not in ids

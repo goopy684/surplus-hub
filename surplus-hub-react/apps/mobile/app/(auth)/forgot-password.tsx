@@ -63,7 +63,7 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView className="flex-1 bg-paper">
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -73,7 +73,7 @@ export default function ForgotPasswordScreen() {
           contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 24 }}
           keyboardShouldPersistTaps="handled"
         >
-          <Text className="text-3xl font-bold text-foreground">비밀번호 찾기</Text>
+          <Text className="text-[28px] font-extrabold tracking-[-0.8px] text-foreground">비밀번호 찾기</Text>
           <Text className="mt-2 text-sm text-muted-foreground">
             가입하신 이메일을 입력하시면 비밀번호 재설정 링크를 보내드립니다.
           </Text>
@@ -81,7 +81,7 @@ export default function ForgotPasswordScreen() {
           <View className="mt-8">
             <Text className="mb-1 text-sm font-medium text-muted-foreground">이메일</Text>
             <TextInput
-              className="h-12 rounded-field border border-border bg-field p-3 text-base text-foreground"
+              className="h-[52px] rounded-field border-[1.5px] border-line bg-surface px-3.5 text-[15.5px] text-foreground"
               value={email}
               onChangeText={setEmail}
               placeholder="email@example.com"

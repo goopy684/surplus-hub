@@ -32,9 +32,9 @@ export default function SignInPage() {
         <div className="flex min-h-screen items-center justify-center p-4 py-12">
             <form
                 onSubmit={onSubmit}
-                className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 card-shadow"
+                className="w-full max-w-sm rounded-card bg-surface px-2 py-8 md:border md:border-line-2 md:p-8"
             >
-                <h1 className="text-xl font-bold text-foreground">로그인</h1>
+                <h1 className="text-[22px] font-extrabold tracking-[-0.6px] text-foreground">로그인</h1>
                 <p className="mt-1 text-sm text-muted-foreground">자투리 계정으로 로그인하세요.</p>
 
                 <label className="mt-6 block text-sm font-medium text-foreground" htmlFor="email">
@@ -47,7 +47,7 @@ export default function SignInPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="mt-1 w-full rounded-field border border-border bg-field px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className="mt-1 w-full rounded-field border-[1.5px] border-line bg-surface px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
 
                 <label className="mt-4 block text-sm font-medium text-foreground" htmlFor="password">
@@ -60,7 +60,7 @@ export default function SignInPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="mt-1 w-full rounded-field border border-border bg-field px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className="mt-1 w-full rounded-field border-[1.5px] border-line bg-surface px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
 
                 {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
@@ -68,7 +68,7 @@ export default function SignInPage() {
                 <button
                     type="submit"
                     disabled={submitting}
-                    className="mt-6 w-full rounded-btn bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark disabled:opacity-60"
+                    className="mt-6 w-full rounded-btn bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark disabled:opacity-60 min-h-[48px] active:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                     {submitting ? "로그인 중..." : "로그인"}
                 </button>

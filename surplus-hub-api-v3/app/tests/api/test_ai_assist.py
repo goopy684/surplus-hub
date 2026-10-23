@@ -71,6 +71,85 @@ class TestAnalyzeImage:
         )
         assert response.status_code == 502
 
+    @patch("app.ai.services.registration.analyze_image")
+    def test_analyze_image_normalizes_category_and_grade(
+        self, mock_vision, client: TestClient, auth_headers: dict
+    ):
+        """Vision 원본 출력이 업종 카테고리 + 상/중/하로 정규화된다."""
+        from app.crud.crud_category import TRADE_CATEGORIES
+
+        mock_vision.return_value = {
+            "category": "배관",
+            "condition": "새제품",
+            "tags": ["SUS"],
+            "material_type": "SUS304 배관 25A",
+            "confidence": 0.8,
+        }
+
+        response = client.post(
+            f"{API_V1_STR}/ai/analyze-image",
+            json={"imageUrl": "https://example.com/pipe.jpg"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["category"] == "설비"
+        assert data["condition"] == "상"
+        assert data["materialType"] == "SUS304 배관 25A"
+        assert mock_vision.call_args.kwargs["categories"] == list(TRADE_CATEGORIES)
+
+
+class TestVisionNormalization:
+    @pytest.mark.parametrize(
+        "raw,expected",
+        [
+            ("문/창호", "문/창호"),
+            ("문창호", "문/창호"),
+            ("샷시", "문/창호"),
+            ("새시", "문/창호"),
+            ("배관", "설비"),
+            ("밸브", "설비"),
+            ("위생도기", "설비"),
+            ("LED 등기구", "조명"),
+            ("led", "조명"),
+            ("전선", "전기"),
+            ("차단기", "전기"),
+            ("철근", "건축자재"),
+            ("석고보드", "건축자재"),
+            ("H빔", "건축자재"),
+            ("기타", "기타"),
+            ("알수없음", "기타"),
+            (None, "기타"),
+        ],
+    )
+    def test_normalize_category(self, raw, expected):
+        from app.ai.services.registration import _normalize_category
+
+        assert _normalize_category(raw) == expected
+
+    @pytest.mark.parametrize(
+        "raw,expected",
+        [
+            ("상", "상"),
+            ("새제품", "상"),
+            ("미개봉", "상"),
+            ("양호", "상"),
+            ("a", "상"),
+            ("보통", "중"),
+            ("B", "중"),
+            ("사용감 있음", "하"),
+            ("사용감있음", "하"),
+            ("불량", "하"),
+            ("C", "하"),
+            ("모름", None),
+            (None, None),
+        ],
+    )
+    def test_normalize_condition_grade(self, raw, expected):
+        from app.ai.services.registration import _normalize_condition_grade
+
+        assert _normalize_condition_grade(raw) == expected
+
 
 # ===== DESCRIPTION GENERATION =====
 

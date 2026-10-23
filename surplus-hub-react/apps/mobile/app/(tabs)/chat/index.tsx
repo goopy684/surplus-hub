@@ -9,23 +9,23 @@ export default function ChatListScreen() {
 
   if (isLoading) {
     return (
-      <View className="flex-1 justify-center items-center bg-background">
-        <ActivityIndicator size="large" color="#ed701d" />
+      <View className="flex-1 justify-center items-center bg-paper">
+        <ActivityIndicator size="large" color="#1E3FCC" />
       </View>
     );
   }
 
   if (error) {
     return (
-      <View className="flex-1 justify-center items-center bg-background">
+      <View className="flex-1 justify-center items-center bg-paper">
         <Text className="text-muted-foreground">채팅 목록을 불러오지 못했습니다.</Text>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <Text className="text-2xl font-bold p-4 pb-2 text-foreground">채팅</Text>
+    <View className="flex-1 bg-paper">
+      <Text className="text-[22px] font-extrabold tracking-[-0.6px] p-4 pb-2 text-foreground">채팅</Text>
       <FlatList
         data={data?.data}
         keyExtractor={(item) => item.id}

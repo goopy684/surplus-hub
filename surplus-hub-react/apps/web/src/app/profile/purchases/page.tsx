@@ -13,11 +13,11 @@ const formatDate = (value: string): string => {
 
 const statusLabel = (status: string) => {
   switch (status) {
-    case "PENDING": return { text: "대기중", color: "bg-card text-muted-foreground border border-border" };
-    case "CONFIRMED": return { text: "확인됨", color: "bg-card text-muted-foreground border border-border" };
+    case "PENDING": return { text: "대기중", color: "bg-surface text-muted-foreground border border-line" };
+    case "CONFIRMED": return { text: "확인됨", color: "bg-surface text-muted-foreground border border-line" };
     case "COMPLETED": return { text: "완료", color: "bg-olive-bg text-olive-tx border border-olive-bd" };
-    case "CANCELLED": return { text: "취소됨", color: "bg-card text-muted-foreground border border-border" };
-    default: return { text: status, color: "bg-card text-muted-foreground border border-border" };
+    case "CANCELLED": return { text: "취소됨", color: "bg-surface text-muted-foreground border border-line" };
+    default: return { text: status, color: "bg-surface text-muted-foreground border border-line" };
   }
 };
 
@@ -46,14 +46,14 @@ function PurchasesContent() {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-4 py-3">
-        <button onClick={() => router.back()} className="p-1">
+    <div className="min-h-screen bg-paper pb-24">
+      <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-line-2 bg-surface px-4 py-3">
+        <button type="button" aria-label="뒤로 가기" onClick={() => router.back()} className="-ml-2 flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-5 w-5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
           </svg>
         </button>
-        <h1 className="text-base font-bold text-foreground">구매 내역</h1>
+        <h1 className="text-[17px] font-extrabold tracking-[-0.4px] text-foreground">구매 내역</h1>
       </div>
 
       {isLoading ? (
@@ -70,20 +70,21 @@ function PurchasesContent() {
           <p className="text-sm text-muted-foreground">구매 내역이 없습니다</p>
         </div>
       ) : (
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-line-2">
           {purchases.map((tx) => {
             const st = statusLabel(tx.status);
             return (
-              <div key={tx.id} className="bg-card px-4 py-3">
+              <div key={tx.id} className="bg-surface px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
                     <p className="text-base font-semibold text-foreground">{tx.materialTitle || `자재 #${tx.materialId}`}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">판매자: {tx.sellerName || "알 수 없음"}</p>
+                    {tx.quantity !== undefined && <p className="mt-0.5 text-xs tabular text-muted-foreground">수량 {tx.quantity}</p>}
                     <p className="mt-0.5 text-xs tabular text-muted-foreground">{formatDate(tx.createdAt)}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1.5">
                     <p className="text-lg font-bold text-foreground">
-                      <span className="tabular">{tx.price.toLocaleString()}</span>
+                      <span className="num">{tx.price.toLocaleString()}</span>
                       <span className="ml-0.5 text-sm font-medium text-muted-foreground">원</span>
                     </p>
                     <span className={`inline-block rounded-chip px-2 py-0.5 text-xs font-semibold ${st.color}`}>{st.text}</span>
@@ -91,7 +92,7 @@ function PurchasesContent() {
                       <button
                         onClick={() => handleComplete(tx.id)}
                         disabled={pendingId === tx.id}
-                        className="mt-1 rounded-btn bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                        className="mt-1 rounded-btn bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:bg-primary-dark disabled:opacity-50 min-h-[48px] active:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         {pendingId === tx.id ? "처리중..." : "완료"}
                       </button>
@@ -103,7 +104,7 @@ function PurchasesContent() {
                           setReviewRating(5);
                           setReviewContent("");
                         }}
-                        className="mt-1 rounded-btn border border-border bg-card px-3 py-1.5 text-xs font-bold text-foreground hover:bg-accent"
+                        className="mt-1 rounded-btn border border-line bg-surface px-3 py-1.5 text-xs font-bold text-foreground hover:bg-field"
                       >
                         리뷰 작성
                       </button>
@@ -124,7 +125,7 @@ function PurchasesContent() {
       {/* Review Modal */}
       {reviewTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-sm rounded-thumb border border-border bg-card p-6 card-shadow">
+          <div className="w-full max-w-sm rounded-card border border-line-2 bg-surface p-6">
             <h3 className="mb-4 text-base font-bold text-foreground">리뷰 작성</h3>
             {/* Star Rating */}
             <div className="mb-4 flex items-center gap-1">
@@ -153,14 +154,14 @@ function PurchasesContent() {
               value={reviewContent}
               onChange={(e) => setReviewContent(e.target.value)}
               placeholder="거래는 어떠셨나요? (선택)"
-              className="mb-4 w-full resize-none rounded-field border border-border bg-card p-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+              className="mb-4 w-full resize-none rounded-field border-[1.5px] border-line bg-surface p-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
               rows={3}
             />
             {/* Actions */}
             <div className="flex gap-2">
               <button
                 onClick={() => setReviewTarget(null)}
-                className="flex-1 rounded-btn border border-border bg-card px-4 py-3 text-sm font-bold text-foreground hover:bg-accent"
+                className="flex-1 rounded-btn border border-line bg-surface px-4 py-3 text-sm font-bold text-foreground hover:bg-field"
               >
                 취소
               </button>
@@ -189,7 +190,7 @@ function PurchasesContent() {
                   );
                 }}
                 disabled={reviewMutation.isPending}
-                className="flex-1 rounded-btn bg-primary px-4 py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                className="flex-1 rounded-btn bg-primary px-4 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark disabled:opacity-50 min-h-[48px] active:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {reviewMutation.isPending ? "제출 중..." : "제출"}
               </button>

@@ -283,13 +283,12 @@ test.describe("Phase 1 B2B — home feed", () => {
     await expect(page.getByText("LED 조명 모듈 50개")).toBeVisible();
   });
 
-  test("bottom nav has register button in center", async ({ page }) => {
-    // 하단 네비는 모바일 전용(md:hidden)이라 모바일 뷰포트에서 검증한다.
+  test("mobile view has floating register button", async ({ page }) => {
+    // 모바일 뷰포트에서 등록 FAB 버튼이 노출되는지 검증한다.
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");
 
-    // BottomNav should have 5 items including register
-    const registerLink = page.locator('nav a[href="/register"]');
+    const registerLink = page.locator('a[href="/register"]').filter({ hasText: "등록하기" });
     await expect(registerLink).toBeVisible();
   });
 });
@@ -314,7 +313,7 @@ test.describe("Phase 1 B2B — material registration", () => {
     await page.getByRole("button", { name: "AI 자동 입력 시작" }).click();
     await expect(page.getByRole("button", { name: "등록하기" })).toBeVisible();
 
-    // ai-result 단계의 select는 상태 등급(0) · 위치 시도(1) 순서로 존재한다.
+    // ai-result 단계의 select는 상태 등급(0) · 수량 단위(1) · 위치 시도(2) 순서로 존재한다.
     // condition_grade 필드
     await expect(page.getByText("상태 등급")).toBeVisible();
     const conditionSelect = page.locator("select").nth(0);
@@ -323,7 +322,7 @@ test.describe("Phase 1 B2B — material registration", () => {
 
     // region(시도) 필드
     await expect(page.getByText("위치 (시도)")).toBeVisible();
-    const regionSelect = page.locator("select").nth(1);
+    const regionSelect = page.locator("select").nth(2);
     await regionSelect.selectOption("서울특별시");
     await expect(regionSelect).toHaveValue("서울특별시");
   });

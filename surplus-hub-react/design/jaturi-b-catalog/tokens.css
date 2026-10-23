@@ -1,0 +1,43 @@
+/* 자투리 B 카탈로그 — tokens.json에서 생성. 앱 정본은 apps/web/src/app/globals.css */
+@import url("https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap");
+:root {
+  --paper: #ffffff;
+  --canvas: #f5f6f9;
+  --surface: #ffffff;
+  --field: #f2f4f8;
+  --ink: #121620;
+  --ink-2: #5a6273;
+  --ink-3: #8a92a3;
+  --line: #dde1e8;
+  --line-2: #ebeef3;
+  --primary: #1e3fcc;
+  --primary-dark: #16309e;
+  --primary-foreground: #ffffff;
+  --accent-soft: #e8edfb;
+  --accent-text: #16309e;
+  --olive-tx: #1f7a4d;
+  --olive-bg: #e7f4ec;
+  --olive-bd: #bfe0cc;
+  --destructive: #c2362b;
+  --warning: #a8650f;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --radius-btn: 14px;
+  --radius-field: 14px;
+  --radius-card: 16px;
+  --radius-thumb: 16px;
+  --radius-sheet: 20px;
+  --radius-chip: 9999px;
+  --shadow-card: 0 1px 2px rgba(18,22,32,0.04);
+  --shadow-fab: 0 8px 20px rgba(30,63,204,0.28);
+  --touch-min: 44px;
+  --chip-h: 38px;
+  --search-h: 48px;
+  --input-h: 52px;
+  --font-sans: "Gothic A1", -apple-system, "Apple SD Gothic Neo", system-ui, sans-serif;
+  --font-num: "Space Grotesk", "Gothic A1", system-ui, sans-serif;
+}

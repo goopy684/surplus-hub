@@ -6,7 +6,7 @@ import threading
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
-from sqlalchemy import case, func, text
+from sqlalchemy import case, func, or_, text
 from sqlalchemy.orm import Session
 
 from app.ai.clients.embeddings import build_search_text, generate_embedding
@@ -62,6 +62,106 @@ def _haversine_distance_expr(lat: float, lng: float):
 
 
 # ---------------------------------------------------------------------------
+# 현장 은어 → 표준 자재명 확장
+# ---------------------------------------------------------------------------
+# 키는 공백 무시 부분일치로 비교한다 (expand_query).
+FIELD_SLANG: dict[str, list[str]] = {
+    "아시바": ["비계", "강관비계"],
+    "분홍색 단열재": ["아이소핑크", "압출법 단열재"],
+    "분홍 단열재": ["아이소핑크", "압출법 단열재"],
+    "핑크 단열재": ["아이소핑크", "압출법 단열재"],
+    "녹 안 스는": ["스테인리스", "SUS"],
+    "스뎅": ["스테인리스", "SUS"],
+    "스텐": ["스테인리스", "SUS"],
+    "공구리": ["콘크리트"],
+    "빠루": ["노루발", "배척"],
+    "샤시": ["새시", "창호"],
+    "샷시": ["새시", "창호"],
+    "덴조": ["천장재"],
+    "다루끼": ["각재"],
+    "오비끼": ["각재"],
+    "코팡": ["코팅합판", "거푸집"],
+    "코팅 합판": ["코팅합판", "거푸집"],
+    "하이바": ["안전모"],
+    "와꾸": ["틀", "프레임"],
+    "기리": ["드릴 비트"],
+    "도끼다시": ["테라조"],
+    "메지": ["줄눈", "줄눈재"],
+    "뺑끼": ["페인트"],
+    "반생": ["결속선"],
+    "렌가": ["벽돌"],
+    "후앙": ["환풍기"],
+}
+
+
+def expand_query(query: str) -> List[str]:
+    """검색어에 포함된 현장 은어를 표준 자재명으로 확장 (중복 제거, 원래 순서 유지).
+
+    공백을 모두 지운 상태로 비교해 "녹안스는"/"녹 안 스는"을 같은 은어로 본다.
+    """
+    compact = "".join(query.split())
+    terms: List[str] = []
+    for slang, standard in FIELD_SLANG.items():
+        if slang.replace(" ", "") in compact:
+            terms.extend(t for t in standard if t not in terms)
+    return terms
+
+
+def _keyword_match(query: str, terms: List[str]):
+    """제목/설명이 원래 검색어 또는 확장어 중 하나라도 포함하면 매칭."""
+    return or_(
+        *(
+            col.ilike(f"%{t}%")
+            for t in [query, *terms]
+            for col in (Material.title, Material.description)
+        )
+    )
+
+
+def _base_filter(
+    status: str,
+    category: Optional[str],
+    price_min: Optional[int],
+    price_max: Optional[int],
+    trade_method: Optional[str],
+    date_from: Optional[datetime],
+    date_to: Optional[datetime],
+    location_lat: Optional[float],
+    location_lng: Optional[float],
+    radius_km: Optional[float],
+):
+    """두 검색 함수가 공유하는 필터. Returns (base_filter, distance_col or None)."""
+    base_filter = Material.status == status
+    if category:
+        base_filter = base_filter & (Material.category == category)
+    if price_min is not None:
+        base_filter = base_filter & (Material.price >= price_min)
+    if price_max is not None:
+        base_filter = base_filter & (Material.price <= price_max)
+    if trade_method:
+        # 직거래/택배 필터는 둘 다 가능(BOTH)한 매물도 포함한다
+        base_filter = base_filter & Material.trade_method.in_([trade_method, "BOTH"])
+    if date_from:
+        base_filter = base_filter & (Material.created_at >= date_from)
+    if date_to:
+        base_filter = base_filter & (Material.created_at <= date_to)
+
+    # Distance filter
+    distance_col = None
+    if location_lat is not None and location_lng is not None:
+        distance_col = _haversine_distance_expr(location_lat, location_lng).label(
+            "distance_km"
+        )
+        base_filter = base_filter & (Material.location_lat.isnot(None))
+        base_filter = base_filter & (Material.location_lng.isnot(None))
+        if radius_km:
+            base_filter = base_filter & (
+                _haversine_distance_expr(location_lat, location_lng) <= radius_km
+            )
+    return base_filter, distance_col
+
+
+# ---------------------------------------------------------------------------
 # Keyword-only fallback search
 # ---------------------------------------------------------------------------
 def keyword_only_search(
@@ -85,36 +185,11 @@ def keyword_only_search(
 
     Returns (results, total_count, search_mode).
     """
-    base_filter = Material.status == status
-    if category:
-        base_filter = base_filter & (Material.category == category)
-    if price_min is not None:
-        base_filter = base_filter & (Material.price >= price_min)
-    if price_max is not None:
-        base_filter = base_filter & (Material.price <= price_max)
-    if trade_method:
-        base_filter = base_filter & (Material.trade_method == trade_method)
-    if date_from:
-        base_filter = base_filter & (Material.created_at >= date_from)
-    if date_to:
-        base_filter = base_filter & (Material.created_at <= date_to)
-
-    keyword_filter = Material.title.ilike(f"%{query}%") | Material.description.ilike(
-        f"%{query}%"
+    base_filter, distance_col = _base_filter(
+        status, category, price_min, price_max, trade_method,
+        date_from, date_to, location_lat, location_lng, radius_km,
     )
-
-    # Distance filter
-    distance_col = None
-    if location_lat is not None and location_lng is not None:
-        distance_col = _haversine_distance_expr(location_lat, location_lng).label(
-            "distance_km"
-        )
-        base_filter = base_filter & (Material.location_lat.isnot(None))
-        base_filter = base_filter & (Material.location_lng.isnot(None))
-        if radius_km:
-            base_filter = base_filter & (
-                _haversine_distance_expr(location_lat, location_lng) <= radius_km
-            )
+    keyword_filter = _keyword_match(query, expand_query(query))
 
     count_q = (
         db.query(func.count(Material.id)).filter(base_filter).filter(keyword_filter)
@@ -187,8 +262,10 @@ def hybrid_search(
     'material', 'score', 'vector_similarity', 'keyword_score', and 'distance_km' keys.
     search_mode is 'hybrid' or 'keyword_only'.
     """
+    terms = expand_query(query)
+    embed_input = f"{query} ({', '.join(terms)})" if terms else query
     try:
-        query_embedding = get_or_generate_embedding(query)
+        query_embedding = get_or_generate_embedding(embed_input)
     except Exception:
         logger.warning("Embedding generation failed, falling back to keyword search")
         return keyword_only_search(
@@ -209,48 +286,20 @@ def hybrid_search(
             sort_by=sort_by,
         )
 
-    # Build base query filtering
-    base_filter = Material.status == status
-    if category:
-        base_filter = base_filter & (Material.category == category)
-    if price_min is not None:
-        base_filter = base_filter & (Material.price >= price_min)
-    if price_max is not None:
-        base_filter = base_filter & (Material.price <= price_max)
-    if trade_method:
-        base_filter = base_filter & (Material.trade_method == trade_method)
-    if date_from:
-        base_filter = base_filter & (Material.created_at >= date_from)
-    if date_to:
-        base_filter = base_filter & (Material.created_at <= date_to)
-
+    base_filter, distance_col = _base_filter(
+        status, category, price_min, price_max, trade_method,
+        date_from, date_to, location_lat, location_lng, radius_km,
+    )
     # Only search materials that have embeddings
     base_filter = base_filter & (Material.embedding_vector.isnot(None))
-
-    # Distance filter
-    distance_col = None
-    if location_lat is not None and location_lng is not None:
-        distance_col = _haversine_distance_expr(location_lat, location_lng).label(
-            "distance_km"
-        )
-        base_filter = base_filter & (Material.location_lat.isnot(None))
-        base_filter = base_filter & (Material.location_lng.isnot(None))
-        if radius_km:
-            base_filter = base_filter & (
-                _haversine_distance_expr(location_lat, location_lng) <= radius_km
-            )
 
     # Cosine distance via pgvector <=> operator (lower = more similar)
     cosine_distance = Material.embedding_vector.cosine_distance(query_embedding)
     vector_similarity = (1 - cosine_distance).label("vector_similarity")
 
-    # Keyword score: simple ILIKE match on title/description
+    # Keyword score: ILIKE match on title/description (은어 확장어 포함)
     keyword_score = case(
-        (
-            Material.title.ilike(f"%{query}%")
-            | Material.description.ilike(f"%{query}%"),
-            1.0,
-        ),
+        (_keyword_match(query, terms), 1.0),
         else_=0.0,
     ).label("keyword_score")
 

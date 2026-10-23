@@ -25,12 +25,15 @@ _NO_AUTH_CODES = (401, 403)
 
 _EXPECTED_SUMMARY_KEYS = {
     "totalUsers",
-    "activeUsers",
+    "dau",
+    "wau",
+    "mau",
     "newUsersToday",
     "totalMaterials",
     "activeMaterials",
     "totalTransactions",
     "completedTransactions",
+    "completedTransactionAmount",
     "pendingReports",
 }
 

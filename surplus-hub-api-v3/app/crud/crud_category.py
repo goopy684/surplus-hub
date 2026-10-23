@@ -6,6 +6,18 @@ from app.crud.base import CRUDBase
 from app.models.category import Category
 from app.schemas.category import CategoryCreate
 
+# 업종별 카테고리 (B2B 잉여자재 거래 — 디자인 명세 2026-03-25)
+# 시드·Vision AI 프롬프트·AI 결과 정규화가 모두 이 목록을 기준으로 한다.
+_CATEGORY_ICONS = {
+    "조명": "lightbulb",
+    "문/창호": "door_front",
+    "건축자재": "construction",
+    "전기": "electrical_services",
+    "설비": "plumbing",
+    "기타": "more_horiz",
+}
+TRADE_CATEGORIES = tuple(_CATEGORY_ICONS)
+
 
 class CRUDCategory(CRUDBase[Category, CategoryCreate, dict]):
     def get_active(self, db: Session) -> List[Category]:
@@ -25,15 +37,9 @@ class CRUDCategory(CRUDBase[Category, CategoryCreate, dict]):
         if existing > 0:
             return self.get_active(db)
 
-        # 업종별 카테고리 (B2B 잉여자재 거래 — 디자인 명세 2026-03-25)
-        # 조명 / 문창호 / 건축자재 / 전기 / 설비 / 기타
         default_categories = [
-            {"name": "조명", "icon": "lightbulb", "display_order": 1},
-            {"name": "문/창호", "icon": "door_front", "display_order": 2},
-            {"name": "건축자재", "icon": "construction", "display_order": 3},
-            {"name": "전기", "icon": "electrical_services", "display_order": 4},
-            {"name": "설비", "icon": "plumbing", "display_order": 5},
-            {"name": "기타", "icon": "more_horiz", "display_order": 6},
+            {"name": name, "icon": icon, "display_order": i}
+            for i, (name, icon) in enumerate(_CATEGORY_ICONS.items(), start=1)
         ]
 
         categories = []

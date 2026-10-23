@@ -48,15 +48,16 @@ const reportFailure = (message: string, error?: unknown) => {
 };
 
 /**
- * 알림 종류 → 모바일 라우트. 모바일에 커뮤니티 게시글 상세 화면이 없어 post 종류는 갈 곳이 없다(null).
+ * 알림 종류 → 모바일 라우트.
  * 푸시 탭(cold start 포함)과 알림 목록이 같은 규칙을 쓰도록 매핑은 이 한 곳에만 둔다.
  */
 export const notificationRoute = (
   input?: Parameters<typeof resolveNotificationTarget>[0]
-): `/chat/${string}` | `/material/${string}` | null => {
+): `/chat/${string}` | `/material/${string}` | `/community/${string}` | null => {
   const target = resolveNotificationTarget(input);
   if (target?.kind === "chat") return `/chat/${target.id}`;
   if (target?.kind === "material") return `/material/${target.id}`;
+  if (target?.kind === "post") return `/community/${target.id}`;
   return null;
 };
 

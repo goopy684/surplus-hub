@@ -14,6 +14,7 @@ const mapTransaction = (raw: unknown): Transaction => {
     buyerId: String(item.buyerId ?? item.buyer_id ?? ""),
     buyerName: readString(item.buyerName ?? item.buyer_name),
     price: readNumber(item.price),
+    quantity: typeof item.quantity === "number" ? item.quantity : undefined,
     status: readString(item.status) || "PENDING",
     note: readString(item.note),
     createdAt: normalizeIso(item.createdAt ?? item.created_at),

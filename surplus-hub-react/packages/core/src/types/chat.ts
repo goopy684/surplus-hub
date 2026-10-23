@@ -19,6 +19,9 @@ export interface ChatRoom {
   id: string;
   materialId?: string;
   materialTitle?: string;
+  materialPrice?: number;
+  materialStatus?: string;
+  materialImageUrl?: string;
   otherUser: ChatUser;
   lastMessage?: ChatMessage;
   unreadCount: number;

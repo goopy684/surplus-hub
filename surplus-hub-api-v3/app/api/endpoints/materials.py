@@ -1,7 +1,7 @@
 from typing import Any, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.api import deps
@@ -17,6 +17,9 @@ from app.schemas.like import LikeStatusResponse
 # B2: status를 query param 대신 request body로 받기 위한 스키마
 class MaterialStatusUpdate(BaseModel):
     status: str
+    buyer_id: Optional[int] = Field(None, alias="buyerId")
+
+    model_config = {"populate_by_name": True}
 
 router = APIRouter()
 
@@ -144,7 +147,10 @@ def update_material(
     if material.seller_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to update this material")
 
-    updated = crud_material.update_material(db, db_obj=material, obj_in=material_in)
+    try:
+        updated = crud_material.update_material(db, db_obj=material, obj_in=material_in)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     # AI: re-generate embedding in background (non-blocking)
     from app.ai.services.embedding_hook import update_material_embedding_background
@@ -204,7 +210,10 @@ def update_material_status(
             detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}",
         )
 
-    updated = crud_material.update_status(db, db_obj=material, status=status)
+    try:
+        updated = crud_material.update_status(db, db_obj=material, status=status, buyer_id=body.buyer_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
     return {
         "status": "success",

@@ -20,9 +20,9 @@ const STATUS_LABELS: Record<Report["status"], string> = {
 
 const STATUS_COLORS: Record<Report["status"], string> = {
   pending: "bg-accent text-accent-foreground",
-  reviewed: "bg-card text-muted-foreground border border-border",
+  reviewed: "bg-surface text-muted-foreground border border-line",
   resolved: "bg-olive-bg text-olive-tx border border-olive-bd",
-  dismissed: "bg-card text-muted-foreground border border-border",
+  dismissed: "bg-surface text-muted-foreground border border-line",
 };
 
 type Tab = "pending" | "resolved" | "dismissed";
@@ -73,12 +73,12 @@ export default function AdminModerationPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-foreground">콘텐츠 모더레이션</h1>
+        <h1 className="text-[22px] font-extrabold tracking-[-0.6px] text-foreground">콘텐츠 모더레이션</h1>
         <p className="mt-1 text-sm text-muted-foreground">신고 내용을 검토하고 처리합니다.</p>
       </div>
 
       {/* 탭 */}
-      <div className="flex gap-1 border-b border-border">
+      <div className="flex gap-1 border-b border-line">
         {tabs.map((tab) => (
           <button
             key={tab.key}
@@ -110,12 +110,12 @@ export default function AdminModerationPage() {
             <div key={i} className="h-24 animate-pulse rounded-thumb bg-muted" />
           ))
         ) : reports.length === 0 ? (
-          <div className="rounded-thumb border border-border bg-card py-12 text-center text-sm text-muted-foreground">
+          <div className="rounded-card border border-line-2 bg-surface py-12 text-center text-sm text-muted-foreground">
             해당 항목이 없습니다.
           </div>
         ) : (
           reports.map((report) => (
-            <div key={report.id} className="rounded-thumb border border-border bg-card p-4 card-shadow">
+            <div key={report.id} className="rounded-card border border-line-2 bg-surface p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -148,7 +148,7 @@ export default function AdminModerationPage() {
                     <button
                       onClick={() => handleUpdateStatus(report.id, "dismissed")}
                       disabled={updateReport.isPending}
-                      className="rounded-btn border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted disabled:opacity-50"
+                      className="rounded-btn border border-line bg-surface px-3 py-1.5 text-xs font-medium text-foreground hover:bg-field disabled:opacity-50"
                     >
                       기각
                     </button>
@@ -161,7 +161,7 @@ export default function AdminModerationPage() {
       </div>
 
       {/* 금칙어 관리 */}
-      <div className="rounded-thumb border border-border bg-card p-5 card-shadow">
+      <div className="rounded-card border border-line-2 bg-surface p-5">
         <h2 className="text-sm font-semibold text-foreground">금칙어 관리</h2>
         <p className="mt-1 text-xs text-muted-foreground">등록된 금칙어는 콘텐츠 자동 필터링에 사용됩니다.</p>
 
@@ -173,12 +173,12 @@ export default function AdminModerationPage() {
             value={newWord}
             onChange={(e) => setNewWord(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAddWord()}
-            className="flex-1 rounded-field border border-border bg-field px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="flex-1 rounded-field border-[1.5px] border-line bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           <button
             onClick={handleAddWord}
             disabled={!newWord.trim() || createBannedWord.isPending}
-            className="rounded-btn bg-primary px-4 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark disabled:opacity-50"
+            className="rounded-btn bg-primary px-4 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark disabled:opacity-50 min-h-[48px] active:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {createBannedWord.isPending ? "추가 중..." : "추가"}
           </button>
@@ -194,7 +194,7 @@ export default function AdminModerationPage() {
             bannedWords.map((bw) => (
               <span
                 key={bw.id}
-                className="flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1 text-xs text-foreground"
+                className="flex items-center gap-1.5 rounded-full border border-line bg-muted px-3 py-1 text-xs text-foreground"
               >
                 {bw.word}
                 <button

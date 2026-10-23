@@ -23,6 +23,7 @@ def _format_transaction(t):
         "buyerId": t.buyer_id,
         "buyerName": t.buyer.name if t.buyer else None,
         "price": t.price,
+        "quantity": t.quantity,
         "status": t.status,
         "note": t.note,
         "createdAt": t.created_at.isoformat() if t.created_at else None,
@@ -54,19 +55,22 @@ def create_transaction(
             material_id=material.id,
             seller_id=material.seller_id,
             buyer_id=current_user.id,
-            price=material.price,
+            quantity=tx_in.quantity,
             note=tx_in.note,
         )
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
     # Notify the seller of the incoming purchase request
+    item = f"'{material.title}'"
+    if tx.quantity < (material.quantity or 1):  # 일부 수량 구매
+        item += f" {tx.quantity}{material.quantity_unit or '개'}"
     notify(
         db,
         user_id=tx.seller_id,
         type="TRANSACTION",
         title="거래 요청이 도착했어요",
-        body=f"{current_user.name}님이 '{material.title}' 구매를 요청했습니다.",
+        body=f"{current_user.name}님이 {item} 구매를 요청했습니다.",
         reference_type="material",
         reference_id=material.id,
     )
@@ -182,11 +186,9 @@ def complete_transaction(
     if tx.status != "CONFIRMED":
         raise HTTPException(status_code=400, detail="Transaction must be confirmed first")
 
-    tx = crud_transaction.complete_transaction(db, db_obj=tx)
-
-    # Update material status to SOLD
-    material = crud_material.get(db, id=tx.material_id)
-    if material:
-        crud_material.update_status(db, db_obj=material, status="SOLD")
+    try:
+        tx = crud_transaction.complete_transaction(db, db_obj=tx)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
 
     return {"status": "success", "data": _format_transaction(tx)}

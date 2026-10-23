@@ -21,10 +21,10 @@ function ChatListContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-paper pb-24 md:pb-6">
       {/* Header - Mobile only */}
-      <div className="bg-card px-4 py-4 md:hidden">
-        <h1 className="text-lg font-bold text-foreground">채팅</h1>
+      <div className="bg-surface px-4 py-4 md:hidden">
+        <h1 className="text-[22px] font-extrabold tracking-[-0.6px] text-foreground">채팅</h1>
       </div>
 
       {!chatRooms || chatRooms.length === 0 ? (
@@ -49,12 +49,12 @@ function ChatListContent() {
           <p className="mt-1 text-xs text-muted-foreground">관심 자재에서 채팅을 시작해보세요</p>
         </div>
       ) : (
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-line-2">
           {chatRooms.map((room) => (
             <Link
               key={room.id}
               href={`/chat/${room.id}`}
-              className="flex items-start p-4 transition-colors hover:bg-muted active:bg-accent"
+              className="flex items-start p-4 transition-colors hover:bg-field active:bg-accent"
             >
               <div className="relative mr-4 flex-shrink-0">
                 <div className="h-12 w-12 overflow-hidden rounded-full bg-muted">
@@ -86,7 +86,7 @@ function ChatListContent() {
                 </div>
               </div>
 
-              <div className="ml-3 h-10 w-10 flex-shrink-0 overflow-hidden rounded-thumb border border-border bg-muted">
+              <div className="ml-3 h-10 w-10 flex-shrink-0 overflow-hidden rounded-thumb border border-line bg-muted">
                 <div className="h-full w-full bg-muted"></div>
               </div>
             </Link>

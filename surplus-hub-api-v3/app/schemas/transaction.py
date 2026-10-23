@@ -5,6 +5,7 @@ from datetime import datetime
 
 class TransactionCreate(BaseModel):
     material_id: int = Field(..., alias="materialId")
+    quantity: Optional[int] = Field(None, ge=1)  # 생략 시 잔여 수량 전체 구매
     note: Optional[str] = None
 
     model_config = {"populate_by_name": True}
@@ -19,6 +20,7 @@ class TransactionResponse(BaseModel):
     buyer_id: int = Field(..., alias="buyerId")
     buyer_name: Optional[str] = Field(None, alias="buyerName")
     price: int
+    quantity: Optional[int] = None
     status: str
     note: Optional[str] = None
     created_at: datetime = Field(..., alias="createdAt")

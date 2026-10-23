@@ -28,8 +28,8 @@ export default function ForgotPasswordPage() {
 
     return (
         <div className="flex min-h-screen items-center justify-center p-4 py-12">
-            <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 card-shadow">
-                <h1 className="text-xl font-bold text-foreground">비밀번호 찾기</h1>
+            <div className="w-full max-w-sm rounded-card bg-surface px-2 py-8 md:border md:border-line-2 md:p-8">
+                <h1 className="text-[22px] font-extrabold tracking-[-0.6px] text-foreground">비밀번호 찾기</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                     가입한 이메일로 비밀번호 재설정 링크를 보내드립니다.
                 </p>
@@ -64,7 +64,7 @@ export default function ForgotPasswordPage() {
                             required
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            className="mt-1 w-full rounded-field border border-border bg-field px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            className="mt-1 w-full rounded-field border-[1.5px] border-line bg-surface px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                         />
 
                         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
                         <button
                             type="submit"
                             disabled={submitting}
-                            className="mt-6 w-full rounded-btn bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark disabled:opacity-60"
+                            className="mt-6 w-full rounded-btn bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark disabled:opacity-60 min-h-[48px] active:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                             {submitting ? "전송 중..." : "재설정 링크 받기"}
                         </button>

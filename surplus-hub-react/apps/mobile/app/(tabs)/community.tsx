@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { ActivityIndicator, FlatList, Text, TouchableOpacity, View } from "react-native";
+import { useRouter } from "expo-router";
 import { useCommunityPosts } from "@repo/core";
 
-const CATEGORIES = ["전체", "질문/답변", "노하우", "안전", "정보"] as const;
+const CATEGORIES = ["전체", "QnA", "노하우", "안전", "정보"] as const;
 
 const formatTimeAgo = (value: string): string => {
   const time = new Date(value).getTime();
@@ -22,6 +23,7 @@ const formatTimeAgo = (value: string): string => {
 };
 
 export default function CommunityScreen() {
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<(typeof CATEGORIES)[number]>("전체");
 
   const params = useMemo(
@@ -37,10 +39,20 @@ export default function CommunityScreen() {
   const posts = data?.data ?? [];
 
   return (
-    <View className="flex-1 bg-background">
-      <View className="px-4 pt-4 pb-2">
-        <Text className="text-2xl font-bold text-foreground">커뮤니티</Text>
-        <Text className="mt-1 text-sm text-muted-foreground">질문하고, 노하우를 공유해보세요.</Text>
+    <View className="flex-1 bg-canvas">
+      <View className="flex-row items-center justify-between px-4 pt-4 pb-2">
+        <View>
+          <Text className="text-[22px] font-extrabold tracking-[-0.6px] text-foreground">커뮤니티</Text>
+          <Text className="mt-1 text-sm text-muted-foreground">질문하고, 노하우를 공유해보세요.</Text>
+        </View>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="새 게시글 작성"
+          onPress={() => router.push("/community/write")}
+          className="rounded-full bg-primary px-4 py-2"
+        >
+          <Text className="text-xs font-bold text-primary-foreground">+ 글쓰기</Text>
+        </TouchableOpacity>
       </View>
 
       <View className="px-4 pb-3">
@@ -55,10 +67,10 @@ export default function CommunityScreen() {
               <TouchableOpacity
                 onPress={() => setSelectedCategory(item)}
                 className={`mr-2 rounded-full px-4 py-2 ${
-                  selected ? "bg-primary" : "bg-card border border-border"
+                  selected ? "bg-ink border border-ink" : "bg-surface border-line"
                 }`}
               >
-                <Text className={`text-xs font-bold ${selected ? "text-primary-foreground" : "text-muted-foreground"}`}>
+                <Text className={`text-sm ${selected ? "font-bold text-surface" : "font-medium text-ink"}`}>
                   {item}
                 </Text>
               </TouchableOpacity>
@@ -69,7 +81,7 @@ export default function CommunityScreen() {
 
       {isLoading ? (
         <View className="mt-8 items-center">
-          <ActivityIndicator size="large" color="#ed701d" />
+          <ActivityIndicator size="large" color="#1E3FCC" />
         </View>
       ) : null}
 
@@ -81,9 +93,12 @@ export default function CommunityScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 16 }}
           renderItem={({ item }) => (
-            <View className="mb-3 rounded-thumb border border-border bg-card p-4">
+            <TouchableOpacity
+              onPress={() => router.push(`/community/${item.id}`)}
+              className="mb-3 rounded-card bg-surface p-4"
+            >
               <View className="mb-2 flex-row items-center justify-between">
-                <Text className="rounded-chip border border-border bg-card px-2 py-1 text-xs font-bold text-muted-foreground">
+                <Text className="text-[12.5px] font-bold text-primary">
                   {item.category}
                 </Text>
                 <Text className="text-xs text-muted-foreground">{formatTimeAgo(item.createdAt)}</Text>
@@ -99,10 +114,10 @@ export default function CommunityScreen() {
                   <Text className="text-xs text-muted-foreground">조회 {item.views}</Text>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
           )}
           ListEmptyComponent={
-            <View className="rounded-thumb border border-dashed border-border bg-card p-6">
+            <View className="rounded-card bg-surface p-6">
               <Text className="text-center text-sm text-muted-foreground">조건에 맞는 게시글이 없습니다.</Text>
             </View>
           }

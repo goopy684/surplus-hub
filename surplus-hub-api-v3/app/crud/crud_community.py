@@ -7,6 +7,34 @@ from app.crud.base import CRUDBase
 from app.models.community import Post, Comment
 from app.schemas.community_response import PostCreate
 
+_CATEGORY_CANONICAL = {
+    "QnA": "QnA",
+    "질문/답변": "QnA",
+    "KnowHow": "노하우",
+    "노하우": "노하우",
+    "Safety": "안전",
+    "안전": "안전",
+    "Info": "정보",
+    "정보": "정보",
+}
+
+_CATEGORY_ALIASES = {
+    "QnA": ["QnA", "질문/답변"],
+    "질문/답변": ["QnA", "질문/답변"],
+    "KnowHow": ["노하우", "KnowHow"],
+    "노하우": ["노하우", "KnowHow"],
+    "Safety": ["안전", "Safety"],
+    "안전": ["안전", "Safety"],
+    "Info": ["정보", "Info"],
+    "정보": ["정보", "Info"],
+}
+
+
+def normalize_post_category(category: Optional[str]) -> Optional[str]:
+    if not category:
+        return category
+    return _CATEGORY_CANONICAL.get(category, category)
+
 
 class CRUDPost(CRUDBase[Post, PostCreate, dict]):
     def get_multi_with_filters(
@@ -21,7 +49,11 @@ class CRUDPost(CRUDBase[Post, PostCreate, dict]):
         query = db.query(Post).options(joinedload(Post.author))
 
         if category and category != "전체":
-            query = query.filter(Post.category == category)
+            aliases = _CATEGORY_ALIASES.get(category)
+            if aliases:
+                query = query.filter(Post.category.in_(aliases))
+            else:
+                query = query.filter(Post.category == category)
 
         if author_id is not None:
             query = query.filter(Post.author_id == author_id)
@@ -44,7 +76,11 @@ class CRUDPost(CRUDBase[Post, PostCreate, dict]):
         """Cursor-based pagination. Returns (items, next_cursor)."""
         query = db.query(Post).options(joinedload(Post.author))
         if category and category != "전체":
-            query = query.filter(Post.category == category)
+            aliases = _CATEGORY_ALIASES.get(category)
+            if aliases:
+                query = query.filter(Post.category.in_(aliases))
+            else:
+                query = query.filter(Post.category == category)
         if cursor:
             query = query.filter(Post.id < cursor)
 
@@ -64,7 +100,7 @@ class CRUDPost(CRUDBase[Post, PostCreate, dict]):
         db_obj = Post(
             title=obj_in.title,
             content=obj_in.content,
-            category=obj_in.category,
+            category=normalize_post_category(obj_in.category),
             image_url=obj_in.image_url,
             author_id=author_id,
         )
@@ -88,9 +124,11 @@ class CRUDPost(CRUDBase[Post, PostCreate, dict]):
         self, db: Session, *, db_obj: Post, obj_in: Union[Dict, PostCreate]
     ) -> Post:
         if isinstance(obj_in, dict):
-            update_data = obj_in
+            update_data = dict(obj_in)
         else:
             update_data = obj_in.model_dump(exclude_unset=True)
+        if "category" in update_data:
+            update_data["category"] = normalize_post_category(update_data["category"])
         for field, value in update_data.items():
             if hasattr(db_obj, field):
                 setattr(db_obj, field, value)

@@ -6,10 +6,10 @@ import { useState, useRef } from "react";
 import { AuthGate } from "../../../components/AuthGate";
 
 const CATEGORY_OPTIONS = [
-    { label: "질문/답변", value: "QnA" },
-    { label: "노하우", value: "KnowHow" },
-    { label: "안전", value: "Safety" },
-    { label: "정보", value: "Info" },
+    { label: "질문/답변 (QnA)", value: "QnA" },
+    { label: "노하우", value: "노하우" },
+    { label: "안전", value: "안전" },
+    { label: "정보", value: "정보" },
 ];
 
 function CommunityWriteContent() {
@@ -90,7 +90,7 @@ function CommunityWriteContent() {
 
     return (
         <div className="mx-auto max-w-2xl px-4 py-8">
-            <h1 className="mb-6 text-2xl font-bold text-foreground">새 게시글 작성</h1>
+            <h1 className="text-[22px] font-extrabold tracking-[-0.6px] mb-6 text-foreground">새 게시글 작성</h1>
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 {/* 카테고리 선택 */}
@@ -102,7 +102,7 @@ function CommunityWriteContent() {
                         id="category"
                         value={category}
                         onChange={(e) => setCategory(e.target.value)}
-                        className="block w-full rounded-field border border-border bg-card p-2.5 text-sm text-foreground focus:border-primary focus:ring-primary"
+                        className="block w-full rounded-field border-[1.5px] border-line bg-surface p-2.5 text-sm text-foreground focus:border-primary focus:ring-primary"
                     >
                         {CATEGORY_OPTIONS.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -123,7 +123,7 @@ function CommunityWriteContent() {
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
                         placeholder="제목을 입력하세요"
-                        className="block w-full rounded-field border border-border bg-field p-2.5 text-sm text-foreground focus:border-primary focus:ring-primary"
+                        className="block w-full rounded-field border-[1.5px] border-line bg-surface p-2.5 text-sm text-foreground focus:border-primary focus:ring-primary"
                         required
                     />
                 </div>
@@ -139,7 +139,7 @@ function CommunityWriteContent() {
                         onChange={(e) => setContent(e.target.value)}
                         rows={10}
                         placeholder="내용을 입력하세요"
-                        className="block w-full rounded-field border border-border bg-field p-2.5 text-sm text-foreground focus:border-primary focus:ring-primary"
+                        className="block w-full rounded-field border-[1.5px] border-line bg-surface p-2.5 text-sm text-foreground focus:border-primary focus:ring-primary"
                         required
                     />
                 </div>
@@ -160,7 +160,7 @@ function CommunityWriteContent() {
                         <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            className="flex items-center gap-2 rounded-btn border border-border bg-card px-4 py-2 text-sm text-foreground hover:bg-muted"
+                            className="flex items-center gap-2 rounded-btn border border-line bg-surface px-4 py-2 text-sm text-foreground hover:bg-field"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 text-muted-foreground">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
@@ -171,7 +171,7 @@ function CommunityWriteContent() {
 
                     {previewUrl && (
                         <div className="relative mt-2 inline-block">
-                            <div className="h-40 w-40 overflow-hidden rounded-thumb border border-border">
+                            <div className="h-40 w-40 overflow-hidden rounded-thumb border border-line">
                                 <img src={previewUrl} alt="Preview" className="h-full w-full object-cover" />
                             </div>
                             <button
@@ -193,14 +193,14 @@ function CommunityWriteContent() {
                         type="button"
                         onClick={() => router.back()}
                         disabled={isPending}
-                        className="rounded-btn border border-border bg-card px-5 py-3 text-sm font-medium text-foreground hover:bg-muted focus:outline-none focus:ring-4 focus:ring-border disabled:opacity-50"
+                        className="rounded-btn border border-line bg-surface px-5 py-3 text-sm font-medium text-foreground hover:bg-field focus:outline-none focus:ring-4 focus:ring-border disabled:opacity-50"
                     >
                         취소
                     </button>
                     <button
                         type="submit"
                         disabled={isPending}
-                        className="rounded-btn bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark focus:outline-none focus:ring-4 focus:ring-primary-light disabled:opacity-50 flex items-center gap-2"
+                        className="rounded-btn bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark focus:outline-none focus:ring-4 focus:ring-primary-light disabled:opacity-50 flex items-center gap-2 min-h-[48px] active:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                         {isPending && (
                             <svg className="animate-spin h-4 w-4 text-primary-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

@@ -60,6 +60,28 @@ export const updateProfile = async (data: UserUpdateData): Promise<CurrentUser> 
   return mapCurrentUser(readRecord(unwrapApiData<unknown>(response.data)));
 };
 
+export interface BusinessVerifyInput {
+  businessNumber: string;
+  companyName?: string;
+}
+
+export interface BusinessVerifyResult extends CurrentUser {
+  businessNumber: string;
+  isBusinessVerified: boolean;
+}
+
+export const verifyBusiness = async (
+  data: BusinessVerifyInput
+): Promise<BusinessVerifyResult> => {
+  const response = await apiClient.post("/api/v1/users/me/verify-business", data);
+  const raw = readRecord(unwrapApiData<unknown>(response.data));
+  return {
+    ...mapCurrentUser(raw),
+    businessNumber: readString(raw.businessNumber ?? raw.business_number) ?? data.businessNumber,
+    isBusinessVerified: Boolean(raw.isBusinessVerified ?? raw.is_business_verified ?? true),
+  };
+};
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const fetchUserStats = async (_userId: string): Promise<UserStats> => {
   const userData = await fetchCurrentUserRaw();

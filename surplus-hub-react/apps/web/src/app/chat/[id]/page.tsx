@@ -1,9 +1,28 @@
 "use client";
 
-import { useChatMessages, useCurrentUser, useSendMessage, useChatWebSocket, getChatSuggestions, translateText } from "@repo/core";
+import {
+  useChatMessages,
+  useChatRoomDetail,
+  useCurrentUser,
+  useSendMessage,
+  useChatWebSocket,
+  getChatSuggestions,
+  translateText,
+  QUICK_REPLIES,
+  TRANSLATION_LANGUAGES,
+} from "@repo/core";
+import Link from "next/link";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { AuthGate } from "../../../components/AuthGate";
+
+const MATERIAL_STATUS_LABELS: Record<string, string> = {
+  ACTIVE: "판매중",
+  RESERVED: "예약중",
+  SOLD: "판매완료",
+};
+
+const TRANSLATE_LANG_KEY = "chat_translate_lang";
 
 function TranslationText({ content, getTranslation }: { content: string; getTranslation: (c: string) => Promise<string> }) {
   const [text, setText] = useState<string | null>(null);
@@ -24,6 +43,8 @@ function TranslationText({ content, getTranslation }: { content: string; getTran
 function ChatRoomContent({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { data, isLoading } = useChatMessages(params.id);
+  const roomQuery = useChatRoomDetail(params.id);
+  const room = roomQuery?.data ?? null;
   const { data: currentUser } = useCurrentUser();
   const { mutate: sendMessage } = useSendMessage();
   const [message, setMessage] = useState("");
@@ -33,6 +54,7 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
   // AI features state
   const [showTranslation, setShowTranslation] = useState(false);
   const [showScamWarning, setShowScamWarning] = useState(true);
+  const [translateLang, setTranslateLang] = useState("en");
 
   // 토큰 관리 (클라이언트 사이드에서만 localStorage 접근)
   const [token, setToken] = useState<string | null>(null);
@@ -42,7 +64,22 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
       const accessToken = localStorage.getItem("access_token") || localStorage.getItem("clerk_token");
       setToken(accessToken);
     }
+    try {
+      const saved = localStorage.getItem(TRANSLATE_LANG_KEY);
+      if (saved && TRANSLATION_LANGUAGES.some((l) => l.code === saved)) setTranslateLang(saved);
+    } catch {
+      // 저장소 접근 불가 시 기본 언어 유지
+    }
   }, []);
+
+  const handleTranslateLangChange = (code: string) => {
+    setTranslateLang(code);
+    try {
+      localStorage.setItem(TRANSLATE_LANG_KEY, code);
+    } catch {
+      // 저장 실패해도 현재 세션 선택은 유지
+    }
+  };
 
   // WebSocket 연결
   const { isConnected, sendTextMessage, sendReadReceipt, sendTyping, typingUser } = useChatWebSocket({
@@ -122,19 +159,20 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
   const [, setTranslationVersion] = useState(0);
 
   const getTranslation = useCallback(async (content: string): Promise<string> => {
-    const cached = translationsRef.current[content];
+    const cacheKey = `${translateLang}:${content}`;
+    const cached = translationsRef.current[cacheKey];
     if (cached) return cached;
     try {
-      const result = await translateText(content, "en");
-      translationsRef.current[content] = result;
+      const result = await translateText(content, translateLang);
+      translationsRef.current[cacheKey] = result;
       setTranslationVersion((v) => v + 1); // 리렌더 트리거
       return result;
     } catch {
       return `Translation: ${content}`;
     }
-  }, []);
+  }, [translateLang]);
 
-  // AI Smart Replies
+  // AI Smart Replies — 기본 빠른 답장 뒤에 중복 없이 붙인다
   const [smartReplies, setSmartReplies] = useState<string[]>([]);
   const [smartRepliesLoading, setSmartRepliesLoading] = useState(false);
 
@@ -150,8 +188,7 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
         setSmartReplies(result.suggestions);
       }
     } catch {
-      // 실패 시 기본 답변 표시
-      setSmartReplies(["네, 가능합니다.", "가격 조정 가능합니다.", "직거래 가능합니다.", "확인하겠습니다."]);
+      // 실패 시 기본 빠른 답장만 노출
     } finally {
       setSmartRepliesLoading(false);
     }
@@ -162,6 +199,8 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
     loadSmartReplies();
   }, [data?.data?.length]);
 
+  const replyChips = Array.from(new Set<string>([...QUICK_REPLIES, ...smartReplies]));
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[50vh]">
@@ -171,30 +210,34 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-65px)] bg-paper">
+    <div className="flex flex-col h-[100dvh] md:h-[calc(100dvh-65px)] bg-paper">
       {/* Header */}
-      <div className="bg-card px-4 py-3 flex items-center border-b border-border sticky top-0 z-10 w-full">
+      <div className="bg-surface px-4 py-2 flex items-center border-b border-line-2 sticky top-0 z-10 w-full">
         <button
+          type="button"
+          aria-label="뒤로 가기"
           onClick={() => router.back()}
-          className="mr-3 p-2 rounded-full hover:bg-field text-muted-foreground transition-colors"
+          className="mr-1 -ml-2 flex h-11 w-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
           </svg>
         </button>
-        <h1 className="text-lg font-bold text-foreground">채팅</h1>
+        <h1 className="text-[17px] font-extrabold tracking-[-0.4px] text-foreground">채팅</h1>
         {/* 연결 상태 인디케이터 */}
         {isConnected && (
-          <span className="ml-2 w-2.5 h-2.5 rounded-full bg-olive-tx inline-block" />
+          <span className="ml-2 w-2.5 h-2.5 rounded-full bg-primary inline-block" />
         )}
         <div className="ml-auto flex items-center gap-2">
           {/* Translation toggle button */}
           <button
             onClick={() => setShowTranslation(!showTranslation)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+            type="button"
+            aria-pressed={showTranslation}
+            className={`flex h-9 items-center gap-1.5 px-3.5 rounded-chip text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
               showTranslation
-                ? "bg-accent text-accent-foreground"
-                : "border border-border bg-card text-foreground"
+                ? "bg-ink text-surface"
+                : "border border-line bg-surface text-foreground hover:bg-field"
             }`}
           >
             <svg
@@ -233,9 +276,99 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
         </div>
       </div>
 
+      {/* 거래 자재 미니 카드 (P3-1) */}
+      {room?.materialId ? (
+        room.materialTitle ? (
+          <Link
+            href={`/material/${room.materialId}`}
+            data-testid="chat-material-card"
+            className="flex items-center gap-3 border-b border-line-2 bg-surface px-4 py-2.5 transition-colors hover:bg-field"
+          >
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-thumb border border-line bg-field">
+              {room.materialImageUrl ? (
+                <img
+                  src={room.materialImageUrl}
+                  alt={room.materialTitle}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.6}
+                  stroke="currentColor"
+                  className="h-5 w-5 text-muted-foreground"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"
+                  />
+                </svg>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                {room.materialStatus && (
+                  <span className="shrink-0 rounded-chip border border-line bg-card px-2 py-0.5 text-[11px] font-bold text-foreground">
+                    {MATERIAL_STATUS_LABELS[room.materialStatus] ?? room.materialStatus}
+                  </span>
+                )}
+                <p className="truncate text-sm font-bold text-foreground">{room.materialTitle}</p>
+              </div>
+              <p className="mt-0.5 text-xs font-bold text-primary">
+                {room.materialPrice !== undefined
+                  ? room.materialPrice > 0
+                    ? `${room.materialPrice.toLocaleString()}원`
+                    : "무료나눔"
+                  : "자재 상세 보기"}
+              </p>
+            </div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="h-4 w-4 shrink-0 text-muted-foreground"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+            </svg>
+          </Link>
+        ) : (
+          <div
+            data-testid="chat-material-deleted"
+            className="flex items-center gap-2 border-b border-line-2 bg-field px-4 py-2.5 text-xs font-medium text-muted-foreground"
+          >
+            삭제된 자재입니다
+          </div>
+        )
+      ) : null}
+
+      {showTranslation && (
+        <div className="flex items-center gap-2 border-b border-line-2 bg-surface px-4 py-2">
+          <label htmlFor="chat-translate-lang" className="text-xs font-semibold text-muted-foreground">
+            번역 언어
+          </label>
+          <select
+            id="chat-translate-lang"
+            value={translateLang}
+            onChange={(e) => handleTranslateLangChange(e.target.value)}
+            className="h-9 rounded-chip border border-line bg-surface px-3 text-xs font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {TRANSLATION_LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Scam Warning Banner */}
       {hasScamKeywords && showScamWarning && (
-        <div className="mx-4 mt-4 bg-destructive/10 border border-destructive/20 rounded-xl p-4">
+        <div className="mx-4 mt-4 bg-destructive/10 border border-destructive/20 rounded-card p-4">
           <div className="flex items-start gap-3">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -289,14 +422,14 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
             >
               <div className="max-w-[70%]">
                 <div
-                  className={`rounded-2xl p-3 ${
+                  className={`rounded-card p-3 ${
                     isMe
-                      ? "bg-accent-soft text-foreground rounded-br-md"
-                      : "bg-card text-foreground border border-border rounded-bl-md"
+                      ? "bg-primary text-primary-foreground rounded-br-md"
+                      : "bg-field text-foreground rounded-bl-md"
                   }`}
                 >
                   <p>{msg.content}</p>
-                  <p className="text-xs mt-1 text-right text-muted-foreground">
+                  <p className={`text-xs mt-1 text-right ${isMe ? "text-primary-foreground/75" : "text-muted-foreground"}`}>
                     {new Date(msg.timestamp).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
@@ -305,7 +438,7 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
                 </div>
                 {/* Translation display: 최근 20개 메시지만 번역 */}
                 {showTranslation && (
-                  <div className="mt-2 bg-field rounded-lg px-3 py-2 flex items-start gap-2">
+                  <div className="mt-2 bg-field rounded-btn px-3 py-2 flex items-start gap-2">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
@@ -321,7 +454,7 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
                       />
                     </svg>
                     {canTranslate ? (
-                      <TranslationText content={msg.content} getTranslation={getTranslation} />
+                      <TranslationText key={translateLang} content={msg.content} getTranslation={getTranslation} />
                     ) : (
                       <p className="text-muted-foreground text-xs">번역 대기 중...</p>
                     )}
@@ -338,7 +471,7 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
         {/* 타이핑 인디케이터 */}
         {typingUser && (
           <div className="flex justify-start">
-            <div className="bg-card text-muted-foreground border border-border rounded-2xl rounded-tl-none px-4 py-2 text-sm">
+            <div className="bg-surface text-muted-foreground border border-line-2 rounded-card rounded-tl-none px-4 py-2 text-sm">
               {typingUser}님이 입력 중
               <span className="inline-flex ml-1">
                 <span className="animate-bounce" style={{ animationDelay: "0ms" }}>.</span>
@@ -351,9 +484,8 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* AI Smart Reply Chips */}
-      {smartReplies.length > 0 && (
-      <div className="bg-card border-t border-border px-4 py-3">
+      {/* 빠른 답장 + AI 추천 답장 Chips */}
+      <div className="bg-surface border-t border-line px-4 py-3">
         <div className="flex items-center gap-2 mb-2">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -369,28 +501,28 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
               d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456ZM16.894 20.567 16.5 21.75l-.394-1.183a2.25 2.25 0 0 0-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 0 0 1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 0 0 1.423 1.423l1.183.394-1.183.394a2.25 2.25 0 0 0-1.423 1.423Z"
             />
           </svg>
-          <span className="text-muted-foreground text-xs font-semibold">AI 추천 답장</span>
+          <span className="text-muted-foreground text-xs font-semibold">빠른 답장</span>
           {smartRepliesLoading && (
             <div className="w-3 h-3 border border-primary border-t-transparent rounded-full animate-spin" />
           )}
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2">
-          {smartReplies.map((reply, index) => (
+          {replyChips.map((reply) => (
             <button
-              key={index}
+              key={reply}
+              type="button"
               onClick={() => handleSmartReply(reply)}
-              className="flex-shrink-0 border border-border bg-card text-foreground rounded-full px-4 py-2 text-xs font-medium hover:bg-field transition-colors"
+              className="flex-shrink-0 border border-line bg-surface text-foreground rounded-full px-4 py-2 text-xs font-medium hover:bg-field transition-colors"
             >
               {reply}
             </button>
           ))}
         </div>
       </div>
-      )}
 
       <form
         onSubmit={handleSend}
-        className="bg-card p-4 border-t border-border flex gap-2 w-full"
+        className="bg-surface px-4 py-3 pb-safe border-t border-line-2 flex items-center gap-2 w-full"
       >
         <input
           type="text"
@@ -400,11 +532,13 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
             handleTyping();
           }}
           placeholder="메시지를 입력하세요..."
-          className="flex-1 border border-border bg-field rounded-full px-4 py-2 focus:ring-2 focus:ring-primary outline-none"
+          aria-label="메시지 입력"
+          className="h-11 flex-1 rounded-chip border border-transparent bg-field px-4 text-[15px] placeholder:text-ink-3 focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/20 outline-none"
         />
         <button
           type="submit"
-          className="bg-primary text-primary-foreground rounded-full w-10 h-10 flex items-center justify-center hover:opacity-90 transition-opacity flex-shrink-0"
+          aria-label="보내기"
+          className="bg-primary text-primary-foreground rounded-full w-11 h-11 flex items-center justify-center hover:bg-primary-dark active:bg-primary-dark transition-colors flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

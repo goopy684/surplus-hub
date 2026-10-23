@@ -56,6 +56,8 @@ function AppStack() {
       <Stack.Screen name="(legal)" options={{ headerShown: false }} />
       <Stack.Screen name="material/register" options={{ title: "자재 등록" }} />
       <Stack.Screen name="material/[id]" options={{ title: "자재 상세" }} />
+      <Stack.Screen name="community/[id]" options={{ title: "게시글 상세" }} />
+      <Stack.Screen name="community/write" options={{ title: "새 게시글 작성" }} />
       <Stack.Screen name="search" options={{ title: "검색" }} />
       <Stack.Screen name="notifications" options={{ title: "알림" }} />
       <Stack.Screen name="notification-settings" options={{ title: "알림 설정" }} />
@@ -85,8 +87,8 @@ function AuthGate() {
 
   if (isLoading && !DEV_AUTH_BYPASS) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator size="large" color="#ed701d" />
+      <SafeAreaView className="flex-1 items-center justify-center bg-paper">
+        <ActivityIndicator size="large" color="#1E3FCC" />
       </SafeAreaView>
     );
   }
