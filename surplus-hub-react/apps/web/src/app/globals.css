@@ -1,7 +1,5 @@
-/* Hallmark · genre: editorial · macrostructure: Catalogue index-rail (app feed) · theme: 1a brand system · design-system: design.md · designed-as-app
- * pre-emit critique: P4 H4 E4 S5 R5 V4 · honest: pass (46) · chrome: pass (47) · tokens: pass (48) · responsive: pass (49) · icons: pass (30) · mobile: pass (34, 49, 50–57)
- * contrast: pass w/ flag — gate 40 open on white-on-#ed701d primary buttons (~2.8:1), pre-existing brand-wide accent, owner decision required */
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
+/* Design system: design.md · B · 밝은 카탈로그 (2026-10-05) */
+@import url('https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -10,43 +8,44 @@
 /* Surplus Hub Design System v3 — docs/DESIGN_SYSTEM.md */
 @layer base {
   :root {
-    --primary: #ed701d;          /* 1a 시안 orange */
+    --primary: #1E3FCC;          /* cobalt */
     --primary-foreground: #ffffff;
-    --background: #f9f7f6;        /* paper (시안 배경) */
-    --foreground: #151c28;        /* ink (시안) */
+    --background: #FFFFFF;        /* paper */
+    --foreground: #121620;        /* ink */
     --card: #FFFFFF;             /* surface */
-    --card-foreground: #151c28;
-    --muted: #f1f0ee;           /* field (시안 썸네일/필드) */
-    --muted-foreground: #6a7181; /* ink-2 (시안 sub) */
-    --accent: #fdf0e7;          /* accent-soft (시안 soft) */
-    --accent-foreground: #a54a0d; /* 시안 primary-text */
-    --secondary: #f1f0ee;
-    --secondary-foreground: #151c28;
-    --border: #e2e4e9;          /* line (시안) */
-    --input: #e2e4e9;
-    --ring: #ed701d;
-    --destructive: #C0492B;
-    --success: #3F5A29;          /* olive */
-    --warning: #B8761F;
-    --info: #6a7181;
-    /* 등급(상/중/하) — A급 올리브, 그 외 톤다운 */
-    --condition-good: #3F5A29;
-    --condition-fair: #B8761F;
-    --condition-poor: #C0492B;
+    --card-foreground: #121620;
+    --muted: #F2F4F8;           /* field */
+    --muted-foreground: #5A6273; /* ink-2 */
+    --accent: #E8EDFB;          /* accent-soft */
+    --accent-foreground: #16309E;
+    --secondary: #F2F4F8;
+    --secondary-foreground: #121620;
+    --border: #DDE1E8;          /* line */
+    --input: #DDE1E8;
+    --ring: #1E3FCC;
+    --destructive: #C2362B;
+    --success: #1F7A4D;
+    --warning: #A8650F;
+    --info: #5A6273;
+    /* 등급(상/중/하) */
+    --condition-good: #1F7A4D;
+    --condition-fair: #A8650F;
+    --condition-poor: #C2362B;
 
-    /* design-system named tokens (1a 시안) */
-    --ink: #151c28;
-    --ink-2: #6a7181;
-    --ink-3: #8C8275;
-    --paper: #f9f7f6;
+    /* design-system named tokens */
+    --ink: #121620;
+    --ink-2: #5A6273;
+    --ink-3: #8A92A3;
+    --paper: #FFFFFF;
+    --canvas: #F5F6F9;
     --surface: #FFFFFF;
-    --field: #f1f0ee;
-    --line: #e2e4e9;
-    --line-2: #EBE3D8;
-    --olive-tx: #3F5A29;
-    --olive-bg: #EFF3E6;
-    --olive-bd: #D2DCBE;
-    --accent-soft: #fdf0e7;
+    --field: #F2F4F8;
+    --line: #DDE1E8;
+    --line-2: #EBEEF3;
+    --olive-tx: #1F7A4D;
+    --olive-bg: #E7F4EC;
+    --olive-bd: #BFE0CC;
+    --accent-soft: #E8EDFB;
   }
 
   * {
@@ -59,7 +58,7 @@
   }
 
   body {
-    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    font-family: 'Gothic A1', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
     background-color: var(--background);
     color: var(--foreground);
     -webkit-font-smoothing: antialiased;
@@ -69,15 +68,17 @@
 
   /* 숫자(가격·수량·거리)는 표 정렬용 tabular */
   .tabular { font-variant-numeric: tabular-nums; }
+  /* 가격·수치 — Space Grotesk */
+  .num { font-family: 'Space Grotesk', 'Gothic A1', system-ui, sans-serif; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
 }
 
 @layer utilities {
   .card-shadow {
-    box-shadow: 0 1px 2px rgba(31, 27, 23, 0.05);
+    box-shadow: 0 1px 2px rgba(18, 22, 32, 0.04);
   }
 
   .card-shadow-hover {
-    box-shadow: 0 6px 18px -6px rgba(31, 27, 23, 0.14);
+    box-shadow: 0 6px 18px -6px rgba(18, 22, 32, 0.12);
   }
 
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }

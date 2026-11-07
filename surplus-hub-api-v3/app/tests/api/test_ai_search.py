@@ -48,6 +48,7 @@ class TestSemanticSearch:
         mock_material.price = 100000
         mock_material.category = "철근"
         mock_material.thumbnail_url = None
+        mock_material.location_address = "경기도 시흥시"  # 좌표 없이 주소만 있는 매물
         mock_material.location_lat = None
         mock_material.location_lng = None
 
@@ -77,6 +78,8 @@ class TestSemanticSearch:
         assert item["score"] == 0.85
         assert item["vectorSimilarity"] == 0.9
         assert item["keywordScore"] == 1.0
+        # 좌표가 없어도 주소는 내려준다
+        assert item["location"]["address"] == "경기도 시흥시"
 
         assert data["meta"]["totalCount"] == 1
         assert data["meta"]["page"] == 1

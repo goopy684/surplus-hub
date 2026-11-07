@@ -77,13 +77,24 @@ const mapChatRoom = (raw: unknown): ChatRoom => {
     room.updatedAt ?? room.updated_at ?? room.lastMessageTime ?? room.last_message_time
   );
 
+  const rawPrice = room.materialPrice ?? room.material_price;
+  const materialPrice =
+    rawPrice !== undefined && rawPrice !== null ? readNumber(rawPrice, 0) : undefined;
+  const materialStatus = readString(room.materialStatus ?? room.material_status);
+  const materialImageUrl = readString(room.materialImageUrl ?? room.material_image_url);
+
   return {
     id,
     materialId:
-      room.materialId !== undefined || room.material_id !== undefined
-        ? String(room.materialId ?? room.material_id)
-        : undefined,
+      room.materialId !== undefined && room.materialId !== null
+        ? String(room.materialId)
+        : room.material_id !== undefined && room.material_id !== null
+          ? String(room.material_id)
+          : undefined,
     materialTitle: readString(room.materialTitle ?? room.material_title),
+    materialPrice,
+    materialStatus,
+    materialImageUrl,
     otherUser: {
       id: otherUserId,
       name: otherUserName,
@@ -110,6 +121,17 @@ const mapChatRoom = (raw: unknown): ChatRoom => {
     unreadCount,
     updatedAt,
   };
+};
+
+export const fetchChatRoom = async (roomId: string): Promise<ChatRoom | null> => {
+  if (!roomId) return null;
+  try {
+    const response = await apiClient.get(`/api/v1/chats/rooms/${roomId}`);
+    const rawData = unwrapApiData<unknown>(response.data);
+    return rawData ? mapChatRoom(rawData) : null;
+  } catch {
+    return null;
+  }
 };
 
 export const fetchChatRooms = async (

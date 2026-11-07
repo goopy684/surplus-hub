@@ -20,7 +20,7 @@ import {
 // Switch는 className을 받지 않아 토큰 대신 색상값을 직접 넘긴다 (ActivityIndicator color와 동일 예외).
 // design.md 토큰 미러링 — false = `--line`(border-line), true = `--accent`(bg-primary).
 // design.md를 바꾸면 이 두 값도 같이 바꿔야 조용히 어긋나지 않는다.
-const TRACK_COLOR = { false: "#e2e4e9", true: "#ed701d" } as const;
+const TRACK_COLOR = { false: "#DDE1E8", true: "#1E3FCC" } as const;
 
 const CATEGORIES: Array<{
   key: keyof NotificationPreferences;
@@ -69,7 +69,7 @@ export default function NotificationSettingsScreen() {
   if (isLoading) {
     return (
       <View className="flex-1 items-center justify-center bg-paper">
-        <ActivityIndicator size="large" color="#ed701d" />
+        <ActivityIndicator size="large" color="#1E3FCC" />
       </View>
     );
   }
@@ -93,7 +93,7 @@ export default function NotificationSettingsScreen() {
             <Text className="text-[15px] font-semibold text-accent-foreground">
               기기 알림 권한이 꺼져 있습니다
             </Text>
-            {/* bg-accent(#fdf0e7) 위에서 text-ink-2는 4.38:1로 AA(4.5:1) 미달 — accent-foreground는 5.24:1 */}
+            {/* bg-accent(#E8EDFB) 위 텍스트는 accent-foreground(#16309E) 사용 — 대비 충분 */}
             <Text className="mt-1 text-[13.5px] text-accent-foreground">
               시스템 설정에서 알림을 허용해야 아래 설정이 적용됩니다.
             </Text>
@@ -108,7 +108,7 @@ export default function NotificationSettingsScreen() {
           </View>
         ) : null}
 
-        <View className="rounded-thumb border border-line bg-surface px-4">
+        <View className="rounded-card border border-line bg-surface px-4">
           <View className="min-h-[44px] flex-row items-center justify-between gap-3 py-4">
             <View className="flex-1">
               <Text className="text-[15px] font-semibold text-ink">푸시 알림 받기</Text>
@@ -127,7 +127,7 @@ export default function NotificationSettingsScreen() {
           </View>
         </View>
 
-        <View className="mt-4 rounded-thumb border border-line bg-surface px-4">
+        <View className="mt-4 rounded-card border border-line bg-surface px-4">
           <Text className="pt-4 text-[13px] font-semibold text-ink-2">알림 종류</Text>
           {CATEGORIES.map((category) => (
             <View

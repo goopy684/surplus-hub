@@ -61,6 +61,30 @@ class TestListPosts:
         response = client.get(f"{API}/community/posts", params={"category": "general"})
         assert response.status_code == 200
 
+    def test_category_normalization_and_alias_filter(self, client: TestClient, auth_headers):
+        # Creating a post with legacy English code "KnowHow" normalizes to "노하우"
+        resp = _create_post(
+            client,
+            auth_headers,
+            title="산단 철골 상차 노하우",
+            category="KnowHow",
+        )
+        assert resp.status_code == 200
+        post_data = resp.json()["data"]
+        assert post_data["category"] == "노하우"
+
+        # Filtering by either "노하우" or "KnowHow" returns the post
+        res_kr = client.get(f"{API}/community/posts", params={"category": "노하우", "limit": 50})
+        assert res_kr.status_code == 200
+        assert any(p["id"] == post_data["id"] for p in res_kr.json()["data"])
+
+        res_en = client.get(f"{API}/community/posts", params={"category": "KnowHow", "limit": 50})
+        assert res_en.status_code == 200
+        assert any(p["id"] == post_data["id"] for p in res_en.json()["data"])
+
+        # Clean up
+        client.delete(f"{API}/community/posts/{post_data['id']}", headers=auth_headers)
+
 
 # ===================================================================
 # Posts - CRUD (requires auth)
@@ -529,3 +553,35 @@ class TestCommunityLifecycle:
         # 10. Confirm it is gone
         gone_resp = client.get(f"{API}/community/posts/{post_id}")
         assert gone_resp.status_code == 404
+
+
+class TestBusinessVerification:
+    """POST /users/me/verify-business -- Korean 10-digit business registration number checksum & badge upgrade."""
+
+    def test_verify_business_requires_auth(self, client: TestClient):
+        resp = client.post(
+            f"{API}/users/me/verify-business",
+            json={"businessNumber": "120-88-00767"},
+        )
+        assert resp.status_code == 401
+
+    def test_verify_business_rejects_invalid_checksum(self, client: TestClient, auth_headers):
+        resp = client.post(
+            f"{API}/users/me/verify-business",
+            json={"businessNumber": "120-88-00760"},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 400
+
+    def test_verify_business_success_upgrades_trust_level(self, client: TestClient, auth_headers):
+        resp = client.post(
+            f"{API}/users/me/verify-business",
+            json={"businessNumber": "1208800767", "companyName": "주식회사 서플러스건재"},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["isBusinessVerified"] is True
+        assert data["businessNumber"] == "120-88-00767"
+        assert data["trustLevel"] >= 85
+        assert data["name"] == "주식회사 서플러스건재"

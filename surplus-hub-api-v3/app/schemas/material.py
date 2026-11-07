@@ -41,6 +41,7 @@ class Seller(BaseModel):
     id: int
     name: str
     avatar_url: Optional[str] = Field(None, alias="avatarUrl")
+    trust_level: Optional[int] = Field(None, alias="trustLevel")
     # For simple mapping from User model profile_image_url to avatarUrl, we might need a root validator or property
     # But User model has profile_image_url. 
     # Let's rely on manual mapping or alias if the source attribute matches. 

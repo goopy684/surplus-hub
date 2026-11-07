@@ -53,8 +53,8 @@ export default function ResetPasswordPage() {
 
     return (
         <div className="flex min-h-screen items-center justify-center p-4 py-12">
-            <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 card-shadow">
-                <h1 className="text-xl font-bold text-foreground">비밀번호 재설정</h1>
+            <div className="w-full max-w-sm rounded-card bg-surface px-2 py-8 md:border md:border-line-2 md:p-8">
+                <h1 className="text-[22px] font-extrabold tracking-[-0.6px] text-foreground">비밀번호 재설정</h1>
 
                 {done ? (
                     <div className="mt-6">
@@ -63,7 +63,7 @@ export default function ResetPasswordPage() {
                         </p>
                         <Link
                             href="/sign-in"
-                            className="mt-5 inline-block rounded-btn bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark"
+                            className="mt-5 inline-block rounded-btn bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark min-h-[48px] active:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                             로그인하러 가기
                         </Link>
@@ -93,7 +93,7 @@ export default function ResetPasswordPage() {
                             minLength={6}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            className="mt-1 w-full rounded-field border border-border bg-field px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            className="mt-1 w-full rounded-field border-[1.5px] border-line bg-surface px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                         />
 
                         <label className="mt-4 block text-sm font-medium text-foreground" htmlFor="confirm">
@@ -107,7 +107,7 @@ export default function ResetPasswordPage() {
                             minLength={6}
                             value={confirm}
                             onChange={(e) => setConfirm(e.target.value)}
-                            className="mt-1 w-full rounded-field border border-border bg-field px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            className="mt-1 w-full rounded-field border-[1.5px] border-line bg-surface px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
                         />
                         <p className="mt-1 text-xs text-muted-foreground">6자 이상</p>
 
@@ -116,7 +116,7 @@ export default function ResetPasswordPage() {
                         <button
                             type="submit"
                             disabled={submitting || (tokenChecked && !token)}
-                            className="mt-6 w-full rounded-btn bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark disabled:opacity-60"
+                            className="mt-6 w-full rounded-btn bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark disabled:opacity-60 min-h-[48px] active:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                             {submitting ? "변경 중..." : "비밀번호 변경"}
                         </button>

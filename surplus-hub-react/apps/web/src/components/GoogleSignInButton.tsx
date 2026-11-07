@@ -70,9 +70,9 @@ export function GoogleSignInButton({ onError }: { onError?: (msg: string) => voi
   return (
     <div className="mt-6">
       <div className="relative mb-4 flex items-center">
-        <div className="flex-1 border-t border-border" />
+        <div className="flex-1 border-t border-line" />
         <span className="px-3 text-xs text-muted-foreground">또는</span>
-        <div className="flex-1 border-t border-border" />
+        <div className="flex-1 border-t border-line" />
       </div>
       <div ref={divRef} className="flex justify-center" />
     </div>

@@ -89,7 +89,7 @@ export default function AdminNotificationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-foreground">푸시 알림</h1>
+        <h1 className="text-[22px] font-extrabold tracking-[-0.6px] text-foreground">푸시 알림</h1>
         <p className="mt-1 text-sm text-muted-foreground">사용자에게 푸시 알림을 발송하고 현황을 확인합니다.</p>
       </div>
 
@@ -101,7 +101,7 @@ export default function AdminNotificationsPage() {
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => (
-          <div key={card.label} className="rounded-thumb border border-border bg-card p-5 card-shadow">
+          <div key={card.label} className="rounded-card border border-line-2 bg-surface p-5">
             <p className="text-xs font-medium text-muted-foreground">{card.label}</p>
             {statsLoading ? (
               <div className="mt-2 h-8 w-24 animate-pulse rounded bg-muted" />
@@ -114,14 +114,14 @@ export default function AdminNotificationsPage() {
       </div>
 
       {/* 발송 폼 */}
-      <section className="rounded-thumb border border-border bg-card p-5 card-shadow">
+      <section className="rounded-card border border-line-2 bg-surface p-5">
         <h2 className="text-sm font-semibold text-foreground">푸시 발송</h2>
         <p className="mt-1 text-xs text-muted-foreground">발송된 알림은 취소할 수 없습니다.</p>
 
         {/* 대상 */}
         <div className="mt-4">
           <p className="text-xs font-medium text-foreground">대상</p>
-          <div className="mt-2 flex gap-1 rounded-btn border border-border bg-card p-1">
+          <div className="mt-2 flex gap-1 rounded-btn border border-line bg-surface p-1">
             {TARGETS.map((t) => (
               <button
                 key={t}
@@ -149,7 +149,7 @@ export default function AdminNotificationsPage() {
               value={userIdsRaw}
               onChange={(e) => setUserIdsRaw(e.target.value)}
               placeholder="예: 1, 2, 3"
-              className="mt-1 w-full rounded-field border border-border bg-field px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="mt-1 w-full rounded-field border-[1.5px] border-line bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
             <p className="mt-1 text-xs text-muted-foreground">인식된 ID {userIds.length}개: {userIds.join(", ") || "없음"}</p>
           </div>
@@ -166,7 +166,7 @@ export default function AdminNotificationsPage() {
               value={role}
               onChange={(e) => setRole(e.target.value)}
               placeholder="예: seller"
-              className="mt-1 w-full rounded-field border border-border bg-field px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="mt-1 w-full rounded-field border-[1.5px] border-line bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
         )}
@@ -180,7 +180,7 @@ export default function AdminNotificationsPage() {
             id="push-type"
             value={type}
             onChange={(e) => setType(e.target.value as "SYSTEM" | "MARKETING")}
-            className="mt-1 block rounded-field border border-border bg-card px-2 py-1.5 text-xs text-foreground focus-visible:ring-2 focus-visible:ring-primary"
+            className="mt-1 block rounded-field border-[1.5px] border-line bg-surface px-2 py-1.5 text-xs text-foreground focus-visible:ring-2 focus-visible:ring-primary"
           >
             <option value="SYSTEM">시스템 공지</option>
             <option value="MARKETING">마케팅</option>
@@ -201,7 +201,7 @@ export default function AdminNotificationsPage() {
             value={title}
             maxLength={100}
             onChange={(e) => setTitle(e.target.value)}
-            className="mt-1 w-full rounded-field border border-border bg-field px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="mt-1 w-full rounded-field border-[1.5px] border-line bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           <p className="mt-1 text-right text-xs text-muted-foreground tabular">{title.length}/100</p>
         </div>
@@ -217,7 +217,7 @@ export default function AdminNotificationsPage() {
             value={body}
             maxLength={500}
             onChange={(e) => setBody(e.target.value)}
-            className="mt-1 w-full rounded-field border border-border bg-field px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="mt-1 w-full rounded-field border-[1.5px] border-line bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           <p className="mt-1 text-right text-xs text-muted-foreground tabular">{body.length}/500</p>
         </div>
@@ -226,7 +226,7 @@ export default function AdminNotificationsPage() {
           type="button"
           onClick={handleSubmit}
           disabled={!isValid || sendPush.isPending}
-          className="mt-4 rounded-btn bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-4 rounded-btn bg-primary px-5 py-3 text-sm font-bold text-primary-foreground hover:bg-primary-dark focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50 min-h-[48px] active:bg-primary-dark"
         >
           {sendPush.isPending ? "발송 중..." : "발송"}
         </button>
@@ -251,7 +251,7 @@ export default function AdminNotificationsPage() {
       </section>
 
       {/* 최근 발송 이력 */}
-      <section className="rounded-thumb border border-border bg-card p-5 card-shadow">
+      <section className="rounded-card border border-line-2 bg-surface p-5">
         <h2 className="text-sm font-semibold text-foreground">최근 발송 이력</h2>
         <div className="mt-4 space-y-2">
           {historyLoading ? (
@@ -262,7 +262,7 @@ export default function AdminNotificationsPage() {
             <p className="py-6 text-center text-xs text-muted-foreground">발송 이력이 없습니다.</p>
           ) : (
             (history ?? []).map((item) => (
-              <div key={item.id} className="flex items-start justify-between gap-3 rounded-field bg-muted/50 px-3 py-2.5">
+              <div key={item.id} className="flex items-start justify-between gap-3 rounded-field bg-field px-3 py-2.5">
                 <div className="min-w-0">
                   <p className="text-xs font-medium text-foreground">{item.title}</p>
                   <p className="mt-0.5 truncate text-xs text-muted-foreground">{item.body}</p>

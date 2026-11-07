@@ -7,13 +7,14 @@ from app.api import deps
 from app.core.notify import notify
 from app.crud.crud_material import crud_material
 from app.crud.crud_transaction import crud_transaction
+from app.models.review import Review
 from app.models.user import User
 from app.schemas.transaction import TransactionCreate
 
 router = APIRouter()
 
 
-def _format_transaction(t):
+def _format_transaction(t, has_reviewed: bool = False):
     return {
         "id": t.id,
         "materialId": t.material_id,
@@ -23,7 +24,9 @@ def _format_transaction(t):
         "buyerId": t.buyer_id,
         "buyerName": t.buyer.name if t.buyer else None,
         "price": t.price,
+        "quantity": t.quantity,
         "status": t.status,
+        "hasReviewed": bool(has_reviewed),
         "note": t.note,
         "createdAt": t.created_at.isoformat() if t.created_at else None,
         "confirmedAt": t.confirmed_at.isoformat() if t.confirmed_at else None,
@@ -54,19 +57,22 @@ def create_transaction(
             material_id=material.id,
             seller_id=material.seller_id,
             buyer_id=current_user.id,
-            price=material.price,
+            quantity=tx_in.quantity,
             note=tx_in.note,
         )
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
 
     # Notify the seller of the incoming purchase request
+    item = f"'{material.title}'"
+    if tx.quantity < (material.quantity or 1):  # 일부 수량 구매
+        item += f" {tx.quantity}{material.quantity_unit or '개'}"
     notify(
         db,
         user_id=tx.seller_id,
         type="TRANSACTION",
         title="거래 요청이 도착했어요",
-        body=f"{current_user.name}님이 '{material.title}' 구매를 요청했습니다.",
+        body=f"{current_user.name}님이 {item} 구매를 요청했습니다.",
         reference_type="material",
         reference_id=material.id,
     )
@@ -91,11 +97,27 @@ def list_transactions(
         db, user_id=current_user.id, skip=skip, limit=limit, role=role
     )
 
+    material_ids = [t.material_id for t in transactions if t.material_id is not None]
+    reviewed_material_ids = set()
+    if material_ids:
+        rows = (
+            db.query(Review.material_id)
+            .filter(
+                Review.reviewer_id == current_user.id,
+                Review.material_id.in_(material_ids),
+            )
+            .all()
+        )
+        reviewed_material_ids = {r[0] for r in rows if r[0] is not None}
+
     total_pages = (total + limit - 1) // limit if total > 0 else 0
 
     return {
         "status": "success",
-        "data": [_format_transaction(t) for t in transactions],
+        "data": [
+            _format_transaction(t, has_reviewed=(t.material_id in reviewed_material_ids))
+            for t in transactions
+        ],
         "meta": {
             "totalCount": total,
             "page": page,
@@ -123,7 +145,13 @@ def get_transaction(
     if tx.seller_id != current_user.id and tx.buyer_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized")
 
-    return {"status": "success", "data": _format_transaction(tx)}
+    has_reviewed = (
+        db.query(Review.id)
+        .filter(Review.reviewer_id == current_user.id, Review.material_id == tx.material_id)
+        .first()
+        is not None
+    )
+    return {"status": "success", "data": _format_transaction(tx, has_reviewed=has_reviewed)}
 
 
 @router.patch(
@@ -182,11 +210,9 @@ def complete_transaction(
     if tx.status != "CONFIRMED":
         raise HTTPException(status_code=400, detail="Transaction must be confirmed first")
 
-    tx = crud_transaction.complete_transaction(db, db_obj=tx)
-
-    # Update material status to SOLD
-    material = crud_material.get(db, id=tx.material_id)
-    if material:
-        crud_material.update_status(db, db_obj=material, status="SOLD")
+    try:
+        tx = crud_transaction.complete_transaction(db, db_obj=tx)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
 
     return {"status": "success", "data": _format_transaction(tx)}

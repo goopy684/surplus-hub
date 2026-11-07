@@ -23,7 +23,7 @@ export const MaterialInput = ({
         {label}
       </Text>
       <TextInput
-        className={`bg-field border border-border rounded-field p-3 text-base text-foreground ${
+        className={`bg-surface border-[1.5px] border-line rounded-field p-3 text-base text-foreground ${
           multiline ? "h-32" : "h-12"
         }`}
         value={value}

@@ -83,6 +83,9 @@ const mapMaterialItem = (raw: unknown): MaterialItem => {
       readString(sellerObj.profileImageUrl) ||
       readString(sellerObj.profile_image_url) ||
       readString(item.sellerAvatarUrl ?? item.seller_avatar_url),
+    sellerTrustLevel: parseOptionalNumber(
+      sellerObj.trustLevel ?? sellerObj.trust_level ?? item.sellerTrustLevel ?? item.seller_trust_level
+    ),
     likesCount: parseNumber(item.likesCount ?? item.likes_count, 0),
     conditionGrade: readString(item.conditionGrade ?? item.condition_grade),
     createdAt: normalizeIso(item.createdAt ?? item.created_at),

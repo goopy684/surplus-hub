@@ -52,7 +52,8 @@ class CRUDMaterial(CRUDBase[Material, MaterialCreate, MaterialUpdate]):
             query = query.filter(Material.price <= price_max)
 
         if trade_method:
-            query = query.filter(Material.trade_method == trade_method)
+            # 직거래/택배 필터는 둘 다 가능(BOTH)한 매물도 포함한다
+            query = query.filter(Material.trade_method.in_([trade_method, "BOTH"]))
 
         if condition_grade:
             query = query.filter(Material.condition_grade == condition_grade)

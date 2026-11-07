@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text
+from sqlalchemy import Boolean, Column, Integer, String, Float, ForeignKey, DateTime, Text, false
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.base import Base
@@ -13,6 +13,9 @@ class Transaction(Base):
     buyer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     price = Column(Integer, nullable=False)
+    quantity = Column(Integer, nullable=True)  # 구매 수량. None = 레거시 전체 구매
+    # 매물이 판매중으로 남은 일부 수량 판매. 재판매(SOLD→ACTIVE) 시 취소 대상에서 제외한다.
+    is_partial = Column(Boolean, nullable=False, default=False, server_default=false())
     status = Column(String, default="PENDING")  # PENDING, CONFIRMED, COMPLETED, CANCELLED
 
     note = Column(Text, nullable=True)

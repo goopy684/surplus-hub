@@ -25,12 +25,11 @@ const formatTimeAgo = (value: string): string => {
 };
 
 const getCategoryColor = (_category: string) => {
-  // 카테고리는 등급이 아니므로 무채색(뉴트럴) 토큰으로 통일한다.
-  // 악센트(테라코타)는 화면당 주요 액션 1곳에만 — 일반 배지에 색을 입히지 않는다.
+  // 카테고리 라벨은 배경·보더 없이 코발트 텍스트로 (design.md B · 커뮤니티 카드).
   return {
-    bg: "bg-card",
-    text: "text-muted-foreground",
-    border: "border-border",
+    bg: "bg-transparent",
+    text: "text-primary",
+    border: "border-transparent",
   };
 };
 
@@ -51,24 +50,25 @@ export default function CommunityPage() {
   const posts = data?.data ?? [];
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="border-b border-border bg-card px-4 py-6">
-        <h1 className="mb-2 text-xl font-bold text-foreground md:hidden">커뮤니티 게시판</h1>
+    <div className="min-h-screen bg-canvas pb-28">
+      <div className="bg-surface px-5 pt-4 pb-3">
+        <h1 className="mb-1 text-[22px] font-extrabold tracking-[-0.6px] text-foreground md:hidden">커뮤니티 게시판</h1>
         <p className="text-sm text-muted-foreground">
           지식을 공유하고, 질문하고, 다른 건설인들과 소통하세요.
         </p>
       </div>
 
-      <div className="mt-4 overflow-x-auto px-4 pb-2 scrollbar-hide">
+      <div className="overflow-x-auto bg-surface px-5 pb-3 scrollbar-hide">
         <div className="flex gap-2">
           {CATEGORIES.map((category) => (
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`whitespace-nowrap rounded-full px-5 py-2 text-sm font-medium transition-colors ${
+              type="button"
+              className={`h-[38px] whitespace-nowrap rounded-chip border px-4 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                 selectedCategory === category
-                  ? "bg-accent font-bold text-accent-foreground"
-                  : "border border-border bg-card text-foreground hover:bg-muted"
+                  ? "border-ink bg-ink font-bold text-surface"
+                  : "border-line bg-surface font-medium text-foreground hover:bg-field"
               }`}
             >
               {category}
@@ -86,7 +86,7 @@ export default function CommunityPage() {
       ) : null}
 
       {!isLoading && !error ? (
-        <div className="p-4">
+        <div className="flex flex-col gap-2.5 px-4 py-3">
           {posts.map((post) => {
             const catColors = getCategoryColor(post.category);
 
@@ -94,19 +94,19 @@ export default function CommunityPage() {
               <Link
                 key={post.id}
                 href={`/community/${post.id}`}
-                className="block cursor-pointer border-b border-border bg-card p-4 transition-colors active:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="block cursor-pointer rounded-card bg-surface p-4 transition-colors hover:bg-surface/70 active:bg-field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <div className="mb-2 flex items-center justify-between">
                   <div
-                    className={`inline-block rounded-full border px-2 py-0.5 text-xs font-medium ${catColors.bg} ${catColors.text} ${catColors.border}`}
+                    className={`inline-block rounded-chip border text-[12.5px] font-bold ${catColors.bg} ${catColors.text} ${catColors.border}`}
                   >
                     {post.category}
                   </div>
                   <span className="text-xs text-muted-foreground">{formatTimeAgo(post.createdAt)}</span>
                 </div>
 
-                <h3 className="mb-1 text-base font-bold text-foreground">{post.title}</h3>
-                <p className="mb-2 line-clamp-2 text-sm text-muted-foreground">{post.content}</p>
+                <h3 className="mb-1 text-[16.5px] font-bold leading-[1.4] tracking-[-0.3px] text-foreground">{post.title}</h3>
+                <p className="mb-2.5 line-clamp-2 text-sm leading-[1.55] text-foreground/75">{post.content}</p>
 
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>{post.authorName}</span>
@@ -157,7 +157,7 @@ export default function CommunityPage() {
           })}
 
           {posts.length === 0 ? (
-            <div className="rounded-thumb border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+            <div className="rounded-card bg-surface p-8 text-center text-sm text-muted-foreground">
               조건에 맞는 게시글이 없습니다.
             </div>
           ) : null}
@@ -168,7 +168,7 @@ export default function CommunityPage() {
         type="button"
         aria-label="글쓰기"
         onClick={() => router.push("/community/write")}
-        className="fixed bottom-24 right-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-fab focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        className="fixed bottom-[88px] right-5 z-40 flex h-[52px] items-center gap-1.5 rounded-full bg-primary px-5 text-[15px] font-bold text-primary-foreground shadow-fab transition-colors active:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:bottom-8"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -178,11 +178,13 @@ export default function CommunityPage() {
           strokeWidth={1.8}
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="h-6 w-6"
+          aria-hidden="true"
+          className="h-[18px] w-[18px]"
         >
           <path d="M16.5 3.75 20.25 7.5 7.5 20.25 3.75 20.25 3.75 16.5 16.5 3.75Z" />
           <path d="M14.25 6 18 9.75" />
         </svg>
+        <span aria-hidden="true">글쓰기</span>
       </button>
     </div>
   );

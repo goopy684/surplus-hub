@@ -13,6 +13,7 @@ from app.crud.crud_chat import crud_chat_room, crud_message
 from app.models.user import User
 from app.utils.location import LocationData
 from app.schemas.chat_response import (
+    ChatRoomDetailResponse,
     ChatRoomListResponse,
     ChatRoom as ChatRoomSchema,
     ChatRoomCreate,
@@ -27,10 +28,14 @@ def _room_to_schema(room, current_user_id: int, db: Session) -> ChatRoomSchema:
     other_user = room.seller if room.buyer_id == current_user_id else room.buyer
     last_msg = crud_message.get_last_message(db, room_id=room.id)
     unread_count = crud_message.get_unread_count(db, room_id=room.id, user_id=current_user_id)
+    mat = room.material if (room.material and room.material.status != "HIDDEN") else None
     return ChatRoomSchema(
         id=room.id,
         materialId=room.material_id,
-        materialTitle=room.material.title if room.material else None,
+        materialTitle=mat.title if mat else None,
+        materialPrice=mat.price if mat else None,
+        materialStatus=mat.status if mat else None,
+        materialImageUrl=mat.thumbnail_url if mat else None,
         otherUserId=other_user.id,
         otherUserName=other_user.name,
         otherUserAvatar=other_user.profile_image_url,
@@ -95,6 +100,24 @@ def create_chat_room(
         db, material_id=room_in.material_id, buyer_id=current_user.id, seller_id=room_in.seller_id
     )
     return {"status": "success", "data": {"id": room.id}}
+
+@router.get("/rooms/{room_id}", response_model=ChatRoomDetailResponse, summary="Get Chat Room Detail")
+def read_chat_room(
+    room_id: int,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    room = crud_chat_room.get(db, id=room_id)
+    if not room:
+        raise HTTPException(status_code=404, detail="Chat room not found")
+
+    if not crud_chat_room.is_participant(room, current_user.id):
+        raise HTTPException(status_code=403, detail="Not authorized to access this chat room")
+
+    return {
+        "status": "success",
+        "data": _room_to_schema(room, current_user.id, db),
+    }
 
 @router.get("/rooms/{room_id}/messages", response_model=MessageListResponse, summary="List Messages")
 def read_messages(

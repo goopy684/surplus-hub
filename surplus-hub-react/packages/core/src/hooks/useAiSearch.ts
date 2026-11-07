@@ -7,6 +7,8 @@ export const useAiSearch = (params: AiSearchParams, enabled = true): UseQueryRes
     queryKey: ["aiSearch", params],
     queryFn: () => aiSearch(params),
     enabled: enabled && params.q.trim().length > 0,
+    // 실패 시 화면이 키워드 검색으로 빨리 넘어가도록 재시도 1회만
+    retry: 1,
   });
 };
 

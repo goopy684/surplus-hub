@@ -19,8 +19,8 @@ const ROLE_LABELS: Record<AdminRole, string> = {
 
 const ROLE_COLORS: Record<AdminRole, string> = {
   SUPER_ADMIN: "bg-accent text-accent-foreground",
-  ADMIN: "border border-border bg-card text-muted-foreground",
-  MODERATOR: "border border-border bg-card text-muted-foreground",
+  ADMIN: "border border-line bg-surface text-muted-foreground",
+  MODERATOR: "border border-line bg-surface text-muted-foreground",
 };
 
 const SANCTION_LABELS: Record<UserSanction["sanctionType"], string> = {
@@ -30,7 +30,7 @@ const SANCTION_LABELS: Record<UserSanction["sanctionType"], string> = {
 };
 
 const SANCTION_COLORS: Record<UserSanction["sanctionType"], string> = {
-  WARNING: "border border-border bg-muted text-muted-foreground",
+  WARNING: "border border-line bg-muted text-muted-foreground",
   SUSPENSION: "border border-destructive/30 bg-destructive/5 text-destructive",
   BAN: "bg-destructive text-destructive-foreground",
 };
@@ -74,7 +74,7 @@ function SanctionForm({ userId, onClose, onCreated }: SanctionFormProps) {
             className={`rounded-field px-2.5 py-1.5 text-xs font-medium transition-colors ${
               sanctionType === t
                 ? "bg-destructive text-destructive-foreground"
-                : "border border-border bg-card text-muted-foreground hover:bg-muted"
+                : "border border-line bg-surface text-muted-foreground hover:bg-field"
             }`}
           >
             {t === "WARNING" ? "경고" : t === "SUSPENSION" ? "정지" : "영구 차단"}
@@ -86,7 +86,7 @@ function SanctionForm({ userId, onClose, onCreated }: SanctionFormProps) {
         placeholder="제재 사유 입력"
         value={reason}
         onChange={(e) => setReason(e.target.value)}
-        className="w-full rounded-field border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+        className="w-full rounded-field border-[1.5px] border-line bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
       />
       {createSanction.isError && (
         <p className="text-xs text-destructive">
@@ -103,7 +103,7 @@ function SanctionForm({ userId, onClose, onCreated }: SanctionFormProps) {
         </button>
         <button
           onClick={onClose}
-          className="rounded-field border border-border px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-muted"
+          className="rounded-field border border-line px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-field"
         >
           취소
         </button>
@@ -157,10 +157,10 @@ function UserDetailDrawer({ user, onClose }: UserDetailDrawerProps) {
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-foreground/30" aria-hidden="true" onClick={onClose} />
-      <div className="relative z-10 flex w-full max-w-sm flex-col bg-card card-shadow-hover">
-        <div className="flex items-center justify-between border-b border-border p-4">
+      <div className="relative z-10 flex w-full max-w-sm flex-col bg-surface card-shadow-hover">
+        <div className="flex items-center justify-between border-b border-line p-4">
           <h2 className="font-semibold text-foreground">사용자 상세</h2>
-          <button onClick={onClose} className="rounded-field p-1.5 text-muted-foreground hover:bg-muted">
+          <button onClick={onClose} className="rounded-field p-1.5 text-muted-foreground hover:bg-field">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
             </svg>
@@ -234,7 +234,7 @@ function UserDetailDrawer({ user, onClose }: UserDetailDrawerProps) {
                 {sanctions.map((s) => (
                   <li
                     key={s.id}
-                    className="space-y-2 rounded-thumb border border-border bg-card p-3 card-shadow"
+                    className="space-y-2 rounded-card border border-line-2 bg-surface p-3"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${SANCTION_COLORS[s.sanctionType]}`}>
@@ -259,7 +259,7 @@ function UserDetailDrawer({ user, onClose }: UserDetailDrawerProps) {
                       <button
                         onClick={() => handleRelease(s)}
                         disabled={deleteSanction.isPending}
-                        className="w-full rounded-field border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground disabled:opacity-50 hover:bg-muted"
+                        className="w-full rounded-field border border-line px-3 py-1.5 text-xs font-medium text-muted-foreground disabled:opacity-50 hover:bg-field"
                       >
                         {deleteSanction.isPending ? "처리 중..." : "제재 해제"}
                       </button>
@@ -287,7 +287,7 @@ function UserDetailDrawer({ user, onClose }: UserDetailDrawerProps) {
             ) : (
               <ul className="space-y-2">
                 {notes.map((n) => (
-                  <li key={n.id} className="rounded-thumb border border-border bg-card p-3">
+                  <li key={n.id} className="rounded-card border border-line-2 bg-surface p-3">
                     <p className="text-sm text-foreground">{n.content}</p>
                     <p className="mt-1 text-xs text-muted-foreground tabular">
                       관리자 #{n.adminId} · {formatDate(n.createdAt)}
@@ -301,7 +301,7 @@ function UserDetailDrawer({ user, onClose }: UserDetailDrawerProps) {
               placeholder="메모 입력"
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              className="w-full rounded-field border border-border bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full rounded-field border-[1.5px] border-line bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
             {createNote.isError && (
               <p className="text-xs text-destructive">
@@ -311,7 +311,7 @@ function UserDetailDrawer({ user, onClose }: UserDetailDrawerProps) {
             <button
               onClick={handleAddNote}
               disabled={!note.trim() || createNote.isPending}
-              className="w-full rounded-btn bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50 active:bg-primary-dark"
+              className="w-full rounded-btn bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50 active:bg-primary-dark min-h-[48px] transition-colors hover:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {createNote.isPending ? "저장 중..." : "메모 추가"}
             </button>
@@ -348,7 +348,7 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-xl font-bold text-foreground">사용자 관리</h1>
+        <h1 className="text-[22px] font-extrabold tracking-[-0.6px] text-foreground">사용자 관리</h1>
         <p className="mt-1 text-sm text-muted-foreground">전체 사용자를 조회하고 관리합니다.</p>
       </div>
 
@@ -369,7 +369,7 @@ export default function AdminUsersPage() {
             placeholder="이름, 이메일 검색"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setSkip(0); }}
-            className="w-full rounded-field border border-border bg-card py-2 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-field border-[1.5px] border-line bg-surface py-2 pl-9 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
         <div className="flex gap-2">
@@ -380,7 +380,7 @@ export default function AdminUsersPage() {
               className={`rounded-field px-3 py-2 text-sm font-medium transition-colors ${
                 filter === f
                   ? "bg-accent text-accent-foreground"
-                  : "border border-border bg-card text-muted-foreground hover:bg-muted"
+                  : "border border-line bg-surface text-muted-foreground hover:bg-field"
               }`}
             >
               {f === "all" ? "전체" : f === "active" ? "활성" : "비활성"}
@@ -390,11 +390,11 @@ export default function AdminUsersPage() {
       </div>
 
       {/* 테이블 */}
-      <div className="overflow-hidden rounded-thumb border border-border bg-card card-shadow">
+      <div className="overflow-hidden rounded-card border border-line-2 bg-surface">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-muted/50">
+              <tr className="border-b border-line bg-field">
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">이름</th>
                 <th className="hidden px-4 py-3 text-left text-xs font-medium text-muted-foreground sm:table-cell">이메일</th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">역할</th>
@@ -403,7 +403,7 @@ export default function AdminUsersPage() {
                 <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground">액션</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-line-2">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
@@ -423,7 +423,7 @@ export default function AdminUsersPage() {
                 paginated.map((user) => (
                   <tr
                     key={user.id}
-                    className="cursor-pointer hover:bg-muted/30"
+                    className="cursor-pointer hover:bg-field"
                     onClick={() => setSelectedUser(user)}
                   >
                     <td className="px-4 py-3">
@@ -457,7 +457,7 @@ export default function AdminUsersPage() {
                         type="button"
                         aria-label={`${user.name ?? user.email ?? "사용자"} 상세`}
                         onClick={(e) => { e.stopPropagation(); setSelectedUser(user); }}
-                        className="rounded-field border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        className="rounded-field border border-line px-2.5 py-1 text-xs font-medium text-muted-foreground hover:bg-field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       >
                         상세
                       </button>
@@ -471,7 +471,7 @@ export default function AdminUsersPage() {
 
         {/* 페이지네이션 */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-border px-4 py-3">
+          <div className="flex items-center justify-between border-t border-line px-4 py-3">
             <p className="text-xs text-muted-foreground">
               총 {total}명 · {page}/{totalPages} 페이지
             </p>
@@ -479,14 +479,14 @@ export default function AdminUsersPage() {
               <button
                 disabled={skip === 0}
                 onClick={() => setSkip((s) => Math.max(0, s - perPage))}
-                className="rounded-field border border-border px-2.5 py-1 text-xs text-muted-foreground disabled:opacity-40 hover:bg-muted"
+                className="rounded-field border border-line px-2.5 py-1 text-xs text-muted-foreground disabled:opacity-40 hover:bg-field"
               >
                 이전
               </button>
               <button
                 disabled={page >= totalPages}
                 onClick={() => setSkip((s) => s + perPage)}
-                className="rounded-field border border-border px-2.5 py-1 text-xs text-muted-foreground disabled:opacity-40 hover:bg-muted"
+                className="rounded-field border border-line px-2.5 py-1 text-xs text-muted-foreground disabled:opacity-40 hover:bg-field"
               >
                 다음
               </button>

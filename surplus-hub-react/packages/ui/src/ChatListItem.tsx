@@ -9,12 +9,12 @@ interface ChatListItemProps {
 export const ChatListItem = ({ room, onPress }: ChatListItemProps) => {
   return (
     <TouchableOpacity
-      className="flex-row items-center p-4 bg-card border-b border-border-secondary active:bg-background"
+      className="flex-row items-center p-4 bg-surface border-b border-line-2 active:bg-field"
       onPress={onPress}
     >
       <Image
         source={{ uri: room.otherUser.avatarUrl }}
-        className="w-12 h-12 rounded-full bg-muted mr-3"
+        className="w-12 h-12 rounded-full bg-accent mr-3"
       />
       <View className="flex-1">
         <View className="flex-row justify-between mb-1">

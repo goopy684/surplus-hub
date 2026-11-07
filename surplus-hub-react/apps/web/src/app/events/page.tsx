@@ -19,9 +19,9 @@ export default function EventsPage() {
   const events = data?.data ?? [];
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="border-b border-border bg-card px-4 py-6">
-        <h1 className="mb-2 text-xl font-bold text-foreground md:hidden">이벤트 & 프로모션</h1>
+    <div className="min-h-screen bg-paper">
+      <div className="border-b border-line-2 bg-surface px-4 py-6">
+        <h1 className="text-[22px] font-extrabold tracking-[-0.6px] mb-2 text-foreground md:hidden">이벤트 & 프로모션</h1>
         <p className="text-sm text-muted-foreground">
           진행 중인 이벤트와 혜택을 확인하세요.
         </p>
@@ -46,7 +46,7 @@ export default function EventsPage() {
               <Link
                 key={event.id}
                 href={`/events/${event.id}`}
-                className="block cursor-pointer overflow-hidden rounded-thumb border border-border bg-card card-shadow transition-shadow hover:card-shadow-hover active:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="block cursor-pointer overflow-hidden rounded-card border border-line-2 bg-surface transition-shadow hover:bg-field active:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 {event.imageUrl ? (
                   <div className="h-40 w-full overflow-hidden bg-muted">
@@ -81,7 +81,7 @@ export default function EventsPage() {
                       className={`inline-block rounded-chip border px-2 py-0.5 text-xs font-semibold ${
                         ongoing
                           ? "border-olive-bd bg-olive-bg text-olive-tx"
-                          : "border-border bg-card text-muted-foreground"
+                          : "border-line bg-surface text-muted-foreground"
                       }`}
                     >
                       {ongoing ? "진행중" : event.isActive ? "예정" : "종료"}
@@ -114,7 +114,7 @@ export default function EventsPage() {
           })}
 
           {events.length === 0 ? (
-            <div className="rounded-thumb border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground">
+            <div className="rounded-card border border-dashed border-line-2 bg-surface p-8 text-center text-sm text-muted-foreground">
               진행 중인 이벤트가 없습니다.
             </div>
           ) : null}

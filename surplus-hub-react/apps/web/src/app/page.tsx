@@ -4,63 +4,14 @@ import { MaterialItem, useMaterials } from "@repo/core";
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
-// 모노라인 아이콘 (viewBox 0 0 24 24, stroke=currentColor, stroke-width 1.8, fill=none)
-const iconProps = {
-  xmlns: "http://www.w3.org/2000/svg",
-  fill: "none",
-  viewBox: "0 0 24 24",
-  strokeWidth: 1.8,
-  stroke: "currentColor",
-  strokeLinecap: "round" as const,
-  strokeLinejoin: "round" as const,
-  "aria-hidden": true,
-};
-
-// 조명 — 전구
-const IconLighting = ({ className }: { className?: string }) => (
-  <svg {...iconProps} className={className}>
-    <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.5.4.8.9.9 1.5l.2 1.2h5l.2-1.2c.1-.6.4-1.1.9-1.5A6 6 0 0 0 12 3Z" />
-  </svg>
-);
-// 문/창호 — 문
-const IconDoor = ({ className }: { className?: string }) => (
-  <svg {...iconProps} className={className}>
-    <path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17M3 21h18M14.5 12v.5" />
-  </svg>
-);
-// 건축자재 — 벽돌
-const IconBricks = ({ className }: { className?: string }) => (
-  <svg {...iconProps} className={className}>
-    <path d="M3 8.5h18M3 15.5h18M3 5.5h18v13H3zM9 5.5v3M15 5.5v3M6 8.5v7M12 8.5v7M18 8.5v7M9 15.5v3M15 15.5v3" />
-  </svg>
-);
-// 전기 — 번개
-const IconBolt = ({ className }: { className?: string }) => (
-  <svg {...iconProps} className={className}>
-    <path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" />
-  </svg>
-);
-// 설비 — 렌치
-const IconWrench = ({ className }: { className?: string }) => (
-  <svg {...iconProps} className={className}>
-    <path d="M14.7 6.3a4 4 0 0 0-5.4 5.1L4 16.7a1.5 1.5 0 0 0 2.1 2.1l5.3-5.3a4 4 0 0 0 5.1-5.4l-2.4 2.4-2.1-.3-.3-2.1 2.9-1.8Z" />
-  </svg>
-);
-// 기타 — 박스
-const IconBox = ({ className }: { className?: string }) => (
-  <svg {...iconProps} className={className}>
-    <path d="M21 8 12 3 3 8v8l9 5 9-5V8ZM3 8l9 5m0 0 9-5m-9 5v8" />
-  </svg>
-);
-
 // 업종별 카테고리 — 백엔드 seed_categories와 동기화 (조명/문/건자재/전기/설비/기타)
 const CATEGORIES = [
-  { icon: IconLighting, label: "조명" },
-  { icon: IconDoor, label: "문/창호" },
-  { icon: IconBricks, label: "건축자재" },
-  { icon: IconBolt, label: "전기" },
-  { icon: IconWrench, label: "설비" },
-  { icon: IconBox, label: "기타" },
+  { label: "조명" },
+  { label: "문/창호" },
+  { label: "건축자재" },
+  { label: "전기" },
+  { label: "설비" },
+  { label: "기타" },
 ] as const;
 
 const REGIONS = [
@@ -94,9 +45,9 @@ const formatLocation = (location?: string): string => {
 
 // 카테고리 칩 공통 스타일 (모바일 가로 스크롤 · 데스크톱 wrap 공유)
 const CHIP_BASE =
-  "flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border px-3.5 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1";
-const CHIP_ACTIVE = "border-primary bg-accent font-semibold text-accent-foreground";
-const CHIP_INACTIVE = "border-border bg-card font-medium text-foreground hover:bg-muted active:bg-muted";
+  "flex h-[38px] shrink-0 items-center whitespace-nowrap rounded-chip border px-4 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1";
+const CHIP_ACTIVE = "border-ink bg-ink font-bold text-surface";
+const CHIP_INACTIVE = "border-line bg-surface font-medium text-foreground hover:bg-field active:bg-field";
 
 
 export default function Home() {
@@ -170,15 +121,12 @@ export default function Home() {
 
   if (showInitialLoading) {
     return (
-      <div className="mx-auto max-w-5xl px-5 py-4" aria-busy="true">
-        {[0, 1, 2, 3].map((row) => (
-          <div key={row} className="flex gap-3.5 py-4 animate-pulse">
-            <div className="h-[100px] w-[100px] rounded-thumb bg-muted" />
-            <div className="flex flex-1 flex-col gap-2">
-              <div className="h-4 w-3/4 rounded bg-muted" />
-              <div className="h-3 w-1/3 rounded bg-muted" />
-              <div className="h-5 w-24 rounded bg-muted" />
-            </div>
+      <div className="mx-auto grid max-w-5xl grid-cols-2 gap-x-3 gap-y-5 px-5 py-4 md:grid-cols-3" aria-busy="true">
+        {[0, 1, 2, 3].map((cell) => (
+          <div key={cell} className="flex flex-col gap-2 animate-pulse">
+            <div className="aspect-square w-full rounded-thumb bg-field" />
+            <div className="h-4 w-3/4 rounded bg-field" />
+            <div className="h-5 w-1/2 rounded bg-field" />
           </div>
         ))}
       </div>
@@ -190,20 +138,21 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* MOBILE MASTHEAD — 지역 선택 · 알림 · 타이틀 (모바일 전용) */}
-      <div className="bg-card border-b border-border px-5 pt-3 pb-3.5 md:hidden">
-        <div className="flex items-center justify-between mb-3">
-          <div className="relative flex items-center gap-1">
+    <div className="min-h-screen bg-paper">
+      {/* MOBILE MASTHEAD — 위치 · 알림 · 검색 필 (모바일 전용) */}
+      <div className="bg-paper px-5 pt-4 pb-1 md:hidden">
+        <h1 className="sr-only">자투리</h1>
+        <div className="flex items-center justify-between">
+          <div className="relative flex items-center">
             <select
               aria-label="지역 선택"
               value={selectedRegion}
               onChange={(e) => setSelectedRegion(e.target.value)}
-              className="appearance-none cursor-pointer bg-transparent pr-5 text-[13px] text-muted-foreground outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+              className="h-11 appearance-none cursor-pointer bg-transparent pr-6 text-[20px] font-extrabold tracking-[-0.6px] text-foreground outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
             >
               {REGIONS.map((region) => (
                 <option key={region} value={region}>
-                  {region}
+                  {region === "전체" ? "전체 지역" : region}
                 </option>
               ))}
             </select>
@@ -211,38 +160,34 @@ export default function Home() {
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
-              strokeWidth={2}
+              strokeWidth={2.2}
               stroke="currentColor"
               aria-hidden="true"
-              className="pointer-events-none absolute right-0 h-4 w-4 text-muted-foreground"
+              className="pointer-events-none absolute right-0 h-[18px] w-[18px] text-foreground"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="m6 9 6 6 6-6" />
             </svg>
           </div>
           <Link
             href="/notifications"
             aria-label="알림"
-            className="flex h-11 w-11 -mr-2 items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-field text-foreground transition-colors active:bg-line-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              aria-hidden="true"
-              className="h-6 w-6 text-foreground"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0"
-              />
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" aria-hidden="true" className="h-5 w-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9M10 20a2 2 0 0 0 4 0" />
             </svg>
           </Link>
         </div>
-        <h1 className="text-[21px] font-extrabold tracking-[-0.5px] text-foreground">자투리</h1>
-        <p className="mt-0.5 text-[13px] text-muted-foreground">내 주변 잔여 자재를 찾아보세요</p>
+        <Link
+          href="/search"
+          className="mt-3 flex h-12 items-center gap-2.5 rounded-chip bg-field px-4 text-[14.5px] text-muted-foreground transition-colors active:bg-line-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true" className="h-[18px] w-[18px]">
+            <circle cx="11" cy="11" r="7" />
+            <path strokeLinecap="round" d="m20 20-3.5-3.5" />
+          </svg>
+          <span>내 주변 잔여 자재를 찾아보세요</span>
+        </Link>
       </div>
 
       {/* SHELL — 데스크톱 210px 사이드레일 + 피드 그리드 */}
@@ -273,7 +218,7 @@ export default function Home() {
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
               placeholder="시멘트, 파이프, 목재 검색..."
-              className="h-[50px] w-full rounded-field border border-border bg-card pl-11 pr-24 text-[15px] text-foreground placeholder:text-ink-3 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="h-[50px] w-full rounded-chip border border-transparent bg-field pl-11 pr-24 text-[15px] text-foreground placeholder:text-ink-3 focus:border-primary focus:bg-surface focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -292,7 +237,7 @@ export default function Home() {
             </svg>
             <button
               type="submit"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground transition-colors active:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-chip bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition-colors active:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
             >
               검색
             </button>
@@ -311,7 +256,6 @@ export default function Home() {
               전체
             </button>
             {CATEGORIES.map((category) => {
-              const Icon = category.icon;
               const isActive = selectedCategory === category.label;
               return (
                 <button
@@ -320,15 +264,14 @@ export default function Home() {
                   onClick={() => setSelectedCategory(category.label)}
                   className={`${CHIP_BASE} ${isActive ? CHIP_ACTIVE : CHIP_INACTIVE}`}
                 >
-                  <Icon className="h-[18px] w-[18px]" />
-                  <span>{category.label}</span>
+                  {category.label}
                 </button>
               );
             })}
           </nav>
 
           {/* LIST HEADER — 카운트 · 정렬 */}
-          <div className="flex items-baseline justify-between border-b-2 border-foreground px-5 pb-2 md:px-0">
+          <div className="flex items-center justify-between px-5 pb-2 md:px-0">
             {typeof totalCount === "number" ? (
               <p className="text-[13px] font-semibold text-muted-foreground">
                 전체 <span className="tabular font-bold text-foreground">{totalCount.toLocaleString()}</span>건
@@ -340,7 +283,7 @@ export default function Home() {
               aria-label="정렬"
               value={sortOption}
               onChange={(e) => setSortOption(e.target.value as "latest" | "price_asc" | "price_desc")}
-              className="cursor-pointer bg-transparent py-1 text-[13px] font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="min-h-[44px] cursor-pointer bg-transparent text-[13px] font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <option value="latest">최신순</option>
               <option value="price_asc">가격 낮은순</option>
@@ -348,106 +291,95 @@ export default function Home() {
             </select>
           </div>
 
-          {/* MATERIAL LIST — 에디토리얼 분류 행 */}
-          <div className="flex flex-col">
+          {/* MATERIAL GRID — 사진 중심 카탈로그 카드 */}
+          <div className="grid grid-cols-2 gap-x-3 gap-y-6 px-5 pt-2 md:grid-cols-3 md:gap-x-5 md:px-0">
             {materials.map((item) => {
               const isSold = item.status === "SOLD";
               const grade = item.conditionGrade;
               const hasGrade = grade === "상" || grade === "중" || grade === "하";
-              const hasRow1 = hasGrade || item.status === "RESERVED" || Boolean(item.createdAt);
-              const meta = [item.category, formatLocation(item.location)].filter(Boolean).join(" · ");
+              const meta = [formatLocation(item.location), item.createdAt ? new Date(item.createdAt).toLocaleDateString() : null]
+                .filter(Boolean)
+                .join(" · ");
               return (
                 <Link
                   href={`/material/${item.id}`}
                   key={item.id}
-                  className="group flex gap-3.5 bg-card px-5 transition-colors hover:bg-muted/40 active:bg-muted/60 md:bg-transparent md:px-0 md:hover:bg-card md:active:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+                  className="group flex min-w-0 flex-col gap-2 rounded-thumb focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 >
                   {/* Thumbnail */}
-                  <div className="relative my-4 h-[100px] w-[100px] shrink-0 overflow-hidden rounded-thumb border border-border-secondary bg-muted">
+                  <div className="relative aspect-square w-full overflow-hidden rounded-thumb bg-field">
                     {item.imageUrl ? (
                       <img src={item.imageUrl} alt={item.title} className="h-full w-full object-cover" />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-muted-foreground/60">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true" className="h-10 w-10">
+                      <div className="flex h-full w-full items-center justify-center text-ink-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true" className="h-9 w-9">
                           <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
                         </svg>
                       </div>
                     )}
-                    {isSold && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-foreground/70">
-                        <span className="text-xs font-bold text-surface">판매완료</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Info column — border-b = 썸네일을 지나 들여쓴 구분선 */}
-                  <div className="flex min-w-0 flex-1 flex-col border-b border-border-secondary py-4">
-                    {hasRow1 && (
-                      <div className="flex items-center gap-1.5">
+                    {(item.status === "RESERVED" || hasGrade) && !isSold && (
+                      <div className="absolute left-2 top-2 flex gap-1">
+                        {item.status === "RESERVED" && (
+                          <span className="rounded-chip bg-surface px-2.5 py-1 text-[11.5px] font-bold text-foreground">예약중</span>
+                        )}
                         {hasGrade && (
                           <span
                             className={
-                              "rounded-chip border px-2 py-0.5 text-xs font-semibold " +
+                              "rounded-chip border px-2.5 py-0.5 text-[11.5px] font-bold " +
                               (grade === "상"
-                                ? "bg-olive-bg text-olive-tx border-olive-bd"
-                                : "bg-card text-muted-foreground border-border")
+                                ? "border-olive-bd bg-olive-bg text-olive-tx"
+                                : "border-line bg-surface text-muted-foreground")
                             }
                           >
                             {grade}
                           </span>
                         )}
-                        {item.status === "RESERVED" && (
-                          <span className="rounded-chip bg-secondary px-2 py-0.5 text-xs font-semibold text-muted-foreground">
-                            예약중
-                          </span>
-                        )}
-                        {item.createdAt && (
-                          <span className="ml-auto text-xs text-muted-foreground tabular">
-                            {new Date(item.createdAt).toLocaleDateString()}
-                          </span>
-                        )}
                       </div>
                     )}
+                    {isSold && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-ink/60">
+                        <span className="text-xs font-bold text-surface">판매완료</span>
+                      </div>
+                    )}
+                  </div>
 
+                  {/* Info */}
+                  <div className="flex min-w-0 flex-col gap-0.5">
                     <h3
                       className={
-                        "line-clamp-2 text-[17px] font-semibold leading-[1.32] tracking-[-0.3px] " +
+                        "line-clamp-2 text-[14px] font-semibold leading-[1.35] tracking-[-0.2px] " +
                         (isSold ? "text-muted-foreground" : "text-foreground")
                       }
                     >
                       {item.title}
                     </h3>
-
-                    {item.quantity && item.quantity > 0 ? (
-                      <p className="mt-1 text-[13.5px] text-muted-foreground">
-                        수량 {item.quantity}
-                        {item.quantityUnit ? ` ${item.quantityUnit}` : ""}
+                    {item.price > 0 ? (
+                      <p className={isSold ? "text-muted-foreground" : "text-foreground"}>
+                        <span className="num text-[17px] font-bold">{item.price.toLocaleString()}</span>
+                        <span className="text-[13px] font-semibold">원</span>
                       </p>
-                    ) : null}
-
-                    <p className="mt-1 truncate text-[12.5px] text-muted-foreground">{meta}</p>
-
-                    <div className="mt-auto flex items-baseline justify-between pt-1.5">
-                      {item.price > 0 ? (
-                        <p className={isSold ? "text-muted-foreground" : "text-foreground"}>
-                          <span className="tabular text-xl font-bold tracking-[-0.5px]">{item.price.toLocaleString()}</span>
-                          <span className="ml-0.5 text-[13px] font-medium text-muted-foreground">원</span>
-                        </p>
-                      ) : (
-                        <p className="text-base font-bold text-foreground">무료나눔</p>
-                      )}
-                      <span className="flex min-w-0 items-center gap-2 text-[12.5px] text-muted-foreground">
-                        {item.sellerName ? <span className="truncate max-w-[120px]">{item.sellerName}</span> : null}
+                    ) : (
+                      <p className="text-base font-extrabold text-primary">무료나눔</p>
+                    )}
+                    <p className="truncate text-xs text-muted-foreground">{meta}</p>
+                    {(item.likesCount ?? 0) > 0 || (item.quantity && item.quantity > 0) ? (
+                      <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {item.quantity && item.quantity > 0 ? (
+                          <span>
+                            수량 {item.quantity}
+                            {item.quantityUnit ? ` ${item.quantityUnit}` : ""}
+                          </span>
+                        ) : null}
                         {(item.likesCount ?? 0) > 0 ? (
-                          <>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true" className="h-[13px] w-[13px]">
+                          <span className="ml-auto flex items-center gap-0.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" aria-hidden="true" className="h-[13px] w-[13px]">
                               <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12Z" />
                             </svg>
                             <span className="tabular">{item.likesCount}</span>
-                          </>
+                          </span>
                         ) : null}
-                      </span>
-                    </div>
+                      </p>
+                    ) : null}
                   </div>
                 </Link>
               );
@@ -455,7 +387,7 @@ export default function Home() {
           </div>
 
           {!showInitialLoading && materials.length === 0 ? (
-            <div className="mx-5 mt-10 flex flex-col items-center gap-4 border-t border-border px-4 pt-10 pb-4 text-center md:mx-0">
+            <div className="mx-5 mt-10 flex flex-col items-center gap-4 px-4 pt-10 pb-4 text-center md:mx-0">
               <p className="text-lg font-medium text-foreground">아직 등록된 자재가 없어요</p>
               <p className="text-sm text-muted-foreground">첫 자재를 등록해보세요!</p>
               <Link
@@ -473,7 +405,7 @@ export default function Home() {
                 type="button"
                 onClick={handleLoadMore}
                 disabled={isFetching}
-                className="min-h-[48px] rounded-btn border border-border bg-card px-8 text-sm font-semibold text-foreground transition-colors hover:bg-muted active:bg-muted disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+                className="min-h-[48px] rounded-chip border border-line bg-surface px-8 text-sm font-semibold text-foreground transition-colors hover:bg-muted active:bg-muted disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
               >
                 {isFetching ? "불러오는 중..." : "더 보기"}
               </button>
@@ -482,10 +414,10 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 등록하기 FAB — 1a 시안 (모바일) */}
+      {/* 등록하기 FAB (모바일) */}
       <Link
         href="/register"
-        className="bg-primary shadow-fab fixed bottom-[82px] right-4 z-40 flex h-12 items-center gap-1.5 rounded-full px-4 text-sm font-bold text-primary-foreground transition-colors active:bg-primary-dark md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
+        className="bg-primary shadow-fab fixed bottom-[88px] right-5 z-40 flex h-[52px] items-center gap-1.5 rounded-full px-5 text-sm font-bold text-primary-foreground transition-colors active:bg-primary-dark md:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1"
       >
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" aria-hidden="true" className="h-[19px] w-[19px]">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />

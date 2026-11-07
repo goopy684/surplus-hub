@@ -1,5 +1,13 @@
 import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from "@tanstack/react-query";
-import { fetchCurrentUser, fetchUserStats, updateProfile, UserUpdateData } from "../api";
+import {
+  fetchCurrentUser,
+  fetchUserStats,
+  updateProfile,
+  UserUpdateData,
+  verifyBusiness,
+  BusinessVerifyInput,
+  BusinessVerifyResult,
+} from "../api";
 import { hasAuthToken } from "../api/client";
 import { CurrentUser, UserStats } from "../types";
 
@@ -26,6 +34,17 @@ export const useUpdateProfile = (): UseMutationResult<CurrentUser, Error, UserUp
     mutationFn: updateProfile,
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+    },
+  });
+};
+
+export const useVerifyBusiness = (): UseMutationResult<BusinessVerifyResult, Error, BusinessVerifyInput> => {
+  const queryClient = useQueryClient();
+  return useMutation<BusinessVerifyResult, Error, BusinessVerifyInput>({
+    mutationFn: verifyBusiness,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+      void queryClient.invalidateQueries({ queryKey: ["materials"] });
     },
   });
 };

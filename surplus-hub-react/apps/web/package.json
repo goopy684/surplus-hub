@@ -11,6 +11,7 @@
     "check-types": "tsc --noEmit",
     "test": "jest",
     "e2e": "playwright test",
+    "e2e:mobile-layout": "playwright test e2e/mobile-layout.spec.ts",
     "e2e:headed": "playwright test --headed"
   },
   "dependencies": {

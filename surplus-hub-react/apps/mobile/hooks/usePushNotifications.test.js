@@ -40,8 +40,7 @@ require("ts-node").register({
   skipProject: true,
   compilerOptions: {
     module: "commonjs",
-    moduleResolution: "node10",
-    ignoreDeprecations: "6.0",
+    moduleResolution: "node",
     target: "es2020",
     esModuleInterop: true,
   },
@@ -106,9 +105,9 @@ assert.equal(notificationRoute({ referenceType: "chat", referenceId: "5" }), "/c
 assert.equal(notificationRoute({ referenceType: "material", referenceId: 7 }), "/material/7");
 assert.equal(notificationRoute({ referenceType: " MATERIAL ", referenceId: "7" }), "/material/7");
 
-// 모바일에 커뮤니티 게시글 상세 라우트가 없다 — 죽은 라우트로 밀지 않고 null.
-assert.equal(notificationRoute({ referenceType: "post", referenceId: "9" }), null);
-assert.equal(notificationRoute({ referenceType: "community", referenceId: "9" }), null);
+// 모바일 커뮤니티 게시글 상세 라우트(/community/[id]) 연결 완료 (P3-2).
+assert.equal(notificationRoute({ referenceType: "post", referenceId: "9" }), "/community/9");
+assert.equal(notificationRoute({ referenceType: "community", referenceId: "9" }), "/community/9");
 
 // 리졸버가 거르는 값들.
 assert.equal(notificationRoute({ referenceType: "chat_room" }), null);

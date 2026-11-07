@@ -137,3 +137,31 @@ class TestSaleRecordedOnSold:
         resp = client.put(f"{API}/materials/{material_id}", json=_material_payload(status="SOLD"), headers=auth_headers)
         assert resp.status_code == 200
         assert _sales(db, material_id) == []
+
+    def test_transaction_has_reviewed_sync(
+        self, client: TestClient, db, auth_headers, auth_headers2, test_user, test_user2
+    ):
+        material_id = _create_material(client, auth_headers)
+        client.post(
+            f"{API}/chats/rooms", json={"materialId": material_id, "sellerId": test_user.id}, headers=auth_headers2
+        )
+        assert client.patch(
+            f"{API}/materials/{material_id}/status",
+            json={"status": "SOLD", "buyerId": test_user2.id},
+            headers=auth_headers,
+        ).status_code == 200
+
+        tx_list = client.get(f"{API}/transactions/?role=buyer", headers=auth_headers2).json()["data"]
+        target_tx = next(t for t in tx_list if t["materialId"] == material_id)
+        assert target_tx["hasReviewed"] is False
+
+        rev_resp = client.post(
+            f"{API}/reviews/",
+            json={"targetUserId": test_user.id, "materialId": material_id, "rating": 5, "content": "빠른 상차 감사합니다."},
+            headers=auth_headers2,
+        )
+        assert rev_resp.status_code == 200, rev_resp.text
+
+        tx_list_after = client.get(f"{API}/transactions/?role=buyer", headers=auth_headers2).json()["data"]
+        target_tx_after = next(t for t in tx_list_after if t["materialId"] == material_id)
+        assert target_tx_after["hasReviewed"] is True

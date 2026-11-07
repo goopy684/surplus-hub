@@ -8,7 +8,7 @@ type LegalDocumentViewProps = {
 export function LegalDocumentView({ document }: LegalDocumentViewProps) {
   return (
     <ScrollView
-      className="flex-1 bg-background"
+      className="flex-1 bg-paper"
       contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
     >
       <Text className="text-2xl font-bold text-foreground">{document.title}</Text>

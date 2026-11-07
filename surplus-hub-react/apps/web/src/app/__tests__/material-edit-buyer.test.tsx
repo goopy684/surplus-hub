@@ -3,6 +3,7 @@ import MaterialEditPage from '../material/[id]/edit/page'
 import { useChatRooms, useCurrentUser, useMaterialDetail, useUpdateMaterial } from '@repo/core'
 
 jest.mock('@repo/core', () => ({
+  ...jest.requireActual('@repo/core'),
   useChatRooms: jest.fn(),
   useCurrentUser: jest.fn(),
   useMaterialDetail: jest.fn(),
