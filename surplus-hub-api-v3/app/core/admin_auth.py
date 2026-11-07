@@ -21,7 +21,7 @@ class AdminAuth(AuthenticationBackend):
                 return False
             if not verify_password(password, user.hashed_password):
                 return False
-            if not user.is_superuser:
+            if not user.is_superuser or not user.is_active:
                 return False
 
             request.session.update({"admin_user_id": str(user.id)})
@@ -37,7 +37,13 @@ class AdminAuth(AuthenticationBackend):
         admin_user_id = request.session.get("admin_user_id")
         if not admin_user_id:
             return False
-        return True
+        # Re-check each request so revoking superuser or banning ends an open session.
+        db = SessionLocal()
+        try:
+            user = db.query(User).filter(User.id == int(admin_user_id)).first()
+            return bool(user and user.is_superuser and user.is_active)
+        finally:
+            db.close()
 
 
 admin_auth = AdminAuth(secret_key=settings.SECRET_KEY)

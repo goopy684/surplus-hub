@@ -1,8 +1,9 @@
 from typing import Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.crud.crud_admin import crud_admin
 from app.crud.crud_moderation import crud_moderation
 from app.models.user import User
 from app.schemas.moderation import (
@@ -41,6 +42,7 @@ def list_reports(
 def update_report_status(
     report_id: int,
     data: ReportUpdateStatus,
+    request: Request,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin_user("MODERATOR")),
 ) -> Any:
@@ -55,8 +57,18 @@ def update_report_status(
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
 
+    old_status = report.status
     updated = crud_moderation.update_report_status(
         db, report_id=report_id, status=data.status, reviewed_by=current_user.id
+    )
+    crud_admin.create_audit_log(
+        db,
+        admin_id=current_user.id,
+        action="UPDATE_REPORT_STATUS",
+        target_type="report",
+        target_id=report_id,
+        details={"oldStatus": old_status, "newStatus": data.status},
+        ip_address=deps.get_client_ip(request),
     )
     return {"status": "success", "data": ReportResponse.model_validate(updated)}
 
@@ -76,6 +88,7 @@ def get_moderation_queue(
 @router.post("/bulk", summary="Bulk process reports (ADMIN+)")
 def bulk_process(
     data: BulkActionRequest,
+    request: Request,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin_user("ADMIN")),
 ) -> Any:
@@ -85,6 +98,14 @@ def bulk_process(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    crud_admin.create_audit_log(
+        db,
+        admin_id=current_user.id,
+        action="BULK_PROCESS_REPORTS",
+        target_type="report",
+        details={"ids": data.ids, "action": data.action, "processed": count},
+        ip_address=deps.get_client_ip(request),
+    )
     return {"status": "success", "data": {"processed": count}}
 
 
@@ -101,11 +122,26 @@ def list_banned_words(
 @router.post("/banned-words", summary="Add banned word (ADMIN+)", status_code=201)
 def create_banned_word(
     data: BannedWordCreate,
+    request: Request,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin_user("ADMIN")),
 ) -> Any:
-    word = crud_moderation.create_banned_word(
-        db, word=data.word, created_by=current_user.id
+    if not data.word.strip():
+        raise HTTPException(status_code=400, detail="word must not be blank")
+    try:
+        word = crud_moderation.create_banned_word(
+            db, word=data.word, created_by=current_user.id
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    crud_admin.create_audit_log(
+        db,
+        admin_id=current_user.id,
+        action="ADD_BANNED_WORD",
+        target_type="banned_word",
+        target_id=word.id,
+        details={"word": word.word},
+        ip_address=deps.get_client_ip(request),
     )
     return {"status": "success", "data": BannedWordResponse.model_validate(word)}
 
@@ -113,10 +149,20 @@ def create_banned_word(
 @router.delete("/banned-words/{word_id}", summary="Delete banned word (ADMIN+)")
 def delete_banned_word(
     word_id: int,
+    request: Request,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin_user("ADMIN")),
 ) -> Any:
     word = crud_moderation.delete_banned_word(db, word_id=word_id)
     if not word:
         raise HTTPException(status_code=404, detail="Banned word not found")
+    crud_admin.create_audit_log(
+        db,
+        admin_id=current_user.id,
+        action="REMOVE_BANNED_WORD",
+        target_type="banned_word",
+        target_id=word_id,
+        details={"word": word.word},
+        ip_address=deps.get_client_ip(request),
+    )
     return {"status": "success", "data": BannedWordResponse.model_validate(word)}
