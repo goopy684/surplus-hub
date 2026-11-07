@@ -10,17 +10,31 @@
 // per-profile 설정 수단은 eas.json의 env뿐이라 그걸 그대로 쓴다 (preview·production만 production).
 // development 프로파일과 로컬 expo run:ios는 값을 주지 않아 기본 'development'로 남는다 —
 // 개발용 프로비저닝 프로파일은 aps-environment가 development라 여기서 production을 박으면 서명이 깨진다.
-module.exports = ({ config }) => ({
-  ...config,
-  plugins: config.plugins.map((plugin) =>
-    Array.isArray(plugin) && plugin[0] === "expo-notifications"
-      ? [
-          "expo-notifications",
-          {
-            ...plugin[1],
-            mode: process.env.APS_ENVIRONMENT === "production" ? "production" : "development",
-          },
-        ]
-      : plugin
-  ),
-});
+const fs = require("fs");
+const path = require("path");
+
+module.exports = ({ config }) => {
+  const localGoogleServices = path.resolve(__dirname, "google-services.json");
+  const googleServicesFile =
+    process.env.GOOGLE_SERVICES_JSON ||
+    (fs.existsSync(localGoogleServices) ? "./google-services.json" : undefined);
+
+  return {
+    ...config,
+    android: {
+      ...config.android,
+      ...(googleServicesFile ? { googleServicesFile } : {}),
+    },
+    plugins: config.plugins.map((plugin) =>
+      Array.isArray(plugin) && plugin[0] === "expo-notifications"
+        ? [
+            "expo-notifications",
+            {
+              ...plugin[1],
+              mode: process.env.APS_ENVIRONMENT === "production" ? "production" : "development",
+            },
+          ]
+        : plugin
+    ),
+  };
+};

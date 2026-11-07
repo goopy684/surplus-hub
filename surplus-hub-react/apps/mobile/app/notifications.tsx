@@ -70,7 +70,7 @@ export default function NotificationsScreen() {
 
       {isLoading ? (
         <View className="mt-8 items-center">
-          <ActivityIndicator size="large" color="#ed701d" />
+          <ActivityIndicator size="large" color="#1E3FCC" />
         </View>
       ) : null}
 

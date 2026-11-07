@@ -87,6 +87,27 @@ logger = logging.getLogger(__name__)
 async def startup():
     await database.connect()
 
+    # Clean up legacy test/dummy material ("온라인 회의 참가자 목록") with 2.6MB base64 image
+    # and seed default B2B events if the events table is empty
+    try:
+        from sqlalchemy import text
+        from app.db.session import SessionLocal
+        from app.crud.crud_event import crud_event
+        db = SessionLocal()
+        try:
+            db.execute(
+                text(
+                    "UPDATE materials SET status = 'HIDDEN' "
+                    "WHERE title = '온라인 회의 참가자 목록' AND status = 'ACTIVE'"
+                )
+            )
+            db.commit()
+            crud_event.seed_events(db)
+        finally:
+            db.close()
+    except Exception:
+        logger.warning("Startup DB maintenance/seeding skipped", exc_info=True)
+
     logger.info("AI provider: %s", settings.AI_PROVIDER)
 
     # Warm up embedding provider to avoid cold-start latency on first request

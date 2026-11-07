@@ -28,18 +28,21 @@ export const analyzeImage = async (
     category: readString(raw.category) || "기타",
     description: readString(raw.description) || "",
     condition: readString(raw.condition),
+    tags: Array.isArray(raw.tags) ? raw.tags.filter((t): t is string => typeof t === "string") : [],
   };
 };
 
 export const generateDescription = async (
   title: string,
   category: string,
-  imageUrl?: string
+  imageUrl?: string,
+  spec: { tags?: string[]; condition?: string; quantity?: number; quantityUnit?: string } = {}
 ): Promise<AiDescription> => {
   const response = await apiClient.post("/api/v1/ai/generate-description", {
     title,
     category,
     imageUrl,
+    ...spec,
   });
   const raw = readRecord(unwrapApiData<unknown>(response.data));
   return {
@@ -134,9 +137,11 @@ const mapSearchResult = (raw: unknown): AiSearchResult => {
     description: readString(item.description),
     price: readNumber(item.price),
     category: readString(item.category),
-    location: readString(item.location),
+    // 백엔드는 location을 {address, lat, lng} 객체로 준다
+    location: readString(item.location) ?? readString(readRecord(item.location).address),
     imageUrl: readString(item.thumbnailUrl ?? item.imageUrl ?? item.image_url),
     score: typeof item.score === "number" ? item.score : undefined,
+    distanceKm: typeof item.distanceKm === "number" ? item.distanceKm : undefined,
   };
 };
 

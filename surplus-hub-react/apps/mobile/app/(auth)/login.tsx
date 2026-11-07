@@ -61,7 +61,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView className="flex-1 bg-paper">
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -71,7 +71,7 @@ export default function LoginScreen() {
           contentContainerStyle={{ flexGrow: 1, justifyContent: "center", padding: 24 }}
           keyboardShouldPersistTaps="handled"
         >
-          <Text className="text-3xl font-bold text-foreground">로그인</Text>
+          <Text className="text-[28px] font-extrabold tracking-[-0.8px] text-foreground">로그인</Text>
           <Text className="mt-2 text-sm text-muted-foreground">
             계정에 로그인하고 잉여 자재를 거래해보세요.
           </Text>
@@ -79,7 +79,7 @@ export default function LoginScreen() {
           <View className="mt-8">
             <Text className="mb-1 text-sm font-medium text-muted-foreground">이메일</Text>
             <TextInput
-              className="h-12 rounded-field border border-border bg-field p-3 text-base text-foreground"
+              className="h-[52px] rounded-field border-[1.5px] border-line bg-surface px-3.5 text-[15.5px] text-foreground"
               value={email}
               onChangeText={setEmail}
               placeholder="email@example.com"
@@ -92,7 +92,7 @@ export default function LoginScreen() {
           <View className="mt-4">
             <Text className="mb-1 text-sm font-medium text-muted-foreground">비밀번호</Text>
             <TextInput
-              className="h-12 rounded-field border border-border bg-field p-3 text-base text-foreground"
+              className="h-[52px] rounded-field border-[1.5px] border-line bg-surface px-3.5 text-[15.5px] text-foreground"
               value={password}
               onChangeText={setPassword}
               placeholder="비밀번호를 입력하세요"

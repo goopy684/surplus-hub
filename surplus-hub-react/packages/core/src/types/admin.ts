@@ -11,12 +11,15 @@ export interface AdminUser {
 
 export interface DashboardSummary {
   totalUsers: number;
-  activeUsers: number;
   newUsersToday: number;
+  dau: number;
+  wau: number;
+  mau: number;
   totalMaterials: number;
   activeMaterials: number;
   totalTransactions: number;
   completedTransactions: number;
+  completedTransactionAmount: number;
   pendingReports: number;
 }
 

@@ -2,7 +2,7 @@ import { Providers } from "./providers";
 import "./globals.css";
 import Link from 'next/link';
 import { ServiceWorkerUnregister } from './sw-unregister';
-import { BottomNav } from '../components/BottomNav';
+import { BottomNav, AppFooter } from '../components/BottomNav';
 import { DesktopNav } from "../components/DesktopNav";
 import { AuthHeaderActions } from "../components/AuthHeaderActions";
 import { HeaderSearch } from "../components/HeaderSearch";
@@ -25,14 +25,14 @@ export default function RootLayout({
         <body>
           <Providers>
             <ServiceWorkerUnregister />
-            <header className="px-4 py-3 border-b border-border flex justify-between items-center bg-card sticky top-0 z-50">
+            <header className="hidden md:flex px-4 py-3 border-b border-line-2 justify-between items-center bg-surface sticky top-0 z-50">
               <div className="flex items-center gap-2">
-                <div className="bg-primary p-2 rounded-btn w-9 h-9 flex items-center justify-center">
+                <div className="bg-primary p-2 rounded-[10px] w-9 h-9 flex items-center justify-center">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 text-primary-foreground">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
                   </svg>
                 </div>
-                <Link href="/" className="text-xl font-bold text-foreground">자투리</Link>
+                <Link href="/" className="text-xl font-extrabold tracking-[-0.6px] text-foreground">자투리</Link>
               </div>
 
               <HeaderSearch />
@@ -42,7 +42,7 @@ export default function RootLayout({
                 <div className="flex items-center gap-4">
                   <Link
                     href="/register"
-                    className="hidden md:inline-flex min-h-[44px] items-center gap-1.5 rounded-btn border border-border bg-card px-3.5 text-sm font-semibold text-foreground transition-colors hover:bg-field active:bg-field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    className="hidden md:inline-flex min-h-[44px] items-center gap-1.5 rounded-chip bg-primary px-4 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary-dark active:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true" className="w-4 h-4">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -53,17 +53,8 @@ export default function RootLayout({
                 </div>
               </div>
             </header>
-            <main className="min-h-screen bg-background">{children}</main>
-            <footer className="border-t border-border bg-card px-4 py-6 pb-28 md:pb-6">
-              <div className="mx-auto flex max-w-3xl flex-col items-center gap-2 text-center">
-                <div className="flex items-center gap-4 text-sm">
-                  <Link href="/terms" className="text-muted-foreground hover:text-foreground">이용약관</Link>
-                  <span className="text-border">|</span>
-                  <Link href="/privacy" className="text-muted-foreground hover:text-foreground">개인정보 처리방침</Link>
-                </div>
-                <p className="text-xs text-muted-foreground">© 자투리. All rights reserved.</p>
-              </div>
-            </footer>
+            <main className="min-h-[100dvh] bg-paper">{children}</main>
+            <AppFooter />
             <BottomNav />
           </Providers>
         </body>

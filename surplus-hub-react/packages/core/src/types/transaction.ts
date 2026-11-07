@@ -2,6 +2,8 @@ import { PaginationMeta } from "./material";
 
 export interface TransactionCreate {
   material_id: number;
+  /** 분할 구매 수량. 생략하면 매물 전체 수량. */
+  quantity?: number;
   note?: string;
 }
 
@@ -14,7 +16,9 @@ export interface Transaction {
   buyerId: string;
   buyerName?: string;
   price: number;
+  quantity?: number;
   status: string;
+  hasReviewed?: boolean;
   note?: string;
   createdAt: string;
   confirmedAt?: string;

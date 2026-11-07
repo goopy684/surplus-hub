@@ -31,14 +31,14 @@ function PostsContent() {
   const posts = data?.data ?? [];
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-4 py-3">
-        <button type="button" aria-label="뒤로 가기" onClick={() => router.back()} className="p-1 text-foreground">
+    <div className="min-h-screen bg-paper pb-24">
+      <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-line-2 bg-surface px-4 py-3">
+        <button type="button" aria-label="뒤로 가기" onClick={() => router.back()} className="-ml-2 flex h-11 w-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-5 w-5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
           </svg>
         </button>
-        <h1 className="text-base font-bold text-foreground">내 커뮤니티 글</h1>
+        <h1 className="text-[17px] font-extrabold tracking-[-0.4px] text-foreground">내 커뮤니티 글</h1>
       </div>
 
       {isLoading ? (
@@ -55,21 +55,21 @@ function PostsContent() {
           <p className="text-sm text-muted-foreground">작성한 글이 없습니다</p>
           <button
             onClick={() => router.push("/community/write")}
-            className="mt-4 rounded-btn bg-primary px-4 py-3 text-sm font-bold text-primary-foreground"
+            className="mt-4 rounded-btn bg-primary px-4 py-3 text-sm font-bold text-primary-foreground min-h-[48px] transition-colors hover:bg-primary-dark active:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             글 작성하기
           </button>
         </div>
       ) : (
-        <div className="divide-y divide-border">
+        <div className="divide-y divide-line-2">
           {posts.map((post) => (
             <Link
               key={post.id}
               href={`/community/${post.id}`}
-              className="block cursor-pointer bg-card px-4 py-3 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="block cursor-pointer bg-surface px-4 py-3 transition-colors hover:bg-field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <div className="mb-1 flex items-center justify-between">
-                <span className="rounded-chip border border-border bg-card px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+                <span className="rounded-chip border border-line bg-surface px-2 py-0.5 text-xs font-semibold text-muted-foreground">
                   {post.category}
                 </span>
                 <span className="text-xs text-muted-foreground">{formatTimeAgo(post.createdAt)}</span>

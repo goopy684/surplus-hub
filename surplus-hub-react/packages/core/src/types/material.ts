@@ -16,6 +16,7 @@ export interface MaterialItem {
   sellerId: string;
   sellerName?: string;
   sellerAvatarUrl?: string;
+  sellerTrustLevel?: number;
   likesCount?: number;
   createdAt: string;
 }
@@ -35,6 +36,7 @@ export interface MaterialCreateInput {
   quantityUnit?: string;
   tradeMethod?: string;
   category?: string;
+  conditionGrade?: string;
   status?: string;
   photoUrls?: string[];
 }
@@ -74,7 +76,9 @@ export interface MaterialUpdateInput {
   quantityUnit?: string;
   tradeMethod?: string;
   category?: string;
+  conditionGrade?: string;
   status?: string;
+  buyerId?: number;
 }
 
 export interface MaterialLikeStatus {

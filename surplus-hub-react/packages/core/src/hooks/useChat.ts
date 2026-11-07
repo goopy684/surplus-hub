@@ -1,11 +1,19 @@
 import { useQuery, useMutation, useQueryClient, UseQueryResult, UseMutationResult } from "@tanstack/react-query";
-import { createChatRoom, fetchChatMessages, fetchChatRooms, sendMessage } from "../api";
-import { ChatMessage, ChatMessageQueryParams, ChatMessageResponse, ChatRoomQueryParams, ChatRoomResponse } from "../types";
+import { createChatRoom, fetchChatMessages, fetchChatRoom, fetchChatRooms, sendMessage } from "../api";
+import { ChatMessage, ChatMessageQueryParams, ChatMessageResponse, ChatRoom, ChatRoomQueryParams, ChatRoomResponse } from "../types";
 
 export const useChatRooms = (params?: ChatRoomQueryParams): UseQueryResult<ChatRoomResponse> => {
   return useQuery({
     queryKey: ["chatRooms", params ?? {}],
     queryFn: () => fetchChatRooms(params),
+  });
+};
+
+export const useChatRoomDetail = (roomId: string): UseQueryResult<ChatRoom | null> => {
+  return useQuery({
+    queryKey: ["chatRoom", roomId],
+    queryFn: () => fetchChatRoom(roomId),
+    enabled: !!roomId,
   });
 };
 

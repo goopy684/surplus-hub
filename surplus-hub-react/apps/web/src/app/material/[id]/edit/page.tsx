@@ -1,6 +1,8 @@
 "use client";
 
 import {
+  TRADE_METHOD_OPTIONS,
+  useChatRooms,
   useCurrentUser,
   useMaterialDetail,
   useUpdateMaterial,
@@ -71,11 +73,6 @@ const CATEGORIES = [
   { emoji: "📦", label: "기타" },
 ] as const;
 
-const TRADE_METHODS = [
-  { label: "직거래", value: "DIRECT" },
-  { label: "배송 협의", value: "DELIVERY" },
-] as const;
-
 const STATUS_OPTIONS = [
   { label: "판매중", value: "ACTIVE" },
   { label: "예약중", value: "RESERVED" },
@@ -87,6 +84,17 @@ function EditContent({ id }: { id: string }) {
   const { data: item, isLoading: isLoadingItem } = useMaterialDetail(id);
   const { data: currentUser } = useCurrentUser();
   const { mutateAsync: updateMaterial, isPending: isSubmitting } = useUpdateMaterial(id);
+  const { data: chatRooms } = useChatRooms({ limit: 100 });
+  const [buyerId, setBuyerId] = useState("");
+
+  // 이 자재로 대화한 상대 = 구매자 후보 (같은 상대의 방이 여러 개면 하나로)
+  const buyerOptions = Array.from(
+    new Map(
+      (chatRooms?.data ?? [])
+        .filter((room) => String(room.materialId) === String(id))
+        .map((room) => [room.otherUser.id, room.otherUser.name])
+    )
+  );
 
   const [form, setForm] = useState({
     title: "",
@@ -153,6 +161,7 @@ function EditContent({ id }: { id: string }) {
         status: form.status,
         location: { address: form.location || "위치 미정" },
         category: categoryLabel,
+        ...(form.status === "SOLD" && buyerId ? { buyerId: Number(buyerId) } : {}),
       });
       router.push(`/material/${id}`);
     } catch {
@@ -173,16 +182,16 @@ function EditContent({ id }: { id: string }) {
   }
 
   return (
-    <div className="bg-background min-h-screen">
+    <div className="bg-paper min-h-screen">
       {/* Header */}
-      <div className="sticky top-0 left-0 right-0 h-14 bg-card border-b border-border flex items-center justify-between px-4 z-50">
+      <div className="sticky top-0 left-0 right-0 h-14 bg-surface border-b border-line flex items-center justify-between px-4 z-50">
         <div className="flex items-center gap-3">
-          <button onClick={() => router.back()} className="text-foreground">
+          <button type="button" aria-label="뒤로 가기" onClick={() => router.back()} className="-ml-2 flex h-11 w-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
             </svg>
           </button>
-          <h1 className="font-bold text-lg">자재 수정</h1>
+          <h1 className="text-[22px] font-extrabold tracking-[-0.6px] text-foreground">자재 수정</h1>
         </div>
       </div>
 
@@ -196,7 +205,7 @@ function EditContent({ id }: { id: string }) {
             type="text"
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
-            className="w-full p-3 border border-border rounded-field text-sm bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+            className="w-full p-3 border-[1.5px] border-line rounded-field text-sm bg-surface focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
           />
         </div>
 
@@ -213,7 +222,7 @@ function EditContent({ id }: { id: string }) {
                   className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-chip text-sm font-medium transition-colors ${
                     isSelected
                       ? "bg-accent text-accent-foreground border border-transparent"
-                      : "bg-card text-foreground border border-border"
+                      : "bg-surface text-foreground border-line"
                   }`}
                 >
                   <CategoryIcon name={cat.label} className="w-4 h-4" />
@@ -231,7 +240,7 @@ function EditContent({ id }: { id: string }) {
             id="edit-description"
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            className="w-full p-3 border border-border rounded-field text-sm h-28 resize-none bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+            className="w-full p-3 border-[1.5px] border-line rounded-field text-sm h-28 resize-none bg-surface focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
           />
         </div>
 
@@ -245,7 +254,7 @@ function EditContent({ id }: { id: string }) {
               value={form.price}
               inputMode="numeric"
               onChange={(e) => setForm({ ...form, price: e.target.value.replace(/\D/g, "") })}
-              className="tabular w-full p-3 border border-border rounded-field text-lg font-bold text-foreground bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none pr-12"
+              className="tabular w-full p-3 border-[1.5px] border-line rounded-field text-lg font-bold text-foreground bg-surface focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none pr-12"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">원</span>
           </div>
@@ -261,7 +270,7 @@ function EditContent({ id }: { id: string }) {
               value={form.quantity}
               inputMode="numeric"
               onChange={(e) => setForm({ ...form, quantity: e.target.value.replace(/\D/g, "") })}
-              className="tabular w-full p-3 border border-border rounded-field text-sm bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+              className="tabular w-full p-3 border-[1.5px] border-line rounded-field text-sm bg-surface focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
             />
           </div>
           <div className="w-24">
@@ -271,7 +280,7 @@ function EditContent({ id }: { id: string }) {
               type="text"
               value={form.quantityUnit}
               onChange={(e) => setForm({ ...form, quantityUnit: e.target.value })}
-              className="w-full p-3 border border-border rounded-field text-sm bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+              className="w-full p-3 border-[1.5px] border-line rounded-field text-sm bg-surface focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
             />
           </div>
         </div>
@@ -280,7 +289,7 @@ function EditContent({ id }: { id: string }) {
         <div>
           <span id="edit-trade-label" className="block text-sm font-bold text-foreground mb-2">거래 방식</span>
           <div role="group" aria-labelledby="edit-trade-label" className="flex gap-2">
-            {TRADE_METHODS.map((method) => {
+            {TRADE_METHOD_OPTIONS.map((method) => {
               const isSelected = form.tradeMethod === method.value;
               return (
                 <button
@@ -288,8 +297,8 @@ function EditContent({ id }: { id: string }) {
                   onClick={() => setForm({ ...form, tradeMethod: method.value })}
                   className={`flex-1 py-3 rounded-field text-sm font-medium border transition-colors ${
                     isSelected
-                      ? "border-transparent bg-accent text-accent-foreground font-bold"
-                      : "border-border bg-card text-foreground"
+                      ? "border-primary bg-accent text-accent-foreground font-bold"
+                      : "border-line bg-surface text-foreground hover:bg-field"
                   }`}
                 >
                   {method.label}
@@ -311,8 +320,8 @@ function EditContent({ id }: { id: string }) {
                   onClick={() => setForm({ ...form, status: option.value })}
                   className={`flex-1 py-3 rounded-field text-sm font-medium border transition-colors ${
                     isSelected
-                      ? "border-transparent bg-accent text-accent-foreground font-bold"
-                      : "border-border bg-card text-foreground"
+                      ? "border-primary bg-accent text-accent-foreground font-bold"
+                      : "border-line bg-surface text-foreground hover:bg-field"
                   }`}
                 >
                   {option.label}
@@ -321,6 +330,31 @@ function EditContent({ id }: { id: string }) {
             })}
           </div>
         </div>
+
+        {/* Buyer — 판매중/예약중 → 거래완료로 바꿀 때만 */}
+        {form.status === "SOLD" && item.status !== "SOLD" && (
+          <div>
+            {buyerOptions.length > 0 ? (
+              <>
+                <label htmlFor="edit-buyer" className="block text-sm font-bold text-foreground mb-2">구매자 선택</label>
+                <select
+                  id="edit-buyer"
+                  value={buyerId}
+                  onChange={(e) => setBuyerId(e.target.value)}
+                  className="w-full p-3 border-[1.5px] border-line rounded-field text-sm bg-surface focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                >
+                  <option value="">선택 안 함 (채팅 외 거래)</option>
+                  {buyerOptions.map(([userId, name]) => (
+                    <option key={userId} value={userId}>{name}</option>
+                  ))}
+                </select>
+                <p className="mt-2 text-xs text-muted-foreground">구매자를 선택하면 거래 내역과 통계에 반영돼요.</p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">이 자재로 대화한 상대가 없어요.</p>
+            )}
+          </div>
+        )}
 
         {/* Location */}
         <div>
@@ -331,18 +365,18 @@ function EditContent({ id }: { id: string }) {
             value={form.location}
             onChange={(e) => setForm({ ...form, location: e.target.value })}
             placeholder="거래 위치를 입력하세요"
-            className="w-full p-3 border border-border rounded-field text-sm bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+            className="w-full p-3 border-[1.5px] border-line rounded-field text-sm bg-surface focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
           />
         </div>
       </div>
 
       {/* Submit Button */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-card border-t border-border pb-safe z-50">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-surface border-t border-line pb-safe z-50">
         <div className="max-w-lg mx-auto">
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || !form.title.trim() || !form.price}
-            className="w-full bg-primary text-primary-foreground rounded-btn py-4 font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
+            className="w-full bg-primary text-primary-foreground rounded-btn py-4 font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary-dark transition-colors min-h-[48px] active:bg-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {isSubmitting ? "수정 중..." : "수정 완료"}
           </button>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCurrentUser, useUserReviews } from "@repo/core";
 import { AuthGate } from "../../../components/AuthGate";
 
@@ -34,10 +35,11 @@ const StarRating = ({ rating }: { rating: number }) => {
   );
 };
 
-function ReviewsContent() {
+function ReviewsContent({ targetUserId, targetName }: { targetUserId?: string; targetName?: string }) {
   const router = useRouter();
   const { data: currentUser } = useCurrentUser();
-  const userId = currentUser?.id ?? "";
+  const userId = targetUserId || currentUser?.id || "";
+  const headerTitle = targetName ? `${targetName}님의 거래 후기` : "받은 리뷰";
 
   const { data, isLoading, error } = useUserReviews(userId, { limit: 50 });
   const reviews = data?.data ?? [];
@@ -48,14 +50,14 @@ function ReviewsContent() {
       : 0;
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-4 py-3">
-        <button onClick={() => router.back()} className="p-1">
+    <div className="min-h-screen bg-paper pb-24">
+      <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-line-2 bg-surface px-4 py-3">
+        <button type="button" aria-label="뒤로 가기" onClick={() => router.back()} className="-ml-2 flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-5 w-5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
           </svg>
         </button>
-        <h1 className="text-base font-bold text-foreground">받은 리뷰</h1>
+        <h1 className="text-[17px] font-extrabold tracking-[-0.4px] text-foreground">{headerTitle}</h1>
       </div>
 
       {isLoading ? (
@@ -71,7 +73,7 @@ function ReviewsContent() {
       {!isLoading && !error ? (
         <>
           {reviews.length > 0 ? (
-            <div className="card-shadow mx-4 mt-4 mb-3 rounded-thumb border border-border bg-card p-4">
+            <div className="mx-4 mt-4 mb-3 rounded-card border border-line-2 bg-surface p-4">
               <div className="flex items-center gap-3">
                 <div className="flex flex-col items-center">
                   <span className="tabular text-3xl font-bold text-foreground">{averageRating.toFixed(1)}</span>
@@ -87,7 +89,7 @@ function ReviewsContent() {
                         <span className="tabular w-3 text-right text-xs text-muted-foreground">{star}</span>
                         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                           <div
-                            className="h-full rounded-full bg-olive-tx transition-all"
+                            className="h-full rounded-full bg-primary transition-all"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
@@ -100,9 +102,9 @@ function ReviewsContent() {
             </div>
           ) : null}
 
-          <div className="divide-y divide-border">
+          <div className="divide-y divide-line-2">
             {reviews.map((review) => (
-              <div key={review.id} className="bg-card px-4 py-4">
+              <div key={review.id} className="bg-surface px-4 py-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
@@ -145,10 +147,26 @@ function ReviewsContent() {
   );
 }
 
-export default function ReviewsPage() {
+function ReviewsRouteInner() {
+  const searchParams = useSearchParams();
+  const targetUserId = searchParams.get("userId")?.trim() || undefined;
+  const targetName = searchParams.get("name")?.trim() || undefined;
+
+  if (targetUserId) {
+    return <ReviewsContent targetUserId={targetUserId} targetName={targetName} />;
+  }
+
   return (
     <AuthGate title="리뷰는 로그인 후 이용 가능합니다">
       <ReviewsContent />
     </AuthGate>
+  );
+}
+
+export default function ReviewsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-paper" />}>
+      <ReviewsRouteInner />
+    </Suspense>
   );
 }

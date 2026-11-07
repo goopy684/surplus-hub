@@ -22,14 +22,14 @@ export default function EventDetailPage() {
   const { data: event, isLoading, error } = useEvent(eventId);
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-border bg-card px-4 py-3">
-        <button onClick={() => router.back()} className="p-1">
+    <div className="min-h-screen bg-paper pb-24">
+      <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-line-2 bg-surface px-4 py-3">
+        <button type="button" aria-label="뒤로 가기" onClick={() => router.back()} className="-ml-2 flex h-11 w-11 items-center justify-center rounded-full transition-colors hover:bg-field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-5 w-5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
           </svg>
         </button>
-        <h1 className="text-base font-bold text-foreground">이벤트 상세</h1>
+        <h1 className="text-[17px] font-extrabold tracking-[-0.4px] text-foreground">이벤트 상세</h1>
       </div>
 
       {isLoading ? (
@@ -53,7 +53,7 @@ export default function EventDetailPage() {
               />
             </div>
           ) : (
-            <div className="flex h-56 w-full items-center justify-center border-b border-border bg-muted">
+            <div className="flex h-56 w-full items-center justify-center border-b border-line bg-muted">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -80,7 +80,7 @@ export default function EventDetailPage() {
                     className={`inline-block rounded-chip border px-3 py-1 text-xs font-semibold ${
                       ongoing
                         ? "border-olive-bd bg-olive-bg text-olive-tx"
-                        : "border-border bg-card text-muted-foreground"
+                        : "border-line bg-surface text-muted-foreground"
                     }`}
                   >
                     {ongoing ? "진행중" : event.isActive ? "예정" : "종료"}
@@ -109,7 +109,7 @@ export default function EventDetailPage() {
               <span>{formatDate(event.startDate)} ~ {formatDate(event.endDate)}</span>
             </div>
 
-            <div className="rounded-thumb border border-border bg-card p-4">
+            <div className="rounded-card border border-line-2 bg-surface p-4">
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{event.description}</p>
             </div>
           </div>

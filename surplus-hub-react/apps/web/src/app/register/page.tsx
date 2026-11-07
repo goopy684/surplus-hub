@@ -1,6 +1,16 @@
 "use client";
 
-import { useCreateMaterial, analyzeImage, generateDescription, suggestPrice, AiPriceSuggestion } from "@repo/core";
+import {
+  useCreateMaterial,
+  analyzeImage,
+  generateDescription,
+  suggestPrice,
+  uploadImage,
+  AiPriceSuggestion,
+  MATERIAL_CATEGORIES,
+  QUANTITY_UNITS,
+  TRADE_METHOD_OPTIONS,
+} from "@repo/core";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AuthGate } from "../../components/AuthGate";
@@ -54,17 +64,9 @@ const CategoryIcons = {
   ),
 } as const;
 
-// 업종별 카테고리 — 백엔드 seed_categories / 홈 피드와 동기화
-const CATEGORIES = [
-  { emoji: "💡", label: "조명" },
-  { emoji: "🚪", label: "문/창호" },
-  { emoji: "🧱", label: "건축자재" },
-  { emoji: "⚡", label: "전기" },
-  { emoji: "🔧", label: "설비" },
-  { emoji: "📦", label: "기타" },
-] as const;
-
-const TRADE_METHODS = ["직거래", "택배가능", "둘 다"] as const;
+// 백엔드 /api/v1/upload/image 허용 형식·용량과 동일
+const UPLOAD_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
+const MAX_UPLOAD_MB = 10;
 
 const CONDITION_GRADES = [
   { label: "상 (양호)", value: "상" },
@@ -103,7 +105,11 @@ function RegisterContent() {
   const router = useRouter();
   const { mutateAsync: createMaterial, isPending: isSubmitting } = useCreateMaterial();
   const [step, setStep] = useState<Step>("upload");
-  const [images, setImages] = useState<string[]>([]);
+  // url = data-URL 미리보기(AI 분석 입력), file = 등록 시 R2 업로드 원본
+  const [images, setImages] = useState<{ url: string; file: File }[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [geoMessage, setGeoMessage] = useState<string | null>(null);
   const [analysisStep, setAnalysisStep] = useState(0);
   const [keyword, setKeyword] = useState("");
   const [aiError, setAiError] = useState<string | null>(null);
@@ -115,7 +121,9 @@ function RegisterContent() {
     category: "",
     description: "",
     price: "",
-    tradeMethod: "직거래" as (typeof TRADE_METHODS)[number],
+    quantity: "1",
+    quantityUnit: "개" as string,
+    tradeMethod: "DIRECT" as (typeof TRADE_METHOD_OPTIONS)[number]["value"],
     conditionGrade: "" as string,
     location: "" as string,
   });
@@ -123,13 +131,22 @@ function RegisterContent() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
+      // 등록 시 /upload/image가 거절할 사진은 고를 때 바로 걸러 어떤 파일인지 알려준다
+      const rejected: string[] = [];
       Array.from(files).forEach((file) => {
+        if (!UPLOAD_IMAGE_TYPES.includes(file.type) || file.size > MAX_UPLOAD_MB * 1024 * 1024) {
+          rejected.push(file.name);
+          return;
+        }
         const reader = new FileReader();
         reader.onloadend = () => {
-          setImages((prev) => [...prev, reader.result as string].slice(0, 10));
+          setImages((prev) => [...prev, { url: reader.result as string, file }].slice(0, 10));
         };
         reader.readAsDataURL(file);
       });
+      if (rejected.length > 0) {
+        alert(`JPG·PNG·WEBP·HEIC 형식, ${MAX_UPLOAD_MB}MB 이하 사진만 올릴 수 있습니다.\n제외된 사진: ${rejected.join(", ")}`);
+      }
     }
   };
 
@@ -145,7 +162,7 @@ function RegisterContent() {
     try {
       // Step 1: 이미지 인식
       setAnalysisStep(0);
-      const firstImage = images[0] ?? "";
+      const firstImage = images[0]?.url ?? "";
       const imageAnalysis = await analyzeImage(firstImage, keyword || undefined);
 
       // Step 2: 카테고리 분류 완료
@@ -156,7 +173,8 @@ function RegisterContent() {
       const descResult = await generateDescription(
         imageAnalysis.title,
         imageAnalysis.category,
-        images[0]
+        firstImage,
+        { tags: imageAnalysis.tags, condition: imageAnalysis.condition }
       );
 
       // Step 4: 시세 분석
@@ -167,24 +185,25 @@ function RegisterContent() {
         descResult.description
       );
 
-      // 카테고리를 로컬 CATEGORIES와 매칭
-      const matchedCategory = CATEGORIES.find(
-        (cat) =>
-          imageAnalysis.category.includes(cat.label) ||
-          cat.label.includes(imageAnalysis.category)
-      );
-      const categoryDisplay = matchedCategory
-        ? `${matchedCategory.emoji} ${matchedCategory.label}`
-        : imageAnalysis.category;
+      // 카테고리를 업종 카테고리와 매칭 (백엔드는 이름 일치로 필터하므로 못 찾으면 기타)
+      const matchedCategory =
+        MATERIAL_CATEGORIES.find(
+          (cat) => imageAnalysis.category.includes(cat) || cat.includes(imageAnalysis.category)
+        ) ?? "기타";
+      const matchedGrade = CONDITION_GRADES.some((g) => g.value === imageAnalysis.condition)
+        ? imageAnalysis.condition ?? ""
+        : "";
 
       setMarketPrice(priceResult.marketPrice);
       setForm({
         title: imageAnalysis.title,
-        category: categoryDisplay,
+        category: matchedCategory,
         description: descResult.description,
         price: priceResult.price.toString(),
-        tradeMethod: "직거래",
-        conditionGrade: "",
+        quantity: "1",
+        quantityUnit: "개",
+        tradeMethod: "DIRECT",
+        conditionGrade: matchedGrade,
         location: "",
       });
       setStep("ai-result");
@@ -203,10 +222,42 @@ function RegisterContent() {
     }
   };
 
+  const handleUseCurrentLocation = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGeoMessage("이 브라우저에서는 위치를 사용할 수 없습니다.");
+      return;
+    }
+    setGeoMessage(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setGeoMessage("현재 위치가 추가되었습니다.");
+      },
+      () => setGeoMessage("위치 권한이 없어 현재 위치를 가져오지 못했습니다.")
+    );
+  };
+
   const handleSubmit = async () => {
     if (!form.title.trim() || !form.price) {
       alert("제목과 가격을 입력해주세요.");
       return;
+    }
+    const quantity = Number(form.quantity);
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      alert("수량은 1 이상이어야 합니다.");
+      return;
+    }
+
+    // 미리보기 data-URL이 아니라 R2에 올린 URL을 저장한다.
+    let photoUrls: string[];
+    setIsUploading(true);
+    try {
+      photoUrls = await Promise.all(images.map((img) => uploadImage(img.file)));
+    } catch {
+      alert("사진 업로드에 실패했습니다. 다시 시도해주세요.");
+      return;
+    } finally {
+      setIsUploading(false);
     }
 
     try {
@@ -214,29 +265,31 @@ function RegisterContent() {
         title: form.title.trim(),
         description: form.description.trim(),
         price: Number(form.price),
-        quantity: 1,
-        quantityUnit: "개",
-        tradeMethod: form.tradeMethod === "직거래" ? "DIRECT" : "DELIVERY",
+        quantity,
+        quantityUnit: form.quantityUnit,
+        tradeMethod: form.tradeMethod,
+        category: form.category || undefined,
         location: {
           address: form.location || "위치 미정",
+          ...coords,
         },
         ...(form.conditionGrade ? { conditionGrade: form.conditionGrade } : {}),
-        photoUrls: images.length > 0 ? images : undefined,
+        photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
       });
 
       alert("자재가 성공적으로 등록되었습니다.");
       router.push("/");
-    } catch (error) {
+    } catch {
       alert("등록 요청 중 오류가 발생했습니다.");
     }
   };
 
   return (
-    <div className="bg-background min-h-screen">
+    <div className="bg-paper min-h-screen">
       {/* Sticky Header */}
-      <div className="sticky top-0 left-0 right-0 h-14 bg-card border-b border-border flex items-center justify-between px-4 z-50">
-        <div className="flex items-center gap-3">
-          <button onClick={() => router.push("/")} className="text-foreground">
+      <div className="sticky top-0 left-0 right-0 h-14 bg-surface flex items-center justify-between px-2 z-50">
+        <div className="flex items-center gap-1">
+          <button type="button" aria-label="뒤로가기" onClick={() => router.push("/")} className="flex h-11 w-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -248,12 +301,12 @@ function RegisterContent() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
             </svg>
           </button>
-          <h1 className="font-bold text-lg">자재 등록</h1>
+          <h1 className="text-lg font-extrabold tracking-[-0.4px]">자재 등록</h1>
         </div>
       </div>
 
       {/* Content */}
-      <div className="p-4 max-w-lg mx-auto pb-24">
+      <div className="px-5 py-3 max-w-lg mx-auto pb-24">
         {/* Step 1: Upload Mode */}
         {step === "upload" && (
           <>
@@ -266,8 +319,8 @@ function RegisterContent() {
 
               {images.length === 0 ? (
                 // Empty state
-                <label className="border-2 border-dashed border-border rounded-thumb h-48 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors">
-                  <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
+                <label className="border-[1.5px] border-dashed border-ink-3/60 bg-canvas rounded-card h-48 flex flex-col items-center justify-center cursor-pointer hover:bg-muted transition-colors">
+                  <input type="file" multiple accept={UPLOAD_IMAGE_TYPES.join(",")} onChange={handleImageUpload} className="hidden" />
                   <div className="w-16 h-16 rounded-full bg-accent flex items-center justify-center mb-3">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -290,8 +343,8 @@ function RegisterContent() {
               ) : (
                 // Image grid
                 <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                  <label className="flex-shrink-0 w-24 h-24 border-2 border-dashed border-border rounded-thumb flex flex-col items-center justify-center bg-card cursor-pointer hover:bg-muted transition-colors">
-                    <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
+                  <label className="flex-shrink-0 w-24 h-24 border-[1.5px] border-dashed border-ink-3/60 rounded-thumb flex flex-col items-center justify-center bg-canvas cursor-pointer hover:bg-muted transition-colors">
+                    <input type="file" multiple accept={UPLOAD_IMAGE_TYPES.join(",")} onChange={handleImageUpload} className="hidden" />
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
@@ -319,14 +372,14 @@ function RegisterContent() {
                       className="flex-shrink-0 w-24 h-24 relative rounded-thumb overflow-hidden border border-border"
                     >
                       {idx === 0 && (
-                        <div className="absolute top-1 left-1 bg-black/55 text-white text-xs px-1.5 py-0.5 rounded-chip font-bold z-10">
+                        <div className="absolute bottom-1.5 left-1.5 bg-ink text-surface text-[10.5px] px-2 py-0.5 rounded-chip font-bold z-10">
                           대표
                         </div>
                       )}
-                      <img src={img} alt={`Upload ${idx}`} className="w-full h-full object-cover" />
+                      <img src={img.url} alt={`Upload ${idx}`} className="w-full h-full object-cover" />
                       <button
                         onClick={() => removeImage(idx)}
-                        className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5 hover:bg-black/70"
+                        className="absolute top-1 right-1 bg-ink/60 text-surface rounded-full p-0.5 hover:bg-ink/80"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -363,7 +416,7 @@ function RegisterContent() {
             {/* AI Smart Registration CTA */}
             {images.length > 0 && (
               <div className="space-y-3 mb-6">
-                <div className="bg-accent rounded-thumb p-4 border border-accent">
+                <div className="bg-accent rounded-card p-4">
                   <div className="flex items-start gap-3 mb-3">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -395,7 +448,7 @@ function RegisterContent() {
                   />
                   <button
                     onClick={handleAIAnalysis}
-                    className="w-full bg-primary text-primary-foreground rounded-btn py-3 font-bold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                    className="w-full min-h-[52px] bg-primary text-primary-foreground rounded-btn font-bold flex items-center justify-center gap-2 transition-colors hover:bg-primary-dark active:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -475,7 +528,7 @@ function RegisterContent() {
         {step === "ai-result" && (
           <>
             {/* AI Confidence Badge */}
-            <div className="bg-accent rounded-thumb p-3 mb-6 flex items-start gap-2">
+            <div className="bg-accent rounded-card px-3.5 py-3 mb-6 flex items-start gap-2">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -501,7 +554,7 @@ function RegisterContent() {
               <div>
                 <label htmlFor="reg-title" className="flex items-center gap-2 text-sm font-bold text-foreground mb-2">
                   제목
-                  <span className="inline-flex items-center gap-1 text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded font-normal">
+                  <span className="inline-flex items-center gap-1 text-[11px] bg-accent text-accent-foreground px-2 py-0.5 rounded-chip font-bold">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 16 16"
@@ -520,7 +573,7 @@ function RegisterContent() {
                   type="text"
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="w-full p-3 border border-border rounded-field text-base bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  className="w-full min-h-[52px] px-3.5 py-3 border-[1.5px] border-line rounded-field text-[15.5px] bg-surface focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                 />
               </div>
 
@@ -528,7 +581,7 @@ function RegisterContent() {
               <div>
                 <span id="reg-category-label" className="flex items-center gap-2 text-sm font-bold text-foreground mb-2">
                   카테고리
-                  <span className="inline-flex items-center gap-1 text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded font-normal">
+                  <span className="inline-flex items-center gap-1 text-[11px] bg-accent text-accent-foreground px-2 py-0.5 rounded-chip font-bold">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 16 16"
@@ -543,19 +596,21 @@ function RegisterContent() {
                   </span>
                 </span>
                 <div role="group" aria-labelledby="reg-category-label" className="flex flex-wrap gap-2">
-                  {CATEGORIES.map((cat) => {
-                    const isSelected = form.category === `${cat.emoji} ${cat.label}`;
+                  {MATERIAL_CATEGORIES.map((cat) => {
+                    const isSelected = form.category === cat;
                     return (
                       <button
-                        key={cat.label}
-                        onClick={() => setForm({ ...form, category: `${cat.emoji} ${cat.label}` })}
-                        className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-chip text-sm font-medium transition-colors ${isSelected
-                            ? "bg-accent text-accent-foreground border border-accent"
-                            : "border border-border bg-card text-foreground hover:bg-muted"
+                        key={cat}
+                        onClick={() => setForm({ ...form, category: cat })}
+                        type="button"
+                        aria-pressed={isSelected}
+                        className={`inline-flex h-10 items-center gap-1.5 px-4 rounded-chip text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isSelected
+                            ? "bg-primary text-primary-foreground font-bold border border-primary"
+                            : "border border-line bg-surface text-foreground font-medium hover:bg-field"
                           }`}
                       >
-                        <span className="w-4 h-4 [&>svg]:w-4 [&>svg]:h-4">{CategoryIcons[cat.label]}</span>
-                        {cat.label}
+                        <span className="w-4 h-4 [&>svg]:w-4 [&>svg]:h-4">{CategoryIcons[cat]}</span>
+                        {cat}
                       </button>
                     );
                   })}
@@ -569,7 +624,7 @@ function RegisterContent() {
                   id="reg-condition"
                   value={form.conditionGrade}
                   onChange={(e) => setForm({ ...form, conditionGrade: e.target.value })}
-                  className="w-full p-3 border border-border rounded-field text-base bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  className="w-full min-h-[52px] px-3.5 py-3 border-[1.5px] border-line rounded-field text-[15.5px] bg-surface focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                 >
                   <option value="">선택 안 함</option>
                   {CONDITION_GRADES.map((grade) => (
@@ -584,7 +639,7 @@ function RegisterContent() {
               <div>
                 <label htmlFor="reg-description" className="flex items-center gap-2 text-sm font-bold text-foreground mb-2">
                   상세 설명
-                  <span className="inline-flex items-center gap-1 text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded font-normal">
+                  <span className="inline-flex items-center gap-1 text-[11px] bg-accent text-accent-foreground px-2 py-0.5 rounded-chip font-bold">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 16 16"
@@ -610,7 +665,7 @@ function RegisterContent() {
               <div>
                 <label htmlFor="reg-price" className="flex items-center gap-2 text-sm font-bold text-foreground mb-2">
                   가격
-                  <span className="inline-flex items-center gap-1 text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded font-normal">
+                  <span className="inline-flex items-center gap-1 text-[11px] bg-accent text-accent-foreground px-2 py-0.5 rounded-chip font-bold">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 16 16"
@@ -631,7 +686,7 @@ function RegisterContent() {
                     value={form.price}
                     inputMode="numeric"
                     onChange={(e) => setForm({ ...form, price: e.target.value.replace(/\D/g, "") })}
-                    className="w-full p-3 border border-border rounded-field text-lg font-bold text-foreground tabular bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none pr-12"
+                    className="w-full min-h-[52px] px-3.5 py-3 border-[1.5px] border-line rounded-field text-lg font-bold text-foreground num bg-surface focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none pr-12"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
                     원
@@ -639,9 +694,36 @@ function RegisterContent() {
                 </div>
               </div>
 
+              {/* Quantity */}
+              <div>
+                <label htmlFor="reg-quantity" className="block text-sm font-bold text-foreground mb-2">수량</label>
+                <div className="flex gap-2">
+                  <input
+                    id="reg-quantity"
+                    type="text"
+                    inputMode="numeric"
+                    value={form.quantity}
+                    onChange={(e) => setForm({ ...form, quantity: e.target.value.replace(/\D/g, "") })}
+                    className="flex-1 min-w-0 min-h-[52px] px-3.5 py-3 border-[1.5px] border-line rounded-field text-[15.5px] num bg-surface focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                  />
+                  <select
+                    aria-label="수량 단위"
+                    value={form.quantityUnit}
+                    onChange={(e) => setForm({ ...form, quantityUnit: e.target.value })}
+                    className="w-28 min-h-[52px] px-3.5 py-3 border-[1.5px] border-line rounded-field text-[15.5px] bg-surface focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
+                  >
+                    {QUANTITY_UNITS.map((unit) => (
+                      <option key={unit} value={unit}>
+                        {unit}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               {/* AI Market Price Analysis */}
               {marketPrice && marketPrice.max > 0 && (
-              <div className="bg-card border border-border rounded-thumb card-shadow p-4">
+              <div className="bg-canvas rounded-card p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -662,9 +744,9 @@ function RegisterContent() {
 
                 {/* Progress bar */}
                 <div className="mb-3">
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                  <div className="h-2 bg-line-2 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-olive-tx"
+                      className="h-full bg-primary"
                       style={{
                         width: `${Math.min(100, Math.max(0, ((Number(form.price) - marketPrice.min) / (marketPrice.max - marketPrice.min)) * 100))}%`,
                       }}
@@ -676,7 +758,7 @@ function RegisterContent() {
                 <div className="flex justify-between text-xs mb-2">
                   <div className="text-center">
                     <div className="text-muted-foreground">최저가</div>
-                    <div className="font-bold text-foreground tabular">
+                    <div className="font-bold text-foreground num">
                       {marketPrice.min.toLocaleString()}
                       <span className="text-muted-foreground font-medium">원</span>
                     </div>
@@ -690,7 +772,7 @@ function RegisterContent() {
                   </div>
                   <div className="text-center">
                     <div className="text-muted-foreground">최고가</div>
-                    <div className="font-bold text-foreground tabular">
+                    <div className="font-bold text-foreground num">
                       {marketPrice.max.toLocaleString()}
                       <span className="text-muted-foreground font-medium">원</span>
                     </div>
@@ -709,18 +791,20 @@ function RegisterContent() {
               <div>
                 <span id="reg-trade-label" className="block text-sm font-bold text-foreground mb-2">거래 방식</span>
                 <div role="group" aria-labelledby="reg-trade-label" className="flex gap-2">
-                  {TRADE_METHODS.map((method) => {
-                    const isSelected = form.tradeMethod === method;
+                  {TRADE_METHOD_OPTIONS.map((method) => {
+                    const isSelected = form.tradeMethod === method.value;
                     return (
                       <button
-                        key={method}
-                        onClick={() => setForm({ ...form, tradeMethod: method })}
-                        className={`flex-1 py-3 rounded-field text-sm font-medium border transition-colors ${isSelected
-                            ? "border-accent bg-accent text-accent-foreground"
-                            : "border-border bg-card text-foreground hover:bg-muted"
+                        key={method.value}
+                        onClick={() => setForm({ ...form, tradeMethod: method.value })}
+                        type="button"
+                        aria-pressed={isSelected}
+                        className={`flex-1 min-h-[48px] rounded-field text-sm border-[1.5px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${isSelected
+                            ? "border-primary bg-accent text-accent-foreground font-bold"
+                            : "border-line bg-surface text-foreground font-medium hover:bg-field"
                           }`}
                       >
-                        {method}
+                        {method.label}
                       </button>
                     );
                   })}
@@ -733,7 +817,7 @@ function RegisterContent() {
                   id="reg-location"
                   value={form.location}
                   onChange={(e) => setForm({ ...form, location: e.target.value })}
-                  className="w-full p-3 border border-border rounded-field text-base bg-card focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                  className="w-full min-h-[52px] px-3.5 py-3 border-[1.5px] border-line rounded-field text-[15.5px] bg-surface focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none"
                 >
                   <option value="">선택 안 함</option>
                   {LOCATIONS.map((loc) => (
@@ -742,15 +826,27 @@ function RegisterContent() {
                     </option>
                   ))}
                 </select>
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  className="mt-2 inline-flex min-h-[44px] items-center gap-1.5 rounded-btn border border-line bg-surface px-3.5 text-sm font-medium text-foreground transition-colors hover:bg-field active:bg-field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <svg {...ICON_PROPS} className="w-4 h-4" aria-hidden="true">
+                    <path d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                    <path d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+                  </svg>
+                  현재 위치 사용
+                </button>
+                {geoMessage && <p className="mt-1.5 text-xs text-muted-foreground">{geoMessage}</p>}
               </div>
 
               {/* Submit Button — 폼 흐름 안에 두어 항상 스크롤로 도달·노출 */}
               <button
                 onClick={handleSubmit}
-                disabled={isSubmitting || !form.title.trim() || !form.price}
-                className="w-full bg-primary text-primary-foreground rounded-btn py-4 font-bold disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity"
+                disabled={isUploading || isSubmitting || !form.title.trim() || !form.price}
+                className="w-full min-h-[56px] bg-primary text-primary-foreground rounded-card text-base font-bold transition-colors hover:bg-primary-dark active:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
-                {isSubmitting ? "등록 중..." : "등록하기"}
+                {isUploading || isSubmitting ? "등록 중..." : "등록하기"}
               </button>
             </div>
           </>

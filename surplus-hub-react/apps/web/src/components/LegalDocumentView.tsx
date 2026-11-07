@@ -15,7 +15,7 @@ export function LegalDocumentView({ kind }: { kind: "terms" | "privacy" }) {
   const doc = DOCS[kind];
   return (
     <article className="mx-auto w-full max-w-3xl px-4 py-10">
-      <h1 className="text-2xl font-bold text-foreground">{doc.title}</h1>
+      <h1 className="text-[22px] font-extrabold tracking-[-0.6px] text-foreground">{doc.title}</h1>
       <p className="mt-1 text-sm text-muted-foreground">시행일: {doc.effectiveDate}</p>
 
       {doc.intro && (

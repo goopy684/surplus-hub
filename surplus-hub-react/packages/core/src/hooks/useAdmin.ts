@@ -10,6 +10,7 @@ import {
   fetchAdminUserStats,
   fetchAdminMaterialStats,
   fetchAdminTransactionStats,
+  fetchActiveUserStats,
   fetchAdminUsers,
   fetchAdminUserDetail,
   fetchManagedUsers,
@@ -81,6 +82,15 @@ export const useAdminTransactionStats = (
   return useQuery<StatsResponse>({
     queryKey: ["admin", "stats", "transactions", period],
     queryFn: () => fetchAdminTransactionStats(period),
+  });
+};
+
+export const useAdminActiveUserStats = (
+  period: "day" | "week" | "month" = "week"
+): UseQueryResult<StatsResponse> => {
+  return useQuery<StatsResponse>({
+    queryKey: ["admin", "stats", "active-users", period],
+    queryFn: () => fetchActiveUserStats(period),
   });
 };
 

@@ -57,7 +57,7 @@ export function GoogleSignInButton({ onError }: { onError?: (msg: string) => voi
         onPress={() => {
           void promptAsync();
         }}
-        className={`h-12 flex-row items-center justify-center rounded-btn border border-border bg-card ${
+        className={`h-12 flex-row items-center justify-center rounded-btn border border-line bg-surface ${
           !request ? "opacity-60" : ""
         }`}
       >
