@@ -45,3 +45,6 @@ logs/
 # Alembic local
 # (keep migrations, exclude only caches above)
 .gstack/
+
+# User uploads written by LocalStorage when S3 is not configured
+static/uploads/
