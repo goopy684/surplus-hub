@@ -1,8 +1,9 @@
 from typing import Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.crud.crud_admin import crud_admin
 from app.crud.crud_moderation import crud_moderation
 from app.models.user import User
 from app.schemas.moderation import SanctionCreate, SanctionResponse, AdminNoteCreate, AdminNoteResponse
@@ -57,6 +58,7 @@ def get_user_detail(
 def create_sanction(
     user_id: int,
     data: SanctionCreate,
+    request: Request,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin_user("MODERATOR")),
 ) -> Any:
@@ -76,12 +78,27 @@ def create_sanction(
             db,
             user_id=user_id,
             admin_id=current_user.id,
-            admin_role=current_user.admin_role,
+            # get_current_admin_user lets superusers through without an admin_role.
+            admin_role="SUPER_ADMIN" if current_user.is_superuser else current_user.admin_role,
             data=data,
         )
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
 
+    crud_admin.create_audit_log(
+        db,
+        admin_id=current_user.id,
+        action="CREATE_SANCTION",
+        target_type="user",
+        target_id=user_id,
+        details={
+            "sanctionId": sanction.id,
+            "sanctionType": sanction.sanction_type,
+            "reason": sanction.reason,
+            "expiresAt": sanction.expires_at,
+        },
+        ip_address=deps.get_client_ip(request),
+    )
     return {"status": "success", "data": SanctionResponse.model_validate(sanction)}
 
 
@@ -89,6 +106,7 @@ def create_sanction(
 def deactivate_sanction(
     user_id: int,
     sanction_id: int,
+    request: Request,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin_user("ADMIN")),
 ) -> Any:
@@ -97,6 +115,15 @@ def deactivate_sanction(
         raise HTTPException(status_code=404, detail="Sanction not found")
 
     updated = crud_moderation.deactivate_sanction(db, sanction_id=sanction_id)
+    crud_admin.create_audit_log(
+        db,
+        admin_id=current_user.id,
+        action="DEACTIVATE_SANCTION",
+        target_type="user",
+        target_id=user_id,
+        details={"sanctionId": sanction_id, "sanctionType": updated.sanction_type},
+        ip_address=deps.get_client_ip(request),
+    )
     return {"status": "success", "data": SanctionResponse.model_validate(updated)}
 
 

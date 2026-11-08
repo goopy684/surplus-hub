@@ -1,12 +1,13 @@
 from typing import Any
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.api import deps
 from app.core.notify import notify
+from app.crud.crud_admin import crud_admin
 from app.crud.crud_material import crud_material
 from app.models.user import User
 
@@ -26,6 +27,7 @@ class ReviewAction(BaseModel):
 def review_material(
     material_id: int,
     review_in: ReviewAction,
+    request: Request,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_active_superuser),
 ) -> Any:
@@ -47,6 +49,15 @@ def review_material(
     db.add(material)
     db.commit()
     db.refresh(material)
+    crud_admin.create_audit_log(
+        db,
+        admin_id=current_user.id,
+        action="REVIEW_MATERIAL",
+        target_type="material",
+        target_id=material.id,
+        details={"action": review_in.action, "note": review_in.note},
+        ip_address=deps.get_client_ip(request),
+    )
 
     # Notify the seller of the review outcome
     if review_in.action == "approve":
