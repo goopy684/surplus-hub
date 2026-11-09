@@ -19,7 +19,24 @@ def split_price(price: int, quantity: int, available: int) -> int:
     return max(1, (2 * price * quantity + available) // (2 * available))
 
 
-def _lock_material(db: Session, material_id: int) -> Optional[Material]:
+class StockConflictError(ValueError):
+    """확정된 거래 수량과 재고가 맞지 않는 변경 (API 409)."""
+
+
+def confirmed_quantity(db: Session, material: Material, exclude_id: Optional[int] = None) -> int:
+    """확정됐지만 아직 완료 안 된 수량 합. 완료 때 재고에서 빠질 몫이다. quantity None = 레거시 전체 구매."""
+    query = db.query(
+        func.coalesce(func.sum(func.coalesce(Transaction.quantity, material.quantity or 1)), 0)
+    ).filter(
+        Transaction.material_id == material.id,
+        Transaction.status == "CONFIRMED",
+    )
+    if exclude_id is not None:
+        query = query.filter(Transaction.id != exclude_id)
+    return query.scalar()
+
+
+def lock_material(db: Session, material_id: int) -> Optional[Material]:
     # Lock the material row to prevent race conditions
     # populate_existing: 엔드포인트가 이미 읽어 둔 객체가 세션에 있어도 잠금 시점 값으로 다시 채운다
     return db.execute(
@@ -41,7 +58,7 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, dict]):
         quantity: Optional[int] = None,
         note: Optional[str] = None,
     ) -> Transaction:
-        material = _lock_material(db, material_id)
+        material = lock_material(db, material_id)
 
         if not material or material.status != "ACTIVE":
             raise ValueError("Material is not available for transaction")
@@ -101,24 +118,16 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, dict]):
         self, db: Session, *, db_obj: Transaction
     ) -> Transaction:
         # 매물 행 잠금으로 같은 매물의 확정·완료를 직렬화한다 (동시 확정 두 건이 같은 재고를 보지 않도록)
-        material = _lock_material(db, db_obj.material_id)
+        material = lock_material(db, db_obj.material_id)
         db.refresh(db_obj, with_for_update=True)
         if db_obj.status != "PENDING":
             raise ValueError("이미 처리된 거래 요청입니다")
         if material:
             remaining = material.quantity or 1
-            # 확정됐지만 아직 완료 안 된 수량은 이미 팔린 것으로 본다. quantity None = 레거시 전체 구매
-            reserved = db.query(
-                func.coalesce(func.sum(func.coalesce(Transaction.quantity, remaining)), 0)
-            ).filter(
-                Transaction.material_id == material.id,
-                Transaction.status == "CONFIRMED",
-                Transaction.id != db_obj.id,
-            ).scalar()
             requested = db_obj.quantity or remaining
-            available = remaining - reserved
+            available = remaining - confirmed_quantity(db, material, exclude_id=db_obj.id)
             if requested > available:
-                raise ValueError(
+                raise StockConflictError(
                     f"남은 재고가 부족해 거래를 확정할 수 없습니다 "
                     f"(요청 {requested}개, 확정 가능 {max(available, 0)}개)"
                 )
@@ -132,7 +141,7 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, dict]):
     def complete_transaction(
         self, db: Session, *, db_obj: Transaction
     ) -> Transaction:
-        material = _lock_material(db, db_obj.material_id)
+        material = lock_material(db, db_obj.material_id)
         # 같은 거래를 양측이 동시에 완료(또는 재시도)해도 재고를 두 번 차감하지 않도록 잠금 후 다시 확인
         db.refresh(db_obj, with_for_update=True)
         if db_obj.status != "CONFIRMED":

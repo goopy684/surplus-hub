@@ -10,6 +10,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { AuthGate } from "../../../../components/AuthGate";
+import { apiErrorDetail } from "../../../../utils/apiError";
 
 // 모노라인 카테고리 아이콘 (viewBox 0 0 24 24, stroke currentColor, 1.8)
 function CategoryIcon({ name, className }: { name: string; className?: string }) {
@@ -164,8 +165,9 @@ function EditContent({ id }: { id: string }) {
         ...(form.status === "SOLD" && buyerId ? { buyerId: Number(buyerId) } : {}),
       });
       router.push(`/material/${id}`);
-    } catch {
-      alert("수정 요청 중 오류가 발생했습니다.");
+    } catch (error) {
+      // 409(확정된 거래 수량보다 재고를 줄이는 경우 등)는 서버 사유를 그대로 보여준다
+      alert(apiErrorDetail(error) ?? "수정 요청 중 오류가 발생했습니다.");
     }
   };
 

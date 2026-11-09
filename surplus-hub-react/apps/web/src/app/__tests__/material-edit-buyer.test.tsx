@@ -66,4 +66,13 @@ describe('Material edit — buyer on 거래완료', () => {
     await waitFor(() => expect(mutateAsync).toHaveBeenCalled())
     expect(mutateAsync.mock.calls[0][0]).not.toHaveProperty('buyerId')
   })
+
+  it('SH-37: shows the server reason when stock is cut below confirmed quantity', async () => {
+    const detail = '확정된 거래 수량(8개)보다 재고를 적게 바꿀 수 없습니다'
+    mutateAsync.mockRejectedValueOnce({ response: { status: 409, data: { detail } } })
+    const alert = jest.spyOn(window, 'alert').mockImplementation(() => {})
+    render(<MaterialEditPage params={{ id: '7' }} />)
+    fireEvent.click(screen.getByRole('button', { name: '수정 완료' }))
+    await waitFor(() => expect(alert).toHaveBeenCalledWith(detail))
+  })
 })

@@ -479,6 +479,59 @@ class TestPartialSaleIntegrity:
         assert _get_material(client, material_id)["status"] == "ACTIVE"
         assert sales_count() == before + 1
 
+    def test_cannot_cut_stock_below_confirmed_quantity(
+        self, client: TestClient, auth_headers, auth_headers2
+    ):
+        """SH-37 재발 경로: 8개 확정 후 판매자가 수량을 2로 줄이면 완료가 409로 막혀 CONFIRMED에 갇혔다."""
+        material_id = _create_material(client, auth_headers, quantity=10)
+        tx_id = _buy(client, auth_headers2, material_id, quantity=8).json()["data"]["id"]
+        assert client.patch(f"{TX_PREFIX}/{tx_id}/confirm", headers=auth_headers).status_code == 200
+
+        def edit(quantity):
+            return client.put(
+                f"{MAT_PREFIX}/{material_id}",
+                json={"title": "TX Test Material", "description": "edit", "price": 50000,
+                      "location": {"address": "Busan"}, "quantity": quantity},
+                headers=auth_headers,
+            )
+
+        resp = edit(2)
+        assert resp.status_code == 409
+        assert "8개" in resp.json()["detail"]
+        assert _get_material(client, material_id)["quantity"] == 10
+        assert edit(8).status_code == 200  # 확정 수량까지는 줄일 수 있다
+        resp = client.patch(f"{TX_PREFIX}/{tx_id}/complete", headers=auth_headers2)
+        assert resp.status_code == 200
+        assert _get_material(client, material_id)["status"] == "SOLD"
+
+    def test_mark_sold_rechecks_status_after_lock(
+        self, client: TestClient, auth_headers, auth_headers2, test_user, test_user2
+    ):
+        """판매종료(close_sale)는 잠금 후 다시 읽은 상태로 판단한다: 읽어 둔 '예약중'으로 판매를 또 기록하지 않는다."""
+        from app.crud.crud_material import crud_material
+        from app.models.chat import ChatRoom
+        from app.models.material import Material
+        from app.models.transaction import Transaction
+        from app.tests.conftest import TestingSessionLocal
+
+        material_id = _create_material(client, auth_headers, quantity=1)
+        tx_id = _buy(client, auth_headers2, material_id).json()["data"]["id"]
+        s = TestingSessionLocal()
+        try:
+            s.add(ChatRoom(material_id=material_id, seller_id=test_user.id, buyer_id=test_user2.id))
+            s.commit()
+            stale = s.get(Material, material_id)  # 판매자 요청이 먼저 읽어 둔 상태 (RESERVED)
+            assert stale.status == "RESERVED"
+            assert _confirm_and_complete(client, auth_headers, auth_headers2, tx_id).status_code == 200
+
+            crud_material.update_status(s, db_obj=stale, status="SOLD", buyer_id=test_user2.id)
+            completed = s.query(Transaction).filter(
+                Transaction.material_id == material_id, Transaction.status == "COMPLETED"
+            ).count()
+            assert completed == 1
+        finally:
+            s.close()
+
     def test_double_complete_of_same_partial_tx_deducts_once(
         self, client: TestClient, auth_headers, auth_headers2
     ):

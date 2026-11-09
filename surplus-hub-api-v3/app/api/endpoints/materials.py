@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.api import deps
 from app.crud.crud_material import crud_material
 from app.crud.crud_like import crud_material_like
+from app.crud.crud_transaction import StockConflictError
 from app.models.material import Material
 from app.models.user import User
 from app.schemas.material import MaterialCreate, MaterialUpdate, Material as MaterialSchema  # noqa: F401
@@ -149,6 +150,8 @@ def update_material(
 
     try:
         updated = crud_material.update_material(db, db_obj=material, obj_in=material_in)
+    except StockConflictError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
