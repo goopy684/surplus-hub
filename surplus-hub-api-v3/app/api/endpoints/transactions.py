@@ -172,9 +172,12 @@ def confirm_transaction(
         raise HTTPException(status_code=403, detail="Only seller can confirm")
 
     if tx.status != "PENDING":
-        raise HTTPException(status_code=400, detail="Transaction is not pending")
+        raise HTTPException(status_code=400, detail="이미 처리된 거래 요청입니다")
 
-    tx = crud_transaction.confirm_transaction(db, db_obj=tx)
+    try:
+        tx = crud_transaction.confirm_transaction(db, db_obj=tx)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
 
     # Notify the buyer that the seller accepted
     notify(
@@ -208,7 +211,7 @@ def complete_transaction(
         raise HTTPException(status_code=403, detail="Not authorized")
 
     if tx.status != "CONFIRMED":
-        raise HTTPException(status_code=400, detail="Transaction must be confirmed first")
+        raise HTTPException(status_code=400, detail="확정된 거래만 완료할 수 있습니다")
 
     try:
         tx = crud_transaction.complete_transaction(db, db_obj=tx)

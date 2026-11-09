@@ -181,7 +181,7 @@ class TestTransactionLifecycle:
             f"{TX_PREFIX}/{tx_id}/confirm", headers=auth_headers
         )
         assert re_confirm.status_code == 400
-        assert "not pending" in re_confirm.json()["detail"].lower()
+        assert "이미 처리된" in re_confirm.json()["detail"]
 
         # -- Step 9: Complete (buyer) --
         complete_resp = client.patch(
@@ -210,7 +210,7 @@ class TestTransactionLifecycle:
             f"{TX_PREFIX}/{tx_id}/complete", headers=auth_headers2
         )
         assert complete_resp.status_code == 400
-        assert "confirmed" in complete_resp.json()["detail"].lower()
+        assert "확정된 거래만" in complete_resp.json()["detail"]
 
 
 # ---------------------------------------------------------------------------
@@ -368,23 +368,62 @@ class TestPartialQuantityTransaction:
         assert tx["quantity"] == 5
         assert _get_material(client, material_id)["status"] == "RESERVED"
 
-    def test_over_completion_returns_409(
+    def test_over_confirmation_after_partial_sale_returns_409(
         self, client: TestClient, auth_headers, auth_headers2, superuser_headers
     ):
-        """잔여 수량이 다른 부분 거래로 줄어든 뒤엔 초과 거래를 완료할 수 없다."""
+        """잔여 수량이 다른 부분 거래로 줄어든 뒤엔 초과 거래를 확정할 수 없다 (SH-37: '확인됨'에 갇히지 않음)."""
         material_id = _create_material(client, auth_headers, quantity=10)
         tx_a = _buy(client, auth_headers2, material_id, quantity=6).json()["data"]["id"]
         tx_b = _buy(client, superuser_headers, material_id, quantity=6).json()["data"]["id"]
 
         assert _confirm_and_complete(client, auth_headers, auth_headers2, tx_a).status_code == 200
-        resp = _confirm_and_complete(client, auth_headers, superuser_headers, tx_b)
+        resp = client.patch(f"{TX_PREFIX}/{tx_b}/confirm", headers=auth_headers)
         assert resp.status_code == 409
+        assert "확정 가능 4개" in resp.json()["detail"]
 
         detail = client.get(f"{TX_PREFIX}/{tx_b}", headers=superuser_headers).json()["data"]
-        assert detail["status"] == "CONFIRMED"
+        assert detail["status"] == "PENDING"
         material = _get_material(client, material_id)
         assert material["quantity"] == 4
         assert material["status"] == "ACTIVE"
+
+    def test_confirm_counts_other_confirmed_quantity(
+        self, client: TestClient, auth_headers, auth_headers2, superuser_headers
+    ):
+        """SH-37 QA 재현: 재고 50에 49·50 요청 → 49 확정 후 50 확정은 409, 49는 정상 완료."""
+        material_id = _create_material(client, auth_headers, quantity=50)
+        tx_49 = _buy(client, auth_headers2, material_id, quantity=49).json()["data"]["id"]
+        tx_50 = _buy(client, superuser_headers, material_id, quantity=50).json()["data"]["id"]
+
+        assert client.patch(f"{TX_PREFIX}/{tx_49}/confirm", headers=auth_headers).status_code == 200
+        resp = client.patch(f"{TX_PREFIX}/{tx_50}/confirm", headers=auth_headers)
+        assert resp.status_code == 409
+        assert "확정 가능 1개" in resp.json()["detail"]
+
+        assert client.patch(f"{TX_PREFIX}/{tx_49}/complete", headers=auth_headers2).status_code == 200
+        assert _get_material(client, material_id)["quantity"] == 1
+
+    def test_confirm_checks_stock_at_lock_time_not_cached_value(
+        self, client: TestClient, auth_headers, auth_headers2, superuser_headers
+    ):
+        """두 확정 요청이 모두 PENDING을 읽어 둔 상태에서도 두 번째 확정은 잠금 후 재검사로 막힌다."""
+        from app.crud.crud_transaction import crud_transaction
+        from app.models.transaction import Transaction
+        from app.tests.conftest import TestingSessionLocal
+
+        material_id = _create_material(client, auth_headers, quantity=10)
+        tx_a = _buy(client, auth_headers2, material_id, quantity=6).json()["data"]["id"]
+        tx_b = _buy(client, superuser_headers, material_id, quantity=6).json()["data"]["id"]
+
+        s1, s2 = TestingSessionLocal(), TestingSessionLocal()
+        try:
+            t1, t2 = s1.get(Transaction, tx_a), s2.get(Transaction, tx_b)
+            crud_transaction.confirm_transaction(s1, db_obj=t1)
+            with pytest.raises(ValueError, match="확정 가능 4개"):
+                crud_transaction.confirm_transaction(s2, db_obj=t2)
+        finally:
+            s1.close()
+            s2.close()
 
 
 class TestPartialSaleIntegrity:

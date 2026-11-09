@@ -1,7 +1,7 @@
 from typing import List, Optional
 from datetime import datetime, timezone
 
-from sqlalchemy import desc, or_, select
+from sqlalchemy import desc, func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.crud.base import CRUDBase
@@ -100,6 +100,28 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, dict]):
     def confirm_transaction(
         self, db: Session, *, db_obj: Transaction
     ) -> Transaction:
+        # 매물 행 잠금으로 같은 매물의 확정·완료를 직렬화한다 (동시 확정 두 건이 같은 재고를 보지 않도록)
+        material = _lock_material(db, db_obj.material_id)
+        db.refresh(db_obj, with_for_update=True)
+        if db_obj.status != "PENDING":
+            raise ValueError("이미 처리된 거래 요청입니다")
+        if material:
+            remaining = material.quantity or 1
+            # 확정됐지만 아직 완료 안 된 수량은 이미 팔린 것으로 본다. quantity None = 레거시 전체 구매
+            reserved = db.query(
+                func.coalesce(func.sum(func.coalesce(Transaction.quantity, remaining)), 0)
+            ).filter(
+                Transaction.material_id == material.id,
+                Transaction.status == "CONFIRMED",
+                Transaction.id != db_obj.id,
+            ).scalar()
+            requested = db_obj.quantity or remaining
+            available = remaining - reserved
+            if requested > available:
+                raise ValueError(
+                    f"남은 재고가 부족해 거래를 확정할 수 없습니다 "
+                    f"(요청 {requested}개, 확정 가능 {max(available, 0)}개)"
+                )
         db_obj.status = "CONFIRMED"
         db_obj.confirmed_at = datetime.now(timezone.utc)
         db.add(db_obj)
@@ -114,19 +136,19 @@ class CRUDTransaction(CRUDBase[Transaction, TransactionCreate, dict]):
         # 같은 거래를 양측이 동시에 완료(또는 재시도)해도 재고를 두 번 차감하지 않도록 잠금 후 다시 확인
         db.refresh(db_obj, with_for_update=True)
         if db_obj.status != "CONFIRMED":
-            raise ValueError("Transaction is not confirmed")
+            raise ValueError("확정된 거래만 완료할 수 있습니다")
         sold = False
         if material:
             remaining = material.quantity or 1
             quantity = db_obj.quantity
             if quantity is not None and quantity > remaining:
                 raise ValueError(
-                    f"Not enough stock left to complete ({quantity} requested, {remaining} left)"
+                    f"남은 재고가 부족해 거래를 완료할 수 없습니다 (요청 {quantity}개, 남은 재고 {remaining}개)"
                 )
             if quantity is None or quantity == remaining:
                 sold = True
             elif material.status == "SOLD":
-                raise ValueError("Material is already sold")
+                raise ValueError("이미 판매 완료된 매물입니다")
             else:
                 # 일부 수량 판매: 잔여 수량·가격 차감 후 계속 판매
                 # 가격은 요청 시점 tx.price가 아니라 현재 묶음 가격 기준으로 차감 (요청 후 판매자가 가격을 바꿨을 수 있음)
