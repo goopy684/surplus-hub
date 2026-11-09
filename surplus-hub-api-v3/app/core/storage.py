@@ -12,6 +12,17 @@ from botocore.exceptions import ClientError
 from app.core.config import settings
 
 
+def public_url(key: str) -> str:
+    """Public URL of an uploaded object."""
+    if settings.STORAGE_PUBLIC_BASE_URL:
+        return f"{settings.STORAGE_PUBLIC_BASE_URL.rstrip('/')}/{key}"
+    if settings.AWS_S3_ENDPOINT_URL:
+        # S3 호환 스토리지(R2 등)의 API endpoint는 공개 주소가 아니고, AWS 형식으로 만들면
+        # 존재하지 않는 호스트(…s3.auto.amazonaws.com)가 된다 — 깨진 URL을 저장하느니 업로드를 실패시킨다.
+        raise RuntimeError("STORAGE_PUBLIC_BASE_URL must be set when AWS_S3_ENDPOINT_URL is set")
+    return f"https://{settings.AWS_S3_BUCKET_NAME}.s3.{settings.AWS_S3_REGION}.amazonaws.com/{key}"
+
+
 class BaseStorage:
     def _generate_key(self, folder: str, filename: str) -> str:
         """Generate a unique key."""
@@ -57,6 +68,7 @@ class S3Storage(BaseStorage):
     ) -> str:
         """Upload a file to S3 and return the public URL."""
         key = self._generate_key(folder, filename)
+        url = public_url(key)  # 설정 오류면 객체를 올리기 전에 실패
 
         self.client.put_object(
             Bucket=settings.AWS_S3_BUCKET_NAME,
@@ -64,8 +76,6 @@ class S3Storage(BaseStorage):
             Body=file_content,
             ContentType=content_type,
         )
-
-        url = f"https://{settings.AWS_S3_BUCKET_NAME}.s3.{settings.AWS_S3_REGION}.amazonaws.com/{key}"
         return url
 
     def generate_presigned_url(
@@ -77,6 +87,7 @@ class S3Storage(BaseStorage):
     ) -> dict:
         """Generate a presigned URL for direct upload from client."""
         key = self._generate_key(folder, filename)
+        url = public_url(key)
 
         presigned_url = self.client.generate_presigned_url(
             "put_object",
@@ -88,11 +99,9 @@ class S3Storage(BaseStorage):
             ExpiresIn=expires_in,
         )
 
-        public_url = f"https://{settings.AWS_S3_BUCKET_NAME}.s3.{settings.AWS_S3_REGION}.amazonaws.com/{key}"
-
         return {
             "uploadUrl": presigned_url,
-            "publicUrl": public_url,
+            "publicUrl": url,
             "key": key,
             "expiresIn": expires_in,
         }

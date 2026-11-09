@@ -237,12 +237,17 @@ for v in R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_ENDPOINT; do
 done
 ```
 
-### 3.5 (선택) Public access — 도메인 연결
-도메인이 있을 때만:
+### 3.5 (필수) Public access — 공개 URL 확보
+업로드 이미지는 공개 URL로 읽는다. S3 API endpoint(`*.r2.cloudflarestorage.com`)는 인증이 필요해 공개 주소로 쓸 수 없다 (SH-36).
 ```bash
+# 도메인이 있으면 커스텀 도메인 연결
 wrangler r2 bucket domain add surplus-hub-uploads --domain cdn.surplushub.kr
-# 도메인 없으면 skip — Presigned URL 방식으로 진행
+export R2_PUBLIC_URL=https://cdn.surplushub.kr
+# 도메인이 없으면 r2.dev 공개 URL 사용 (대시보드 R2 > 버킷 > Settings > Public Development URL 에서도 가능)
+wrangler r2 bucket dev-url enable surplus-hub-uploads
+export R2_PUBLIC_URL=https://pub-<hash>.r2.dev
 ```
+`R2_PUBLIC_URL`은 §4의 `STORAGE_PUBLIC_BASE_URL`로 들어간다. 커스텀 도메인이면 Vercel에도 같은 값을 `STORAGE_PUBLIC_BASE_URL`로 넣어 `next/image` 허용 호스트에 추가한다 (`*.r2.dev`는 기본 허용).
 
 ---
 
@@ -304,6 +309,7 @@ railway variables set \
   AWS_S3_BUCKET_NAME=surplus-hub-uploads \
   AWS_S3_REGION=auto \
   AWS_S3_ENDPOINT_URL="$R2_ENDPOINT" \
+  STORAGE_PUBLIC_BASE_URL="$R2_PUBLIC_URL" \
   MAX_UPLOAD_SIZE_MB=10 \
   GOOGLE_CLIENT_ID="$GOOGLE_OAUTH_CLIENT_ID" \
   WEB_CONCURRENCY=2
@@ -656,6 +662,7 @@ Claude Code가 처음부터 순서대로:
 | `AWS_S3_BUCKET_NAME` | `surplus-hub-uploads` | 고정 |
 | `AWS_S3_REGION` | `auto` | R2는 auto |
 | `AWS_S3_ENDPOINT_URL` | `https://<acct>.r2.cloudflarestorage.com` | §3.4 |
+| `STORAGE_PUBLIC_BASE_URL` | `https://pub-<hash>.r2.dev` (또는 커스텀 도메인) | **필수**. 업로드 이미지 공개 URL 앞부분. 없으면 업로드 500 (SH-36) |
 | `MAX_UPLOAD_SIZE_MB` | `10` | 권장 |
 | `GOOGLE_CLIENT_ID` | `xxxx.apps.googleusercontent.com` | §C (Google Cloud Console) |
 | `FRONTEND_URL` | `https://<project>.vercel.app` | §6.2 후 설정 (비밀번호 재설정 링크) |

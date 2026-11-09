@@ -7,17 +7,20 @@
 const apiUrl =
   process.env.NEXT_PUBLIC_API_URL ||
   (process.env.NODE_ENV === "production" ? "" : "http://localhost:8000");
+// Uploaded images are served from the backend's STORAGE_PUBLIC_BASE_URL (R2
+// r2.dev or a custom domain); set the same value here at build time for custom domains.
 const apiRemotePatterns = [];
-if (apiUrl) {
+for (const url of [apiUrl, process.env.STORAGE_PUBLIC_BASE_URL]) {
+  if (!url) continue;
   try {
-    const u = new URL(apiUrl);
+    const u = new URL(url);
     apiRemotePatterns.push({
       protocol: u.protocol.replace(":", ""),
       hostname: u.hostname,
       ...(u.port ? { port: u.port } : {}),
     });
   } catch {
-    /* ignore malformed NEXT_PUBLIC_API_URL */
+    /* ignore malformed URL */
   }
 }
 
@@ -52,6 +55,7 @@ const nextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
       { protocol: "https", hostname: "**.amazonaws.com" },
+      { protocol: "https", hostname: "**.r2.dev" },
       // Stock photos, generated avatars, and placeholders referenced by seed data.
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "api.dicebear.com" },
