@@ -366,7 +366,7 @@ export default function Home() {
                       <p className="flex items-center gap-2 text-xs text-muted-foreground">
                         {item.quantity && item.quantity > 0 ? (
                           <span>
-                            수량 {item.quantity}
+                            남은 {item.quantity}
                             {item.quantityUnit ? ` ${item.quantityUnit}` : ""}
                           </span>
                         ) : null}

@@ -82,6 +82,7 @@ const mapChatRoom = (raw: unknown): ChatRoom => {
     rawPrice !== undefined && rawPrice !== null ? readNumber(rawPrice, 0) : undefined;
   const materialStatus = readString(room.materialStatus ?? room.material_status);
   const materialImageUrl = readString(room.materialImageUrl ?? room.material_image_url);
+  const rawSellerId = room.sellerId ?? room.seller_id;
 
   return {
     id,
@@ -95,6 +96,7 @@ const mapChatRoom = (raw: unknown): ChatRoom => {
     materialPrice,
     materialStatus,
     materialImageUrl,
+    sellerId: rawSellerId !== undefined && rawSellerId !== null ? String(rawSellerId) : undefined,
     otherUser: {
       id: otherUserId,
       name: otherUserName,

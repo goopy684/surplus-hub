@@ -58,6 +58,9 @@ export const useMaterialLikeStatus = (id: string): UseQueryResult<MaterialLikeSt
     queryFn: () => checkMaterialLike(id),
     enabled: !!id && hasAuthToken(),
     retry: false,
+    // 다른 사용자의 관심 수를 열린 화면에도 반영 (탭이 보일 때만 폴링; 포커스 복귀 시 재조회는 기본값)
+    // ponytail: 30초 폴링, 실시간이 필요하면 WS 이벤트로 교체
+    refetchInterval: 30_000,
   });
 };
 

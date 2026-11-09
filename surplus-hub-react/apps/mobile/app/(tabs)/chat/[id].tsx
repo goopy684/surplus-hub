@@ -1,7 +1,7 @@
 import { View, FlatList, KeyboardAvoidingView, Platform, SafeAreaView, ActivityIndicator, Text, ScrollView, TouchableOpacity, Image } from "react-native";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import {
-  QUICK_REPLIES,
+  getQuickReplies,
   TRANSLATION_LANGUAGES,
   getChatSuggestions,
   translateText,
@@ -101,7 +101,7 @@ export default function ChatRoomScreen() {
     };
   }, [id, messages?.length]);
 
-  const quickReplies = [...new Set([...aiSuggestions, ...QUICK_REPLIES])];
+  const quickReplies = [...new Set([...aiSuggestions, ...getQuickReplies(currentUser?.id, room?.sellerId)])];
 
   // 번역: 최근 메시지만, `${lang}:${content}` 단위로 한 번씩 요청
   useEffect(() => {
@@ -151,7 +151,7 @@ export default function ChatRoomScreen() {
         options={{
           headerTitle: () => (
             <View className="flex-row items-center">
-              <Text className="text-[17px] font-extrabold tracking-[-0.4px] text-foreground">채팅</Text>
+              <Text numberOfLines={1} className="text-[17px] font-extrabold tracking-[-0.4px] text-foreground">{room?.otherUser.name || "채팅"}</Text>
               {isConnected && (
                 <View className="ml-2 w-2.5 h-2.5 rounded-full bg-olive" />
               )}

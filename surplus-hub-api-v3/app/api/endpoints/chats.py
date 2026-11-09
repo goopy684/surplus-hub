@@ -36,6 +36,7 @@ def _room_to_schema(room, current_user_id: int, db: Session) -> ChatRoomSchema:
         materialPrice=mat.price if mat else None,
         materialStatus=mat.status if mat else None,
         materialImageUrl=mat.thumbnail_url if mat else None,
+        sellerId=room.seller_id,
         otherUserId=other_user.id,
         otherUserName=other_user.name,
         otherUserAvatar=other_user.profile_image_url,

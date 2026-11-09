@@ -107,6 +107,20 @@ class TestCreateChatRoom:
         assert resp2.status_code == 200
         assert resp1.json()["data"]["id"] == resp2.json()["data"]["id"]
 
+    def test_room_detail_exposes_seller_id_to_both_sides(
+        self, client: TestClient, auth_headers, auth_headers2, test_user2
+    ):
+        """SH-43: 클라이언트가 역할별 빠른 답장을 고르려면 판매자 ID가 필요하다."""
+        room_id = client.post(
+            f"{API}/chats/rooms",
+            json={"sellerId": test_user2.id},
+            headers=auth_headers,
+        ).json()["data"]["id"]
+        for headers in (auth_headers, auth_headers2):
+            resp = client.get(f"{API}/chats/rooms/{room_id}", headers=headers)
+            assert resp.status_code == 200
+            assert resp.json()["data"]["sellerId"] == test_user2.id
+
 
 # ===================================================================
 # Messages

@@ -9,6 +9,24 @@ from app.models.user import User
 from app.schemas.review import ReviewCreate
 
 
+BASE_MANNER_TEMPERATURE = 36.5
+# 후기 몇 건 분량만큼 기본값(36.5) 쪽으로 당길지. 클수록 적은 후기로는 온도가 덜 움직인다.
+MANNER_PRIOR_WEIGHT = 10
+
+
+def manner_temperature(avg_rating: float, review_count: int) -> float:
+    """평균 별점을 온도로 바꾸되 표본 수가 적으면 기본값 쪽으로 수축(베이지안 평균).
+
+    원시 매핑: 1점 -> 10, 3점 -> 50, 5점 -> 90 (선형).
+    5점 후기 1건이면 90이 아니라 (10*36.5 + 1*90) / 11 = 41.4.
+    """
+    raw = (avg_rating - 1) / 4 * 80 + 10
+    blended = (
+        MANNER_PRIOR_WEIGHT * BASE_MANNER_TEMPERATURE + review_count * raw
+    ) / (MANNER_PRIOR_WEIGHT + review_count)
+    return round(blended, 1)
+
+
 class CRUDReview(CRUDBase[Review, ReviewCreate, dict]):
     def create_review(
         self,
@@ -59,22 +77,15 @@ class CRUDReview(CRUDBase[Review, ReviewCreate, dict]):
         return float(result) if result else None
 
     def _update_manner_temperature(self, db: Session, user_id: int):
-        """
-        Calculate manner temperature based on review ratings.
-        Base: 36.5, Scale: avg_rating maps to 0-100 range.
-        1 star avg -> ~10, 3 star avg -> ~50, 5 star avg -> ~90
-        """
-        avg_rating = self.get_average_rating(db, user_id=user_id)
-        if avg_rating is None:
+        count, avg_rating = db.query(func.count(Review.id), func.avg(Review.rating)).filter(
+            Review.target_user_id == user_id
+        ).one()
+        if not count:
             return
-
-        # Map 1-5 rating to temperature (scale: ~10 to ~90)
-        # Formula: (avg_rating - 1) / 4 * 80 + 10
-        temperature = (avg_rating - 1) / 4 * 80 + 10
 
         user = db.query(User).filter(User.id == user_id).first()
         if user:
-            user.manner_temperature = round(temperature, 1)
+            user.manner_temperature = manner_temperature(float(avg_rating), count)
             db.commit()
 
 

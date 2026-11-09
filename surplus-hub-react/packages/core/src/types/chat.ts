@@ -22,6 +22,7 @@ export interface ChatRoom {
   materialPrice?: number;
   materialStatus?: string;
   materialImageUrl?: string;
+  sellerId?: string;
   otherUser: ChatUser;
   lastMessage?: ChatMessage;
   unreadCount: number;
