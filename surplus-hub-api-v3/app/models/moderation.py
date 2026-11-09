@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Boolean, UniqueConstraint
+from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Boolean, Index, text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -7,9 +7,15 @@ from app.db.base import Base
 
 class Report(Base):
     __tablename__ = "reports"
-    # 같은 사용자가 같은 대상을 반복 신고하지 못하게 한다 (SH-40)
+    # 같은 사용자가 같은 대상을 반복 신고하지 못하게 한다 (SH-40). API는 상태와 무관하게 막고,
+    # DB는 처리 이력을 지우지 않도록 미처리(pending) 신고만 유일하게 강제한다 (동시 요청 대비).
     __table_args__ = (
-        UniqueConstraint("reporter_id", "target_type", "target_id", name="uq_report_reporter_target"),
+        Index(
+            "uq_report_pending_reporter_target", "reporter_id", "target_type", "target_id",
+            unique=True,
+            postgresql_where=text("status = 'pending'"),
+            sqlite_where=text("status = 'pending'"),
+        ),
     )
 
     id = Column(Integer, primary_key=True, index=True)

@@ -185,6 +185,39 @@ class TestCreateReport:
         )
         assert other.status_code == 201
 
+    def test_report_again_after_handled_still_409(
+        self, client: TestClient, mod_reporter_headers, mod_moderator_headers
+    ):
+        """처리(반려)된 신고가 있어도 같은 대상 재신고는 409 — 처리 이력은 그대로 남는다."""
+        payload = {"targetType": "comment", "targetId": 990002, "reason": "spam"}
+        first = client.post(REPORTS_PREFIX, json=payload, headers=mod_reporter_headers)
+        report_id = first.json()["data"]["id"]
+        handled = client.patch(
+            f"{ADMIN_MOD_PREFIX}/reports/{report_id}", json={"status": "dismissed"},
+            headers=mod_moderator_headers,
+        )
+        assert handled.status_code == 200
+        assert client.post(REPORTS_PREFIX, json=payload, headers=mod_reporter_headers).status_code == 409
+
+    def test_db_index_only_blocks_duplicate_pending(self, mod_reporter_user):
+        """부분 유니크 인덱스: 처리된 중복은 보존 가능, pending 중복만 거부 (동시 요청 방어선)."""
+        from sqlalchemy.exc import IntegrityError
+        from app.models.moderation import Report
+        from app.tests.conftest import TestingSessionLocal
+
+        key = dict(reporter_id=mod_reporter_user.id, target_type="post", target_id=990003, reason="spam")
+        s = TestingSessionLocal()
+        try:
+            s.add_all([Report(**key, status="dismissed"), Report(**key, status="resolved"),
+                       Report(**key, status="pending")])
+            s.commit()
+            s.add(Report(**key, status="pending"))
+            with pytest.raises(IntegrityError):
+                s.commit()
+        finally:
+            s.rollback()
+            s.close()
+
     def test_self_report_rejected(
         self, client: TestClient, mod_reporter_user, mod_reporter_headers
     ):

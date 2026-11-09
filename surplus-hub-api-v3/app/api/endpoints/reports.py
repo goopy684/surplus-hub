@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.api import deps
 from app.crud.crud_moderation import crud_moderation
+from app.models.moderation import Report
 from app.models.user import User
 from app.schemas.moderation import ReportCreate, ReportResponse
 
@@ -33,9 +34,16 @@ def create_report(
     if data.target_type == "user" and data.target_id == current_user.id:
         raise HTTPException(status_code=400, detail="You cannot report yourself")
 
+    duplicate = HTTPException(status_code=409, detail="You have already reported this")
+    if db.query(Report.id).filter(
+        Report.reporter_id == current_user.id,
+        Report.target_type == data.target_type,
+        Report.target_id == data.target_id,
+    ).first():
+        raise duplicate
     try:
         report = crud_moderation.create_report(db, reporter_id=current_user.id, data=data)
-    except IntegrityError:  # uq_report_reporter_target
+    except IntegrityError:  # 동시 요청: uq_report_pending_reporter_target
         db.rollback()
-        raise HTTPException(status_code=409, detail="You have already reported this")
+        raise duplicate
     return {"status": "success", "data": ReportResponse.model_validate(report)}
