@@ -204,7 +204,7 @@ def analyze_image(
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
     try:
-        result = registration_service.analyze_material_image(body.image_url)
+        result = registration_service.analyze_material_image(body.image_url, body.keyword)
     except Exception as exc:
         raise _handle_ai_error(exc, "Vision AI service")
 

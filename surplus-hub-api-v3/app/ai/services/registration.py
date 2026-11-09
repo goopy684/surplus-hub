@@ -2,7 +2,8 @@
 
 import json
 import logging
-from typing import List, Optional
+import re
+from typing import List, Optional, Tuple
 
 from sqlalchemy.orm import Session
 
@@ -12,6 +13,7 @@ from app.ai.prompts.material import (
     DESCRIPTION_GENERATION_PROMPT,
     PRICE_SUGGESTION_PROMPT,
 )
+from app.ai.text import strip_markdown
 from app.crud.crud_category import TRADE_CATEGORIES
 from app.schemas.ai_schemas import (
     DescriptionGenerateResponse,
@@ -55,17 +57,48 @@ def _normalize_condition_grade(raw: Optional[str]) -> Optional[str]:
     return _CONDITION_GRADES.get(str(raw or "").replace(" ", "").upper())
 
 
-def analyze_material_image(image_url: str) -> ImageAnalysisResponse:
-    """Analyze a material image using Gemini Vision AI."""
-    result = analyze_image(image_url, categories=list(TRADE_CATEGORIES))
+# 웹 QUANTITY_UNITS와 같은 단위. 긴 것부터 ("m²"가 "m"보다 먼저), 뒤에 영문·숫자가 붙으면 단위가 아니다 ("12mm", "50A").
+_QUANTITY_RE = re.compile(r"(\d[\d,]*)\s*(개|장|박스|m²|m³|kg|톤|롤|세트|m)(?![A-Za-z0-9²³])")
+
+
+def parse_keyword(keyword: Optional[str]) -> Tuple[str, Optional[int], Optional[str]]:
+    """판매자 키워드를 (자재명, 수량, 단위)로 나눈다. "PVC 파이프 50개" -> ("PVC 파이프", 50, "개")."""
+    text = " ".join(str(keyword or "").split())
+    matches = list(_QUANTITY_RE.finditer(text))
+    if not matches:
+        return text, None, None
+    m = matches[-1]  # 수량은 보통 맨 뒤
+    name = " ".join((text[: m.start()] + text[m.end():]).split())
+    return name, int(m.group(1).replace(",", "")), m.group(2)
+
+
+def _title_with_keyword(ai_title: Optional[str], name: str) -> Optional[str]:
+    """AI 제목이 판매자가 입력한 자재명을 담지 않으면 판매자 입력을 제목으로 쓴다."""
+    if not name:
+        return ai_title
+    squash = lambda s: re.sub(r"\s+", "", s).lower()  # noqa: E731
+    if ai_title and squash(name) in squash(ai_title):
+        return ai_title
+    return name
+
+
+def analyze_material_image(image_url: str, keyword: Optional[str] = None) -> ImageAnalysisResponse:
+    """Analyze a material image using Gemini Vision AI.
+
+    판매자 키워드가 있으면 이미지 추정보다 우선한다 (제목·수량).
+    """
+    result = analyze_image(image_url, categories=list(TRADE_CATEGORIES), keyword=keyword or None)
+    name, quantity, quantity_unit = parse_keyword(keyword)
 
     return ImageAnalysisResponse(
         category=_normalize_category(result.get("category")),
         tags=result.get("tags", []),
-        titleSuggestion=result.get("title_suggestion"),
+        titleSuggestion=_title_with_keyword(result.get("title_suggestion"), name),
         condition=_normalize_condition_grade(result.get("condition")),
         materialType=result.get("material_type"),
         confidence=result.get("confidence", 0.0),
+        quantity=quantity,
+        quantityUnit=quantity_unit,
     )
 
 
@@ -98,7 +131,7 @@ def generate_material_description(
     )
 
     return DescriptionGenerateResponse(
-        description=description.strip(),
+        description=strip_markdown(description),
         modelUsed=DEFAULT_MODEL,
     )
 
@@ -166,6 +199,6 @@ def suggest_material_price(
         suggestedPrice=data.get("suggested_price", 0),
         priceRangeLow=data.get("price_range_low", 0),
         priceRangeHigh=data.get("price_range_high", 0),
-        reasoning=data.get("reasoning", ""),
+        reasoning=strip_markdown(str(data.get("reasoning", ""))),
         similarCount=len(similar),
     )

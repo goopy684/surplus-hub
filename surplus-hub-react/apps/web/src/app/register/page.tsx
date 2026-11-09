@@ -170,11 +170,16 @@ function RegisterContent() {
 
       // Step 3: 설명 생성
       setAnalysisStep(2);
+      // 판매자가 키워드에 적은 수량("50개")은 AI 추정보다 우선한다
+      const quantityUnit = (QUANTITY_UNITS as readonly string[]).includes(imageAnalysis.quantityUnit ?? "")
+        ? imageAnalysis.quantityUnit
+        : undefined;
+      const quantity = quantityUnit ? imageAnalysis.quantity : undefined;
       const descResult = await generateDescription(
         imageAnalysis.title,
         imageAnalysis.category,
         firstImage,
-        { tags: imageAnalysis.tags, condition: imageAnalysis.condition }
+        { tags: imageAnalysis.tags, condition: imageAnalysis.condition, quantity, quantityUnit }
       );
 
       // Step 4: 시세 분석
@@ -182,7 +187,8 @@ function RegisterContent() {
       const priceResult = await suggestPrice(
         imageAnalysis.title,
         imageAnalysis.category,
-        descResult.description
+        descResult.description,
+        { condition: imageAnalysis.condition, quantity }
       );
 
       // 카테고리를 업종 카테고리와 매칭 (백엔드는 이름 일치로 필터하므로 못 찾으면 기타)
@@ -200,8 +206,8 @@ function RegisterContent() {
         category: matchedCategory,
         description: descResult.description,
         price: priceResult.price.toString(),
-        quantity: "1",
-        quantityUnit: "개",
+        quantity: quantity ? String(quantity) : "1",
+        quantityUnit: quantityUnit ?? "개",
         tradeMethod: "DIRECT",
         conditionGrade: matchedGrade,
         location: "",
@@ -779,9 +785,9 @@ function RegisterContent() {
                   </div>
                 </div>
 
-                {marketPrice.recentTrades > 0 && (
+                {marketPrice.similarCount > 0 && (
                 <p className="text-xs text-muted-foreground text-center tabular">
-                  최근 30일 유사 거래 {marketPrice.recentTrades}건 기준
+                  유사 매물 {marketPrice.similarCount}건 기준
                 </p>
                 )}
               </div>

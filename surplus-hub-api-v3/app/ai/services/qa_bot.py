@@ -12,6 +12,7 @@ from app.ai.clients.openai_client import (
     generate_text,
     generate_text_with_history,
 )
+from app.ai.text import strip_markdown
 from app.ai.prompts.chat_qa import (
     CHAT_SUGGESTION_PROMPT,
     COMMUNITY_ANSWER_PROMPT,
@@ -102,7 +103,9 @@ def generate_chat_suggestions(
         logger.warning("Chat suggestion LLM returned non-JSON: %s", text[:200])
         suggestions = ["확인했습니다.", "감사합니다.", "네, 좋습니다."]
 
-    return ChatSuggestionResponse(suggestions=suggestions[:3])
+    return ChatSuggestionResponse(
+        suggestions=[strip_markdown(str(s)) for s in suggestions[:3]]
+    )
 
 
 def generate_community_answer(
@@ -134,7 +137,7 @@ def generate_community_answer(
     )
 
     return CommunityAnswerResponse(
-        answer=answer.strip(),
+        answer=strip_markdown(answer),
         modelUsed=model,
     )
 
@@ -189,6 +192,6 @@ def summarize_discussion(
         data = {"summary": raw.strip()[:300], "key_points": []}
 
     return SummarizeResponse(
-        summary=data.get("summary", ""),
-        keyPoints=data.get("key_points", []),
+        summary=strip_markdown(str(data.get("summary", ""))),
+        keyPoints=[strip_markdown(str(p)) for p in data.get("key_points", [])],
     )

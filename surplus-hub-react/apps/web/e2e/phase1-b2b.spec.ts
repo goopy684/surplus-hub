@@ -125,7 +125,9 @@ const stubPhase1Api = async (page: Page) => {
         contentType: "application/json",
         body: withApiEnvelope({
           suggestedPrice: 40000,
-          marketPrice: { min: 30000, ideal: 40000, max: 50000, recentTrades: 3 },
+          priceRangeLow: 30000,
+          priceRangeHigh: 50000,
+          similarCount: 3,
         }),
       });
       return;

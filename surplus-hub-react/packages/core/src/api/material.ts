@@ -7,7 +7,7 @@ import {
   MaterialResponse,
   MaterialLikeStatus,
 } from "../types";
-import { readRecord, readString, normalizeIso, parseNumber, parseOptionalNumber } from "./utils";
+import { readRecord, readString, normalizeIso, parseNumber, parseOptionalNumber, stripMarkdown } from "./utils";
 
 const normalizeSort = (sort?: string): "latest" | "price_asc" | "price_desc" => {
   if (!sort) return "latest";
@@ -59,7 +59,7 @@ const mapMaterialItem = (raw: unknown): MaterialItem => {
   return {
     id: String(item.id ?? ""),
     title: readString(item.title) || "제목 없는 자재",
-    description: readString(item.description) || "",
+    description: stripMarkdown(readString(item.description) || ""),
     price: parseNumber(item.price),
     imageUrl:
       readString(item.imageUrl) ||

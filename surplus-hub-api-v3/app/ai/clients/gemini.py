@@ -94,7 +94,9 @@ def _before_retry(retry_state):
     before_sleep=_before_retry,
     reraise=True,
 )
-def analyze_image(image_url: str, categories: Optional[list] = None) -> dict:
+def analyze_image(
+    image_url: str, categories: Optional[list] = None, keyword: Optional[str] = None
+) -> dict:
     """Analyze a material image and return structured metadata.
 
     Returns dict with keys:
@@ -107,6 +109,12 @@ def analyze_image(image_url: str, categories: Optional[list] = None) -> dict:
         category_hint = f"\n사용 가능한 카테고리: {', '.join(categories)}"
 
     prompt = IMAGE_ANALYSIS_PROMPT + category_hint
+    if keyword:
+        prompt += (
+            f"\n\n판매자가 입력한 키워드: {keyword}\n"
+            "- title_suggestion과 material_type은 이 키워드의 자재명·규격을 그대로 우선 사용한다 "
+            "(이미지 추정과 다르면 키워드를 따른다)."
+        )
 
     client = _get_client()
 
