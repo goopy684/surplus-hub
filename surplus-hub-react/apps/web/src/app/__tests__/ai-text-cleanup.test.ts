@@ -1,4 +1,20 @@
-import { apiClient, analyzeImage, fetchMaterialById, suggestPrice } from "@repo/core";
+import { readFileSync } from "fs";
+import path from "path";
+import { apiClient, analyzeImage, fetchMaterialById, stripMarkdown, suggestPrice } from "@repo/core";
+
+// 백엔드 pytest(test_ai_assist.py)와 같은 케이스 표 — 두 구현이 같은 결과를 내야 한다
+const cases = JSON.parse(
+  readFileSync(
+    path.resolve(__dirname, "../../../../../../surplus-hub-api-v3/app/tests/fixtures/ai_text_cases.json"),
+    "utf8"
+  )
+) as { strip_markdown: [string, string][] };
+
+describe("stripMarkdown (backend strip_markdown parity)", () => {
+  it.each(cases.strip_markdown)("%j", (raw, expected) => {
+    expect(stripMarkdown(raw)).toBe(expected);
+  });
+});
 
 // SH-41/42: AI가 만든 텍스트가 화면에 그대로 새는 문제와 근거 없는 시세 건수 회귀 방지
 describe("AI text cleanup", () => {
@@ -10,12 +26,12 @@ describe("AI text cleanup", () => {
     post.mockReset();
   });
 
-  it("strips markdown from stored material descriptions", async () => {
-    get.mockResolvedValue({
-      data: { status: "success", data: { id: 1, title: "타일", description: "**규격:** 600*600\n## 상태\n* 미개봉" } },
-    });
+  it("keeps the original description for editing (display strips it separately)", async () => {
+    const raw = "**규격:** 600*600\n문의 sales__kr@example.com";
+    get.mockResolvedValue({ data: { status: "success", data: { id: 1, title: "타일", description: raw } } });
     const item = await fetchMaterialById("1");
-    expect(item?.description).toBe("규격: 600*600\n상태\n- 미개봉");
+    expect(item?.description).toBe(raw);
+    expect(stripMarkdown(item?.description ?? "")).toBe("규격: 600*600\n문의 sales__kr@example.com");
   });
 
   it("uses the real similar-listing count (0 when none)", async () => {

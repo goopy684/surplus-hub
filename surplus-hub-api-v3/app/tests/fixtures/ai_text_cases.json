@@ -1,0 +1,33 @@
+{
+  "_comment": "SH-41/42 AI 텍스트 후처리 공용 케이스. 백엔드 app/ai/text.py·registration.parse_keyword와 웹 packages/core/src/text.ts가 같은 결과를 내야 한다. pytest(test_ai_assist.py)와 jest(ai-text-cleanup.test.ts)가 함께 읽는다.",
+  "strip_markdown": [
+    ["**규격:** PVC 50A", "규격: PVC 50A"],
+    ["**습기 관리**가 중요합니다.", "습기 관리가 중요합니다."],
+    ["## 상품 설명\n__수량__: 20박스", "상품 설명\n수량: 20박스"],
+    ["*수량* 50개", "수량 50개"],
+    ["* 상태 양호\n+ 미개봉", "- 상태 양호\n- 미개봉"],
+    ["`KS` 표기", "KS 표기"],
+    ["[참고](https://x.y)", "참고"],
+    ["[인증서](https://x.y/cert_(1).pdf) 첨부", "인증서 첨부"],
+    ["타일 600*600 규격", "타일 600*600 규격"],
+    ["2*3 그리고 4*5", "2*3 그리고 4*5"],
+    ["문의: sales__kr@example.com", "문의: sales__kr@example.com"],
+    ["도면 https://x.y/a__b 참고", "도면 https://x.y/a__b 참고"],
+    ["**링크 https://x.y/a__b**", "링크 https://x.y/a__b"],
+    ["snake_case_name 유지", "snake_case_name 유지"]
+  ],
+  "parse_keyword": [
+    ["PVC 파이프 50개", ["PVC 파이프", 50, "개"]],
+    ["포세린 타일 600각 20박스", ["포세린 타일 600각", 20, "박스"]],
+    ["철근 D13 1,000kg", ["철근 D13", 1000, "kg"]],
+    ["데크 3m²", ["데크", 3, "m²"]],
+    ["PVC 파이프 50A", ["PVC 파이프 50A", null, null]],
+    ["합판 두께 12mm", ["합판 두께 12mm", null, null]],
+    ["파이프 1.5m", ["파이프 1.5m", null, null]],
+    ["개구부 2개소", ["개구부 2개소", null, null]],
+    ["SUS30450개", ["SUS30450개", null, null]],
+    ["철근 1,5톤", ["철근 1,5톤", null, null]],
+    ["타일 20박스 3세트", ["타일 20박스 3세트", null, null]],
+    ["", ["", null, null]]
+  ]
+}

@@ -12,7 +12,7 @@ import {
   AiSearchSuggestions,
   Category,
 } from "../types";
-import { readRecord, readString, readNumber, stripMarkdown } from "./utils";
+import { readRecord, readString, readNumber } from "./utils";
 
 export const analyzeImage = async (
   imageUrl: string,
@@ -130,7 +130,7 @@ const mapSearchResult = (raw: unknown): AiSearchResult => {
   return {
     id: String(item.id ?? ""),
     title: readString(item.title) || "제목 없음",
-    description: stripMarkdown(readString(item.description) ?? "") || undefined,
+    description: readString(item.description),
     price: readNumber(item.price),
     category: readString(item.category),
     // 백엔드는 location을 {address, lat, lng} 객체로 준다

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.api import deps
 from app.core.rate_limit import limiter
+from app.crud.crud_chat import crud_chat_room
 from app.models.user import User
 from app.schemas.ai_schemas import (
     ChatSuggestionRequest,
@@ -294,6 +295,13 @@ def chat_suggestions(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
+    # 대화 내용을 LLM에 넘기므로 판매자·구매자만 (chats.py read_chat_room과 같은 검사)
+    room = crud_chat_room.get(db, id=body.room_id)
+    if not room:
+        raise HTTPException(status_code=404, detail="Chat room not found")
+    if not crud_chat_room.is_participant(room, current_user.id):
+        raise HTTPException(status_code=403, detail="Not authorized to access this chat room")
+
     try:
         result = qa_bot_service.generate_chat_suggestions(
             db=db, room_id=body.room_id, current_user_id=current_user.id

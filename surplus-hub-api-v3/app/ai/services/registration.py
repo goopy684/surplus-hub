@@ -57,17 +57,24 @@ def _normalize_condition_grade(raw: Optional[str]) -> Optional[str]:
     return _CONDITION_GRADES.get(str(raw or "").replace(" ", "").upper())
 
 
-# 웹 QUANTITY_UNITS와 같은 단위. 긴 것부터 ("m²"가 "m"보다 먼저), 뒤에 영문·숫자가 붙으면 단위가 아니다 ("12mm", "50A").
-_QUANTITY_RE = re.compile(r"(\d[\d,]*)\s*(개|장|박스|m²|m³|kg|톤|롤|세트|m)(?![A-Za-z0-9²³])")
+# 웹 QUANTITY_UNITS와 같은 단위. 긴 것부터 ("m²"가 "m"보다 먼저).
+# 숫자 앞에 글자·숫자·소수점·쉼표가 붙거나("1.5m", "SUS30450개") 단위 뒤에 글자가 이어지면("2개소", "12mm", "50A")
+# 수량이 아니다. 케이스 표: app/tests/fixtures/ai_text_cases.json
+_QUANTITY_RE = re.compile(
+    r"(?<![\w.,])(\d{1,3}(?:,\d{3})+|\d+)\s*(개|장|박스|m²|m³|kg|톤|롤|세트|m)(?![\w²³.,])"
+)
 
 
 def parse_keyword(keyword: Optional[str]) -> Tuple[str, Optional[int], Optional[str]]:
-    """판매자 키워드를 (자재명, 수량, 단위)로 나눈다. "PVC 파이프 50개" -> ("PVC 파이프", 50, "개")."""
+    """판매자 키워드를 (자재명, 수량, 단위)로 나눈다. "PVC 파이프 50개" -> ("PVC 파이프", 50, "개").
+
+    수량이 정확히 하나일 때만 읽는다. 애매하면 부분 파싱하지 않고 수량 없음으로 둔다.
+    """
     text = " ".join(str(keyword or "").split())
     matches = list(_QUANTITY_RE.finditer(text))
-    if not matches:
+    if len(matches) != 1:
         return text, None, None
-    m = matches[-1]  # 수량은 보통 맨 뒤
+    m = matches[0]
     name = " ".join((text[: m.start()] + text[m.end():]).split())
     return name, int(m.group(1).replace(",", "")), m.group(2)
 

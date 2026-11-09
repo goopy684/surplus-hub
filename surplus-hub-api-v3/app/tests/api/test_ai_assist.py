@@ -4,6 +4,9 @@ Tests for /api/v1/ai/ endpoints (Phase 2 & 3).
 All AI services (Gemini, OpenAI, embeddings) are mocked.
 """
 
+import json
+from pathlib import Path
+
 import pytest
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
@@ -238,22 +241,60 @@ class TestChatSuggestions:
         )
         assert response.status_code == 401
 
+    @staticmethod
+    def _room(db, buyer, seller):
+        from app.models.chat import ChatRoom
+
+        room = ChatRoom(buyer_id=buyer.id, seller_id=seller.id)
+        db.add(room)
+        db.commit()
+        db.refresh(room)
+        return room
+
     @patch("app.ai.services.qa_bot.generate_chat_suggestions")
     def test_chat_suggestions_success(
-        self, mock_chat, client: TestClient, auth_headers: dict
+        self, mock_chat, client: TestClient, auth_headers: dict, db, test_user, test_user2
     ):
+        room = self._room(db, test_user, test_user2)
         mock_chat.return_value = ChatSuggestionResponse(
             suggestions=["네, 가능합니다.", "가격 조정 가능한가요?", "직거래 원합니다."]
         )
 
         response = client.post(
             f"{API_V1_STR}/ai/chat-suggestions",
-            json={"roomId": 1},
+            json={"roomId": room.id},
             headers=auth_headers,
         )
         assert response.status_code == 200
         data = response.json()["data"]
         assert len(data["suggestions"]) == 3
+
+    @patch("app.ai.services.qa_bot.generate_chat_suggestions")
+    def test_chat_suggestions_non_participant_forbidden(
+        self, mock_chat, client: TestClient, superuser_headers: dict, db, test_user, test_user2
+    ):
+        """비참여자가 남의 대화를 LLM에 넘겨 제안을 받으면 안 된다."""
+        room = self._room(db, test_user, test_user2)
+
+        response = client.post(
+            f"{API_V1_STR}/ai/chat-suggestions",
+            json={"roomId": room.id},
+            headers=superuser_headers,
+        )
+        assert response.status_code == 403
+        mock_chat.assert_not_called()
+
+    @patch("app.ai.services.qa_bot.generate_chat_suggestions")
+    def test_chat_suggestions_missing_room_404(
+        self, mock_chat, client: TestClient, auth_headers: dict
+    ):
+        response = client.post(
+            f"{API_V1_STR}/ai/chat-suggestions",
+            json={"roomId": 99999},
+            headers=auth_headers,
+        )
+        assert response.status_code == 404
+        mock_chat.assert_not_called()
 
 
 # ===== COMMUNITY ANSWER =====
@@ -489,17 +530,12 @@ class TestTranslateCaching:
 # ===== SH-41 / SH-42: AI 텍스트 후처리 =====
 
 
+# 웹 jest(ai-text-cleanup.test.ts)와 같은 케이스 표
+_CASES = json.loads((Path(__file__).parents[1] / "fixtures" / "ai_text_cases.json").read_text())
+
+
 class TestStripMarkdown:
-    @pytest.mark.parametrize(
-        "raw,expected",
-        [
-            ("**규격:** PVC 50A", "규격: PVC 50A"),
-            ("## 상품 설명\n__수량__: 20박스", "상품 설명\n수량: 20박스"),
-            ("* 상태 양호\n+ 미개봉", "- 상태 양호\n- 미개봉"),
-            ("`KS` [참고](https://x.y)", "KS 참고"),
-            ("타일 600*600 규격", "타일 600*600 규격"),  # 규격의 단독 * 유지
-        ],
-    )
+    @pytest.mark.parametrize("raw,expected", _CASES["strip_markdown"])
     def test_strip_markdown(self, raw, expected):
         from app.ai.text import strip_markdown
 
@@ -507,22 +543,16 @@ class TestStripMarkdown:
 
 
 class TestKeywordPriority:
-    @pytest.mark.parametrize(
-        "keyword,expected",
-        [
-            ("PVC 파이프 50개", ("PVC 파이프", 50, "개")),
-            ("포세린 타일 600각 20박스", ("포세린 타일 600각", 20, "박스")),
-            ("철근 D13 1,000kg", ("철근 D13", 1000, "kg")),
-            ("PVC 파이프 50A", ("PVC 파이프 50A", None, None)),  # 50A는 관경
-            ("합판 두께 12mm", ("합판 두께 12mm", None, None)),  # mm는 수량 단위 아님
-            ("데크 3m²", ("데크", 3, "m²")),
-            (None, ("", None, None)),
-        ],
-    )
+    @pytest.mark.parametrize("keyword,expected", _CASES["parse_keyword"])
     def test_parse_keyword(self, keyword, expected):
         from app.ai.services.registration import parse_keyword
 
-        assert parse_keyword(keyword) == expected
+        assert list(parse_keyword(keyword)) == expected
+
+    def test_parse_keyword_none(self):
+        from app.ai.services.registration import parse_keyword
+
+        assert parse_keyword(None) == ("", None, None)
 
     @patch("app.ai.services.registration.analyze_image")
     def test_keyword_overrides_ai_title_and_sets_quantity(

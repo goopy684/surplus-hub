@@ -18,19 +18,6 @@ export const readNumber = (value: unknown, fallback = 0): number => {
   return fallback;
 };
 
-/**
- * AI가 만든 설명에 남은 마크다운 기호(`**규격:**`, `## 제목`)를 평문으로 정리한다.
- * 백엔드도 저장 전에 지우지만, 이전에 저장된 설명을 위해 표시 단계에서 한 번 더 거른다.
- * `600*600` 같은 규격의 단독 `*`는 남긴다. (백엔드 app/ai/text.py strip_markdown과 같은 규칙)
- */
-export const stripMarkdown = (text: string): string =>
-  text
-    .replace(/\*\*|__|`/g, "")
-    .replace(/^[ \t]*#{1,6}[ \t]+/gm, "")
-    .replace(/^([ \t]*)[*+][ \t]+/gm, "$1- ")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-    .trim();
-
 export const normalizeIso = (value: unknown): string => {
   if (typeof value === "string" && value.trim()) return value;
   if (value instanceof Date) return value.toISOString();
