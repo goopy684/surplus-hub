@@ -64,3 +64,28 @@ def test_fix_storage_urls_rewrites_once(test_user):
         s.commit()
     finally:
         s.close()
+
+
+def test_fix_storage_urls_only_rewrites_image_messages():
+    """사용자가 텍스트 메시지로 붙여 넣은 같은 주소는 바꾸지 않는다."""
+    from sqlalchemy import text
+
+    from app.tests.conftest import TestingSessionLocal
+    from scripts.fix_storage_urls import fix_urls
+
+    old, new = "https://surplus-hub-uploads.s3.auto.amazonaws.com/", "https://pub-abc.r2.dev/"
+    s = TestingSessionLocal()
+    try:
+        ids = []
+        for kind in ("IMAGE", "TEXT"):
+            ids.append(s.execute(
+                text("INSERT INTO messages (content, message_type, is_read) VALUES (:c, :t, false) RETURNING id"),
+                {"c": old + "chat/x.jpg", "t": kind},
+            ).scalar())
+        assert fix_urls(s, old, new)["messages.content"] == 1
+        got = dict(s.execute(text("SELECT message_type, content FROM messages WHERE id IN (:a, :b)"),
+                             {"a": ids[0], "b": ids[1]}).all())
+        assert got == {"IMAGE": new + "chat/x.jpg", "TEXT": old + "chat/x.jpg"}
+    finally:
+        s.rollback()
+        s.close()

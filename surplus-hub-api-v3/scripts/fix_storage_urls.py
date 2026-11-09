@@ -18,25 +18,25 @@ from sqlalchemy import text
 
 from app.core.config import settings
 
-# (table, url column). messages: IMAGE messages carry the URL as their content.
+# (table, url column, extra filter). 이미지 메시지만 content가 URL이다 — 사용자가 친 텍스트는 건드리지 않는다.
 COLUMNS = [
-    ("material_images", "url"),
-    ("posts", "image_url"),
-    ("events", "image_url"),
-    ("users", "profile_image_url"),
-    ("messages", "content"),
+    ("material_images", "url", ""),
+    ("posts", "image_url", ""),
+    ("events", "image_url", ""),
+    ("users", "profile_image_url", ""),
+    ("messages", "content", " AND UPPER(message_type) = 'IMAGE'"),
 ]
 
 
 def fix_urls(db, old_prefix: str, new_prefix: str) -> dict:
     """Rewrite old_prefix → new_prefix in every URL column. Caller commits or rolls back."""
     counts = {}
-    for table, col in COLUMNS:
+    for table, col, extra in COLUMNS:
         # substr 비교: LIKE면 버킷명의 '_'가 와일드카드가 된다
         result = db.execute(
             text(
                 f"UPDATE {table} SET {col} = :new || substr({col}, :n + 1) "
-                f"WHERE substr({col}, 1, :n) = :old"
+                f"WHERE substr({col}, 1, :n) = :old{extra}"
             ),
             {"old": old_prefix, "new": new_prefix, "n": len(old_prefix)},
         )
