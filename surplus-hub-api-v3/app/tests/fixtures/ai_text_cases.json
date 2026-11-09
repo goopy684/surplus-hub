@@ -14,7 +14,12 @@
     ["문의: sales__kr@example.com", "문의: sales__kr@example.com"],
     ["도면 https://x.y/a__b 참고", "도면 https://x.y/a__b 참고"],
     ["**링크 https://x.y/a__b**", "링크 https://x.y/a__b"],
-    ["snake_case_name 유지", "snake_case_name 유지"]
+    ["snake_case_name 유지", "snake_case_name 유지"],
+    ["a\ue0000\ue000 b", "a0 b"],
+    ["\ue0000\ue000 https://x.y", "0 https://x.y"],
+    ["__https://x.y/a__b__", "https://x.y/a__b"],
+    ["**https://x.y/a__b** 참고", "https://x.y/a__b 참고"],
+    ["*https://x.y/a_b* 참고", "https://x.y/a_b 참고"]
   ],
   "parse_keyword": [
     ["PVC 파이프 50개", ["PVC 파이프", 50, "개"]],

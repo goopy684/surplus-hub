@@ -18,8 +18,14 @@ const ITALIC = new RegExp(`(^|[^${W}*])\\*(?![\\s*])([^*\\n]*?[^\\s*])\\*(?![${W
 export const stripMarkdown = (text: string): string => {
   const saved: string[] = [];
   let out = text
+    .split(MARK) // 입력에 원래 있던 자리표시 문자는 버린다
+    .join("")
     .replace(LINK, "$1")
-    .replace(PROTECTED, (m) => `${MARK}${saved.push(m) - 1}${MARK}`)
+    // 끝의 `_`는 닫는 강조(`__https://x.y/a__b__`)일 수 있으니 토큰 밖에 남긴다
+    .replace(PROTECTED, (m) => {
+      const core = m.replace(/_+$/, "");
+      return `${MARK}${saved.push(core) - 1}${MARK}${m.slice(core.length)}`;
+    })
     .replace(CODE, "$1");
   for (const pattern of [BOLD, UNDER, ITALIC]) out = out.replace(pattern, "$1$2");
   return out

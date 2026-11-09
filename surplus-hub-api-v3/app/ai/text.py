@@ -23,12 +23,15 @@ _BULLET = re.compile(r"^([ \t]*)[*+][ \t]+", re.M)
 
 def strip_markdown(text: str) -> str:
     """LLM이 붙인 마크다운 기호를 걷어내 평문으로 만든다 (화면은 평문으로 그린다)."""
-    text = _LINK.sub(r"\1", text)
+    text = _LINK.sub(r"\1", text.replace(_MARK, ""))  # 입력에 원래 있던 자리표시 문자는 버린다
     saved: list = []
 
     def _save(m: "re.Match[str]") -> str:
-        saved.append(m.group(0))
-        return f"{_MARK}{len(saved) - 1}{_MARK}"
+        # 끝의 `_`는 닫는 강조(`__https://x.y/a__b__`)일 수 있으니 토큰 밖에 남긴다
+        token = m.group(0)
+        core = token.rstrip("_")
+        saved.append(core)
+        return f"{_MARK}{len(saved) - 1}{_MARK}{token[len(core):]}"
 
     text = _PROTECTED.sub(_save, text)
     text = _CODE.sub(r"\1", text)
