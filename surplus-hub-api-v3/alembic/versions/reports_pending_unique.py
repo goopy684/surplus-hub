@@ -21,6 +21,14 @@ INDEX = "uq_report_pending_reporter_target"
 NOTE = "\n\n[자동 종결] 같은 신고자의 중복 신고(SH-40 마이그레이션) — 남긴 신고 #"
 
 
+def strip_note(description):
+    """upgrade가 붙인 마지막 접미사(NOTE + 남긴 신고 id) 하나만 뗀 원문. 정확히 그 접미사로 끝나지 않으면 None."""
+    head, sep, kept_id = (description or "").rpartition(NOTE)
+    if not sep or not kept_id.isdigit():
+        return None
+    return head
+
+
 def upgrade() -> None:
     bind = op.get_bind()
     if bind.dialect.name == "postgresql":
@@ -61,7 +69,9 @@ def downgrade() -> None:
         "WHERE status = 'dismissed' AND reviewed_by IS NULL AND description LIKE :p"
     ), {"p": "%[자동 종결] 같은 신고자의 중복 신고(SH-40 마이그레이션)%"}).all()
     for row in rows:
-        original = row.description[: row.description.index(NOTE)]
+        original = strip_note(row.description)
+        if original is None:  # 우리가 붙인 접미사로 끝나지 않음 — 건드리지 않는다
+            continue
         bind.execute(
             sa.text("UPDATE reports SET status = 'pending', description = :d WHERE id = :id"),
             {"d": original or None, "id": row.id},
