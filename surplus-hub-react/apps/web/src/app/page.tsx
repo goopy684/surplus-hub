@@ -1,6 +1,6 @@
 "use client";
 
-import { MaterialItem, useMaterials } from "@repo/core";
+import { MaterialItem, mergeMaterialPage, useMaterials } from "@repo/core";
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
@@ -85,23 +85,7 @@ export default function Home() {
 
     const incoming = data?.data ?? [];
 
-    setMaterials((previous) => {
-      if (page === 1) {
-        return incoming;
-      }
-
-      const merged = [...previous];
-      const seen = new Set(previous.map((item) => item.id));
-
-      for (const item of incoming) {
-        if (!seen.has(item.id)) {
-          merged.push(item);
-          seen.add(item.id);
-        }
-      }
-
-      return merged;
-    });
+    setMaterials((previous) => mergeMaterialPage(previous, incoming, page));
 
     setHasReachedMax(incoming.length < PAGE_SIZE);
   }, [data, page]);

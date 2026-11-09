@@ -72,3 +72,13 @@ export const calcSplitPrice = (price: number, totalQuantity: number, quantity: n
   const rounded = (BigInt(2) * BigInt(price) * BigInt(quantity) + t) / (BigInt(2) * t);
   return Math.max(1, Number(rounded));
 };
+
+// 무한 스크롤 목록에 받아온 페이지를 합친다. 이미 보이는 매물도 새 값(관심 수 등)으로 덮어써야
+// 포커스 복귀 시 재조회 결과가 화면에 반영된다. 1페이지는 통째로 교체.
+export const mergeMaterialPage = <T extends { id: string }>(previous: T[], incoming: T[], page: number): T[] => {
+  if (page === 1) return incoming;
+  const fresh = new Map(incoming.map((item) => [item.id, item]));
+  const merged = previous.map((item) => fresh.get(item.id) ?? item);
+  const seen = new Set(previous.map((item) => item.id));
+  return [...merged, ...incoming.filter((item) => !seen.has(item.id))];
+};

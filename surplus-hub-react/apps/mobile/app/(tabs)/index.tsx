@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { View, Text, FlatList, ActivityIndicator, TextInput, TouchableOpacity, Image, ScrollView } from "react-native";
-import { MaterialItem, useMaterials, useUnreadCount } from "@repo/core";
+import { MaterialItem, mergeMaterialPage, useMaterials, useUnreadCount } from "@repo/core";
 import { useRouter } from "expo-router";
 
 // 백엔드 seed_categories와 동기화 (조명/문·창호/건자재/전기/설비/기타) — 웹 home과 동일
@@ -48,23 +48,7 @@ export default function Home() {
 
     const incoming = data?.data ?? [];
 
-    setMaterials((previous) => {
-      if (page === 1) {
-        return incoming;
-      }
-
-      const merged = [...previous];
-      const seen = new Set(previous.map((item) => item.id));
-
-      for (const item of incoming) {
-        if (!seen.has(item.id)) {
-          merged.push(item);
-          seen.add(item.id);
-        }
-      }
-
-      return merged;
-    });
+    setMaterials((previous) => mergeMaterialPage(previous, incoming, page));
 
     setHasReachedMax(incoming.length < PAGE_SIZE);
   }, [data, page]);
