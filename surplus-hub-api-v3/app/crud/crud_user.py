@@ -58,15 +58,15 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
 
     def get_user_stats(self, db: Session, *, user_id: int) -> Dict[str, int]:
         """Get user statistics from actual DB aggregation."""
-        from app.models.material import Material
         from app.models.review import Review
         from app.models.transaction import Transaction
         from app.models.like import MaterialLike
         from app.models.community import Post
 
-        sales_count = db.query(Material).filter(
-            Material.seller_id == user_id,
-            Material.status == "SOLD"
+        # 매물 SOLD 수로 세면 매물이 판매중으로 남는 일부 수량 판매가 빠진다 (SH-39)
+        sales_count = db.query(Transaction).filter(
+            Transaction.seller_id == user_id,
+            Transaction.status == "COMPLETED"
         ).count()
 
         purchase_count = db.query(Transaction).filter(

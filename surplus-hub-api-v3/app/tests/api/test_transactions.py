@@ -465,6 +465,20 @@ class TestPartialSaleIntegrity:
         self._set_status(client, auth_headers, material_id, "ACTIVE")
         assert self._tx_status(client, auth_headers2, partial_id) == "COMPLETED"
 
+    def test_partial_sale_counts_in_seller_sales_count(
+        self, client: TestClient, auth_headers, auth_headers2
+    ):
+        """SH-39: 매물이 판매중으로 남는 일부 수량 판매도 판매자 프로필 판매 수에 잡힌다."""
+        def sales_count():
+            return client.get(f"{API_V1_STR}/users/me", headers=auth_headers).json()["data"]["stats"]["salesCount"]
+
+        before = sales_count()
+        material_id = _create_material(client, auth_headers, quantity=50)
+        tx_id = _buy(client, auth_headers2, material_id, quantity=49).json()["data"]["id"]
+        assert _confirm_and_complete(client, auth_headers, auth_headers2, tx_id).status_code == 200
+        assert _get_material(client, material_id)["status"] == "ACTIVE"
+        assert sales_count() == before + 1
+
     def test_double_complete_of_same_partial_tx_deducts_once(
         self, client: TestClient, auth_headers, auth_headers2
     ):
