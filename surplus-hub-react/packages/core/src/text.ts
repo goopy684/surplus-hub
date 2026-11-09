@@ -4,6 +4,8 @@
  * lookbehind는 구형 Safari에서 문법 오류라 쓰지 않고, 앞 글자를 그룹으로 잡아 되돌려 넣는다.
  */
 const W = "\\p{L}\\p{N}_"; // Python \w
+// 보호 토큰 자리표시 — 사설 영역 문자(U+E000)라 글자·공백으로 취급되지 않고 일반 텍스트에 나오지 않는다
+const MARK = "\uE000";
 
 // 강조 기호를 찾기 전에 빼 두는 토큰 — 메일·URL 안의 `__`는 서식이 아니다
 const PROTECTED = new RegExp(`(?:https?://|www\\.)[^\\s*]+|[${W}.+-]+@[${W}-]+(?:\\.[${W}-]+)+`, "gu");
@@ -17,12 +19,12 @@ export const stripMarkdown = (text: string): string => {
   const saved: string[] = [];
   let out = text
     .replace(LINK, "$1")
-    .replace(PROTECTED, (m) => `\u0000${saved.push(m) - 1}\u0000`)
+    .replace(PROTECTED, (m) => `${MARK}${saved.push(m) - 1}${MARK}`)
     .replace(CODE, "$1");
   for (const pattern of [BOLD, UNDER, ITALIC]) out = out.replace(pattern, "$1$2");
   return out
     .replace(/^[ \t]*#{1,6}[ \t]+/gm, "")
     .replace(/^([ \t]*)[*+][ \t]+/gm, "$1- ")
-    .replace(/\u0000(\d+)\u0000/g, (_, i: string) => saved[Number(i)] ?? "")
+    .replace(new RegExp(`${MARK}(\\d+)${MARK}`, "g"), (_, i: string) => saved[Number(i)] ?? "")
     .trim();
 };

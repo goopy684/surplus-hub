@@ -15,6 +15,8 @@ _CODE = re.compile(r"`([^`\n]+)`")
 _BOLD = re.compile(r"(^|[^\w*])\*\*(?![\s*])([^\n]*?[^\s*])\*\*(?!\*)", re.M)
 _UNDER = re.compile(r"(^|[^\w_])__(?![\s_])([^\n]*?[^\s_])__(?![\w_])", re.M)
 _ITALIC = re.compile(r"(^|[^\w*])\*(?![\s*])([^*\n]*?[^\s*])\*(?![\w*])", re.M)
+# 보호 토큰 자리표시 — 사설 영역 문자(U+E000)라 글자·공백으로 취급되지 않는다 (웹 text.ts와 같음)
+_MARK = "\ue000"
 _HEADING = re.compile(r"^[ \t]*#{1,6}[ \t]+", re.M)
 _BULLET = re.compile(r"^([ \t]*)[*+][ \t]+", re.M)
 
@@ -26,7 +28,7 @@ def strip_markdown(text: str) -> str:
 
     def _save(m: "re.Match[str]") -> str:
         saved.append(m.group(0))
-        return f"\x00{len(saved) - 1}\x00"
+        return f"{_MARK}{len(saved) - 1}{_MARK}"
 
     text = _PROTECTED.sub(_save, text)
     text = _CODE.sub(r"\1", text)
@@ -34,5 +36,5 @@ def strip_markdown(text: str) -> str:
         text = pattern.sub(r"\1\2", text)
     text = _HEADING.sub("", text)
     text = _BULLET.sub(r"\1- ", text)
-    text = re.sub(r"\x00(\d+)\x00", lambda m: saved[int(m.group(1))], text)
+    text = re.sub(f"{_MARK}(\\d+){_MARK}", lambda m: saved[int(m.group(1))], text)
     return text.strip()
