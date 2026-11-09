@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Boolean, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
@@ -7,6 +7,10 @@ from app.db.base import Base
 
 class Report(Base):
     __tablename__ = "reports"
+    # 같은 사용자가 같은 대상을 반복 신고하지 못하게 한다 (SH-40)
+    __table_args__ = (
+        UniqueConstraint("reporter_id", "target_type", "target_id", name="uq_report_reporter_target"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     reporter_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)

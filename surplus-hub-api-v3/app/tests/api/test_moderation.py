@@ -169,6 +169,22 @@ class TestCreateReport:
         assert body["data"]["targetType"] == "user"
         assert body["data"]["status"] == "pending"
 
+    def test_duplicate_report_returns_409(
+        self, client: TestClient, mod_reporter_headers
+    ):
+        """SH-40: 같은 사용자가 같은 대상을 두 번 신고하면 409, 다른 대상은 허용."""
+        payload = {"targetType": "post", "targetId": 990001, "reason": "spam"}
+        first = client.post(REPORTS_PREFIX, json=payload, headers=mod_reporter_headers)
+        assert first.status_code == 201
+        again = client.post(
+            REPORTS_PREFIX, json={**payload, "reason": "abuse"}, headers=mod_reporter_headers
+        )
+        assert again.status_code == 409
+        other = client.post(
+            REPORTS_PREFIX, json={**payload, "targetType": "material"}, headers=mod_reporter_headers
+        )
+        assert other.status_code == 201
+
     def test_self_report_rejected(
         self, client: TestClient, mod_reporter_user, mod_reporter_headers
     ):
@@ -554,7 +570,7 @@ class TestUpdateReportStatus:
     ):
         create_resp = client.post(
             REPORTS_PREFIX,
-            json={"targetType": "user", "targetId": mod_target_user.id, "reason": "spam"},
+            json={"targetType": "material", "targetId": 2, "reason": "spam"},
             headers=mod_reporter_headers,
         )
         assert create_resp.status_code == 201
@@ -602,12 +618,12 @@ class TestBulkProcess:
         mod_reporter_headers,
         mod_target_user,
     ):
-        # 신고 2건 생성
+        # 신고 2건 생성 (같은 대상 중복 신고는 409이므로 대상이 다르다)
         ids = []
-        for reason in ["spam", "abuse"]:
+        for target_id, reason in [(10, "spam"), (11, "abuse")]:
             r = client.post(
                 REPORTS_PREFIX,
-                json={"targetType": "material", "targetId": 10, "reason": reason},
+                json={"targetType": "material", "targetId": target_id, "reason": reason},
                 headers=mod_reporter_headers,
             )
             assert r.status_code == 201

@@ -57,8 +57,12 @@ export function ReportModal({
         description: description.trim() || undefined,
       });
       setIsSuccess(true);
-    } catch {
-      setErrorMessage("신고 접수에 실패했습니다. 로그인 상태를 확인하거나 잠시 후 다시 시도해주세요.");
+    } catch (error) {
+      setErrorMessage(
+        (error as { response?: { status?: number } })?.response?.status === 409
+          ? `이미 신고한 ${targetLabel}입니다.`
+          : "신고 접수에 실패했습니다. 로그인 상태를 확인하거나 잠시 후 다시 시도해주세요."
+      );
     } finally {
       setIsSubmitting(false);
     }
