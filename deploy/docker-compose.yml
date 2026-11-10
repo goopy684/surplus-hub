@@ -1,6 +1,12 @@
+# Pin project name so `cd deploy` keeps the existing VM volume (surplus-hub_pgdata).
+name: surplus-hub
+
 services:
   api:
     image: ${ACR:-surplushubacr.azurecr.io}/surplus-hub-api:${IMAGE_TAG:-latest}
+    build:
+      context: ../surplus-hub-api-v3
+      dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
     environment:
@@ -12,7 +18,7 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/api/v1/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 10
@@ -22,6 +28,13 @@ services:
 
   web:
     image: ${ACR:-surplushubacr.azurecr.io}/surplus-hub-web:${IMAGE_TAG:-latest}
+    build:
+      context: ../surplus-hub-react
+      dockerfile: Dockerfile
+      args:
+        # NEXT_PUBLIC_* are inlined at build time; env_file does not reach the build.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}
     restart: unless-stopped
     env_file: .env
     depends_on:
