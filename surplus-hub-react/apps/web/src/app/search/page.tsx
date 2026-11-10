@@ -7,6 +7,7 @@ import {
   useCategories,
   TRADE_METHOD_OPTIONS,
   SEARCH_RADIUS_OPTIONS_KM,
+  stripMarkdown,
 } from "@repo/core";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -363,7 +364,7 @@ function SearchPageContent() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h2 className="truncate text-[15px] font-bold text-foreground">{item.title}</h2>
-                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
+                    <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{item.description && stripMarkdown(item.description)}</p>
                     <p className="mt-2 text-xs text-muted-foreground">
                       {item.location || "위치 정보 없음"}
                       {item.distanceKm !== undefined && <span className="tabular"> · {item.distanceKm.toFixed(1)}km</span>}

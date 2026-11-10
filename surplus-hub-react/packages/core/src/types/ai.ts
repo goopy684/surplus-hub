@@ -5,6 +5,9 @@ export interface AiImageAnalysis {
   /** 상 / 중 / 하 (백엔드에서 정규화) */
   condition?: string;
   tags: string[];
+  /** 판매자 키워드에서 읽은 수량 ("PVC 파이프 50개" → 50, "개") */
+  quantity?: number;
+  quantityUnit?: string;
 }
 
 export interface AiDescription {
@@ -17,7 +20,8 @@ export interface AiPriceSuggestion {
     min: number;
     ideal: number;
     max: number;
-    recentTrades: number;
+    /** 가격 산정에 참고한 유사 매물 수 (실제 검색 결과 건수, 없으면 0) */
+    similarCount: number;
   };
   reasoning?: string;
 }

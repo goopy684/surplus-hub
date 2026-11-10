@@ -7,6 +7,7 @@ import {
   useCreateChatRoom,
   useCreateTransaction,
   useMaterialDetail,
+  stripMarkdown,
 } from "@repo/core";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -136,7 +137,7 @@ export default function MaterialDetailScreen() {
           <Text className="mt-1 text-[12.5px] text-ink-2">
             {item.category || "기타"} · <Text className="tabular-nums">{createdAt}</Text>
           </Text>
-          <Text className="mt-4 text-[15px] leading-[25px] text-ink">{item.description}</Text>
+          <Text className="mt-4 text-[15px] leading-[25px] text-ink">{stripMarkdown(item.description)}</Text>
 
           {/* AI 분석 — accent-soft 배경 */}
           <View className="mt-6 rounded-card bg-field p-4">

@@ -60,6 +60,8 @@ class SearchSuggestionsResponse(BaseModel):
 # ---------------------------------------------------------------------------
 class ImageAnalysisRequest(BaseModel):
     image_url: str = Field(alias="imageUrl")
+    # 판매자가 입력한 키워드 (예: "PVC 파이프 50개") — 제목·수량에 우선 반영
+    keyword: Optional[str] = Field(None, max_length=100)
 
     class Config:
         populate_by_name = True
@@ -72,6 +74,9 @@ class ImageAnalysisResponse(BaseModel):
     condition: Optional[str] = None
     material_type: Optional[str] = Field(None, alias="materialType")
     confidence: float = 0.0
+    # 키워드에서 읽은 수량 — 있으면 폼 수량을 이 값으로 채운다
+    quantity: Optional[int] = None
+    quantity_unit: Optional[str] = Field(None, alias="quantityUnit")
 
     class Config:
         populate_by_name = True

@@ -10,6 +10,7 @@ import {
   useMaterialDetail,
   useMaterialLikeStatus,
   useToggleMaterialLike,
+  stripMarkdown,
 } from "@repo/core";
 import Image from "next/image";
 import Link from "next/link";
@@ -271,7 +272,7 @@ export default function MaterialDetailPage({ params }: { params: { id: string } 
             </div>
             <h2 className="mb-4 text-[22px] font-extrabold leading-[1.3] tracking-[-0.6px] text-foreground">{item.title}</h2>
             <p className="whitespace-pre-wrap text-[15px] leading-[1.65] text-foreground/90">
-              {item.description}
+              {stripMarkdown(item.description)}
             </p>
           </div>
 

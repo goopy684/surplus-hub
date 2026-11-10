@@ -16,6 +16,7 @@ import {
   useAiSearch,
   useMaterials,
   type AiSearchResult,
+  stripMarkdown,
 } from "@repo/core";
 import { useRouter } from "expo-router";
 import { Chip } from "../components/Chip";
@@ -152,7 +153,7 @@ export default function SearchScreen() {
                 <View className="flex-1">
                   <Text numberOfLines={1} className="text-base font-bold text-ink">{item.title}</Text>
                   <Text className="mt-1 text-sm text-ink-2" numberOfLines={2}>
-                    {item.description}
+                    {item.description && stripMarkdown(item.description)}
                   </Text>
                   <Text className="mt-2 text-[12.5px] text-ink-2">
                     {item.distanceKm !== undefined ? `${item.distanceKm.toFixed(1)}km · ` : ""}

@@ -4,6 +4,9 @@ Tests for /api/v1/ai/ endpoints (Phase 2 & 3).
 All AI services (Gemini, OpenAI, embeddings) are mocked.
 """
 
+import json
+from pathlib import Path
+
 import pytest
 from unittest.mock import patch, MagicMock
 from fastapi.testclient import TestClient
@@ -238,22 +241,60 @@ class TestChatSuggestions:
         )
         assert response.status_code == 401
 
+    @staticmethod
+    def _room(db, buyer, seller):
+        from app.models.chat import ChatRoom
+
+        room = ChatRoom(buyer_id=buyer.id, seller_id=seller.id)
+        db.add(room)
+        db.commit()
+        db.refresh(room)
+        return room
+
     @patch("app.ai.services.qa_bot.generate_chat_suggestions")
     def test_chat_suggestions_success(
-        self, mock_chat, client: TestClient, auth_headers: dict
+        self, mock_chat, client: TestClient, auth_headers: dict, db, test_user, test_user2
     ):
+        room = self._room(db, test_user, test_user2)
         mock_chat.return_value = ChatSuggestionResponse(
             suggestions=["네, 가능합니다.", "가격 조정 가능한가요?", "직거래 원합니다."]
         )
 
         response = client.post(
             f"{API_V1_STR}/ai/chat-suggestions",
-            json={"roomId": 1},
+            json={"roomId": room.id},
             headers=auth_headers,
         )
         assert response.status_code == 200
         data = response.json()["data"]
         assert len(data["suggestions"]) == 3
+
+    @patch("app.ai.services.qa_bot.generate_chat_suggestions")
+    def test_chat_suggestions_non_participant_forbidden(
+        self, mock_chat, client: TestClient, superuser_headers: dict, db, test_user, test_user2
+    ):
+        """비참여자가 남의 대화를 LLM에 넘겨 제안을 받으면 안 된다."""
+        room = self._room(db, test_user, test_user2)
+
+        response = client.post(
+            f"{API_V1_STR}/ai/chat-suggestions",
+            json={"roomId": room.id},
+            headers=superuser_headers,
+        )
+        assert response.status_code == 403
+        mock_chat.assert_not_called()
+
+    @patch("app.ai.services.qa_bot.generate_chat_suggestions")
+    def test_chat_suggestions_missing_room_404(
+        self, mock_chat, client: TestClient, auth_headers: dict
+    ):
+        response = client.post(
+            f"{API_V1_STR}/ai/chat-suggestions",
+            json={"roomId": 99999},
+            headers=auth_headers,
+        )
+        assert response.status_code == 404
+        mock_chat.assert_not_called()
 
 
 # ===== COMMUNITY ANSWER =====
@@ -484,3 +525,118 @@ class TestTranslateCaching:
         result = translate_text("안녕하세요", "auto", "en")
         assert result.translated_text == "Hello"
         assert mock_gen.call_count == 1
+
+
+# ===== SH-41 / SH-42: AI 텍스트 후처리 =====
+
+
+# 웹 jest(ai-text-cleanup.test.ts)와 같은 케이스 표
+_CASES = json.loads((Path(__file__).parents[1] / "fixtures" / "ai_text_cases.json").read_text())
+
+
+class TestStripMarkdown:
+    @pytest.mark.parametrize("raw,expected", _CASES["strip_markdown"])
+    def test_strip_markdown(self, raw, expected):
+        from app.ai.text import strip_markdown
+
+        assert strip_markdown(raw) == expected
+
+
+class TestKeywordPriority:
+    @pytest.mark.parametrize("keyword,expected", _CASES["parse_keyword"])
+    def test_parse_keyword(self, keyword, expected):
+        from app.ai.services.registration import parse_keyword
+
+        assert list(parse_keyword(keyword)) == expected
+
+    def test_parse_keyword_none(self):
+        from app.ai.services.registration import parse_keyword
+
+        assert parse_keyword(None) == ("", None, None)
+
+    @patch("app.ai.services.registration.analyze_image")
+    def test_keyword_overrides_ai_title_and_sets_quantity(
+        self, mock_vision, client: TestClient, auth_headers: dict
+    ):
+        """QA 재현: 'PVC 파이프 50개' → AI가 'OA 파이프 50A'로 바꾸던 문제."""
+        mock_vision.return_value = {
+            "category": "배관",
+            "title_suggestion": "OA 파이프 50A",
+            "tags": [],
+            "confidence": 0.3,
+        }
+
+        response = client.post(
+            f"{API_V1_STR}/ai/analyze-image",
+            json={"imageUrl": "https://example.com/pipe.jpg", "keyword": "PVC 파이프 50개"},
+            headers=auth_headers,
+        )
+        assert response.status_code == 200
+        data = response.json()["data"]
+        assert data["titleSuggestion"] == "PVC 파이프"
+        assert data["quantity"] == 50
+        assert data["quantityUnit"] == "개"
+        assert mock_vision.call_args.kwargs["keyword"] == "PVC 파이프 50개"
+
+    @patch("app.ai.services.registration.analyze_image")
+    def test_ai_title_kept_when_it_contains_keyword(self, mock_vision):
+        from app.ai.services.registration import analyze_material_image
+
+        mock_vision.return_value = {"title_suggestion": "PVC 파이프 50A 잉여"}
+        result = analyze_material_image("https://example.com/p.jpg", "PVC 파이프")
+        assert result.title_suggestion == "PVC 파이프 50A 잉여"
+        assert result.quantity is None
+
+    @patch("app.ai.services.registration.generate_text")
+    def test_description_markdown_stripped_and_quantity_in_prompt(self, mock_llm):
+        from app.ai.services.registration import generate_material_description
+
+        mock_llm.return_value = "**규격:** PVC 파이프\n**수량:** 50개"
+        result = generate_material_description(
+            title="PVC 파이프", quantity=50, quantity_unit="개"
+        )
+        assert result.description == "규격: PVC 파이프\n수량: 50개"
+        assert "수량: 50개" in mock_llm.call_args.kwargs["user_prompt"]
+
+
+class TestPriceSimilarCount:
+    @patch("app.ai.services.registration.generate_text")
+    @patch("app.ai.services.search.vector_search_only")
+    def test_similar_count_is_actual_matches(self, mock_search, mock_llm):
+        from app.ai.services.registration import suggest_material_price
+
+        m = MagicMock(title="PVC 파이프", price=10000)
+        mock_search.return_value = [(m, 0.8), (m, 0.7)]
+        mock_llm.return_value = '{"suggested_price": 9000, "price_range_low": 8000, "price_range_high": 10000, "reasoning": "**유사 매물** 평균"}'
+
+        result = suggest_material_price(db=MagicMock(), title="PVC 파이프")
+        assert result.similar_count == 2
+        assert result.reasoning == "유사 매물 평균"
+
+    @patch("app.ai.services.registration.generate_text")
+    @patch("app.ai.services.search.vector_search_only", return_value=[])
+    def test_similar_count_zero_without_data(self, _mock_search, mock_llm):
+        from app.ai.services.registration import suggest_material_price
+
+        mock_llm.return_value = '{"suggested_price": 9000, "price_range_low": 8000, "price_range_high": 10000, "reasoning": "일반 시세"}'
+        assert suggest_material_price(db=MagicMock(), title="x").similar_count == 0
+
+
+class TestCommunityAnswerQuality:
+    def test_prompt_forbids_unverified_law_citations(self):
+        from app.ai.prompts.chat_qa import COMMUNITY_ANSWER_PROMPT
+
+        assert "반드시 관련 규정" not in COMMUNITY_ANSWER_PROMPT
+        assert "조항 번호를 인용하지 않음" in COMMUNITY_ANSWER_PROMPT
+        assert "마크다운 금지" in COMMUNITY_ANSWER_PROMPT
+
+    @patch("app.ai.services.qa_bot.generate_text")
+    def test_community_answer_markdown_stripped(self, mock_llm):
+        from app.ai.services.qa_bot import generate_community_answer
+
+        db = MagicMock()
+        db.query.return_value.filter.return_value.first.return_value = MagicMock(
+            title="자재 보관", content="습기 관리 방법?", category="자유"
+        )
+        mock_llm.return_value = "### 답변\n**습기 관리**가 중요합니다."
+        assert generate_community_answer(db, 1).answer == "답변\n습기 관리가 중요합니다."

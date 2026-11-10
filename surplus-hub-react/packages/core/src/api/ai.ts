@@ -29,6 +29,8 @@ export const analyzeImage = async (
     description: readString(raw.description) || "",
     condition: readString(raw.condition),
     tags: Array.isArray(raw.tags) ? raw.tags.filter((t): t is string => typeof t === "string") : [],
+    quantity: typeof raw.quantity === "number" && raw.quantity > 0 ? raw.quantity : undefined,
+    quantityUnit: readString(raw.quantityUnit),
   };
 };
 
@@ -53,30 +55,24 @@ export const generateDescription = async (
 export const suggestPrice = async (
   title: string,
   category: string,
-  description?: string
+  description?: string,
+  spec: { condition?: string; quantity?: number } = {}
 ): Promise<AiPriceSuggestion> => {
   const response = await apiClient.post("/api/v1/ai/suggest-price", {
     title,
     category,
     description,
+    ...spec,
   });
   const raw = readRecord(unwrapApiData<unknown>(response.data));
-  const marketPriceRaw = readRecord(raw.marketPrice ?? raw.market_price);
   return {
     price: readNumber(raw.suggestedPrice ?? raw.price ?? raw.suggested_price, 0),
-    marketPrice: raw.marketPrice ?? raw.market_price
-      ? {
-          min: readNumber(marketPriceRaw.min, 0),
-          ideal: readNumber(marketPriceRaw.ideal ?? marketPriceRaw.recommended, 0),
-          max: readNumber(marketPriceRaw.max, 0),
-          recentTrades: readNumber(marketPriceRaw.recentTrades ?? marketPriceRaw.recent_trades, 0),
-        }
-      : {
-          min: readNumber(raw.priceRangeLow ?? raw.price_range_low, 0),
-          ideal: readNumber(raw.suggestedPrice ?? raw.suggested_price, 0),
-          max: readNumber(raw.priceRangeHigh ?? raw.price_range_high, 0),
-          recentTrades: readNumber(raw.similarCount ?? raw.similar_count, 0),
-        },
+    marketPrice: {
+      min: readNumber(raw.priceRangeLow ?? raw.price_range_low, 0),
+      ideal: readNumber(raw.suggestedPrice ?? raw.suggested_price, 0),
+      max: readNumber(raw.priceRangeHigh ?? raw.price_range_high, 0),
+      similarCount: readNumber(raw.similarCount ?? raw.similar_count, 0),
+    },
     reasoning: readString(raw.reasoning),
   };
 };

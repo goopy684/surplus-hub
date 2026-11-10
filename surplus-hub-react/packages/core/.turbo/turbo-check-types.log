@@ -1,0 +1,4 @@
+
+> @repo/core@0.0.0 check-types
+> tsc --noEmit
+
