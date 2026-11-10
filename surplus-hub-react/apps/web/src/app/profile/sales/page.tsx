@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCurrentUser, useMyTransactions, useConfirmTransaction } from "@repo/core";
 import { AuthGate } from "../../../components/AuthGate";
+import { apiErrorDetail } from "../../../utils/apiError";
 
 const formatDate = (value: string): string => {
   const d = new Date(value);
@@ -34,7 +35,8 @@ function SalesContent() {
   const handleConfirm = (txId: string) => {
     setPendingId(txId);
     confirmMutation.mutate(txId, {
-      onError: () => alert("처리에 실패했습니다. 다시 시도해주세요."),
+      // 409(재고 부족 등)는 재시도해도 같은 결과라 서버 사유를 그대로 보여준다
+      onError: (error) => alert(apiErrorDetail(error) ?? "처리에 실패했습니다."),
       onSettled: () => setPendingId(null),
     });
   };

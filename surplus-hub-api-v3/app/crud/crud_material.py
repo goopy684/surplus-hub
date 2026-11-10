@@ -4,7 +4,12 @@ from sqlalchemy import desc
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.crud.base import CRUDBase
-from app.crud.crud_transaction import crud_transaction
+from app.crud.crud_transaction import (
+    StockConflictError,
+    confirmed_quantity,
+    crud_transaction,
+    lock_material,
+)
 from app.models.like import MaterialLike
 from app.models.material import Material
 from app.models.material_image import MaterialImage
@@ -169,6 +174,16 @@ class CRUDMaterial(CRUDBase[Material, MaterialCreate, MaterialUpdate]):
         status = update_data.pop("status", None)
         buyer_id = update_data.pop("buyer_id", None)
 
+        # 확정·완료와 같은 매물 잠금(매물 → 거래 순서). 확정된 수량보다 재고를 줄이면
+        # 그 거래가 완료 단계에서 409로 'CONFIRMED'에 갇힌다 (SH-37)
+        lock_material(db, db_obj.id)
+        if "quantity" in update_data:
+            reserved = confirmed_quantity(db, db_obj)
+            if (update_data["quantity"] or 1) < reserved:
+                raise StockConflictError(
+                    f"확정된 거래 수량({reserved}개)보다 재고를 적게 바꿀 수 없습니다"
+                )
+
         # Handle nested location
         if "location" in update_data and isinstance(update_data["location"], dict):
             loc = update_data.pop("location")
@@ -202,6 +217,11 @@ class CRUDMaterial(CRUDBase[Material, MaterialCreate, MaterialUpdate]):
     def update_status(
         self, db: Session, *, db_obj: Material, status: str, buyer_id: Optional[int] = None
     ) -> Material:
+        # 잠금 후 다시 읽은 상태로 판단한다: 동시에 진행 중인 완료(부분 판매 포함)가 끝난 뒤
+        # close_sale이 열린 요청을 조회해야 방금 완료된 거래를 CANCELLED로 덮어쓰지 않는다.
+        # flush 먼저: 호출자(update_material)가 바꾼 값이 다시 읽기로 사라지지 않게.
+        db.flush()
+        lock_material(db, db_obj.id)
         if status == "SOLD" and db_obj.status != "SOLD":
             crud_transaction.close_sale(db, material=db_obj, buyer_id=buyer_id)
         elif db_obj.status == "SOLD" and status in ("ACTIVE", "RESERVED"):

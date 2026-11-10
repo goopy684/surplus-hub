@@ -169,6 +169,55 @@ class TestCreateReport:
         assert body["data"]["targetType"] == "user"
         assert body["data"]["status"] == "pending"
 
+    def test_duplicate_report_returns_409(
+        self, client: TestClient, mod_reporter_headers
+    ):
+        """SH-40: 같은 사용자가 같은 대상을 두 번 신고하면 409, 다른 대상은 허용."""
+        payload = {"targetType": "post", "targetId": 990001, "reason": "spam"}
+        first = client.post(REPORTS_PREFIX, json=payload, headers=mod_reporter_headers)
+        assert first.status_code == 201
+        again = client.post(
+            REPORTS_PREFIX, json={**payload, "reason": "abuse"}, headers=mod_reporter_headers
+        )
+        assert again.status_code == 409
+        other = client.post(
+            REPORTS_PREFIX, json={**payload, "targetType": "material"}, headers=mod_reporter_headers
+        )
+        assert other.status_code == 201
+
+    def test_report_again_after_handled_still_409(
+        self, client: TestClient, mod_reporter_headers, mod_moderator_headers
+    ):
+        """처리(반려)된 신고가 있어도 같은 대상 재신고는 409 — 처리 이력은 그대로 남는다."""
+        payload = {"targetType": "comment", "targetId": 990002, "reason": "spam"}
+        first = client.post(REPORTS_PREFIX, json=payload, headers=mod_reporter_headers)
+        report_id = first.json()["data"]["id"]
+        handled = client.patch(
+            f"{ADMIN_MOD_PREFIX}/reports/{report_id}", json={"status": "dismissed"},
+            headers=mod_moderator_headers,
+        )
+        assert handled.status_code == 200
+        assert client.post(REPORTS_PREFIX, json=payload, headers=mod_reporter_headers).status_code == 409
+
+    def test_db_index_only_blocks_duplicate_pending(self, mod_reporter_user):
+        """부분 유니크 인덱스: 처리된 중복은 보존 가능, pending 중복만 거부 (동시 요청 방어선)."""
+        from sqlalchemy.exc import IntegrityError
+        from app.models.moderation import Report
+        from app.tests.conftest import TestingSessionLocal
+
+        key = dict(reporter_id=mod_reporter_user.id, target_type="post", target_id=990003, reason="spam")
+        s = TestingSessionLocal()
+        try:
+            s.add_all([Report(**key, status="dismissed"), Report(**key, status="resolved"),
+                       Report(**key, status="pending")])
+            s.commit()
+            s.add(Report(**key, status="pending"))
+            with pytest.raises(IntegrityError):
+                s.commit()
+        finally:
+            s.rollback()
+            s.close()
+
     def test_self_report_rejected(
         self, client: TestClient, mod_reporter_user, mod_reporter_headers
     ):
@@ -554,7 +603,7 @@ class TestUpdateReportStatus:
     ):
         create_resp = client.post(
             REPORTS_PREFIX,
-            json={"targetType": "user", "targetId": mod_target_user.id, "reason": "spam"},
+            json={"targetType": "material", "targetId": 2, "reason": "spam"},
             headers=mod_reporter_headers,
         )
         assert create_resp.status_code == 201
@@ -602,12 +651,12 @@ class TestBulkProcess:
         mod_reporter_headers,
         mod_target_user,
     ):
-        # 신고 2건 생성
+        # 신고 2건 생성 (같은 대상 중복 신고는 409이므로 대상이 다르다)
         ids = []
-        for reason in ["spam", "abuse"]:
+        for target_id, reason in [(10, "spam"), (11, "abuse")]:
             r = client.post(
                 REPORTS_PREFIX,
-                json={"targetType": "material", "targetId": 10, "reason": reason},
+                json={"targetType": "material", "targetId": target_id, "reason": reason},
                 headers=mod_reporter_headers,
             )
             assert r.status_code == 201

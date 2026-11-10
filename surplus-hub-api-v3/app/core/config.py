@@ -81,6 +81,9 @@ class Settings(BaseSettings):
     # S3-compatible endpoint (e.g. Cloudflare R2). None → AWS S3 default.
     AWS_S3_ENDPOINT_URL: Optional[str] = None
     AWS_S3_REGION: str = "ap-northeast-2"
+    # Public base URL that serves uploaded objects (R2 r2.dev / custom domain / CDN).
+    # Required when AWS_S3_ENDPOINT_URL is set: S3-compatible API endpoints aren't public.
+    STORAGE_PUBLIC_BASE_URL: Optional[str] = None
 
     # Firebase
     FIREBASE_CREDENTIALS_PATH: Optional[str] = None

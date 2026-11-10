@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -11,6 +12,7 @@ from app.core.rate_limit import limiter
 from app.core.storage import storage
 from app.models.user import User
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"}
@@ -75,7 +77,8 @@ async def upload_image(
             content_type=file.content_type or "image/jpeg",
             folder="materials",
         )
-    except Exception as e:
+    except Exception:
+        logger.exception("image upload failed")
         raise HTTPException(
             status_code=500,
             detail="Failed to upload image. Please try again.",
@@ -106,7 +109,8 @@ def get_presigned_url(
             content_type=request.content_type,
             folder=request.folder,
         )
-    except Exception as e:
+    except Exception:
+        logger.exception("presigned URL generation failed")
         raise HTTPException(
             status_code=500,
             detail="Failed to generate presigned URL.",

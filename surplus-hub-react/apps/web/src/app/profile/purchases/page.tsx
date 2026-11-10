@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCurrentUser, useMyTransactions, useCompleteTransaction, useCreateReview } from "@repo/core";
 import { AuthGate } from "../../../components/AuthGate";
+import { apiErrorDetail } from "../../../utils/apiError";
 
 const formatDate = (value: string): string => {
   const d = new Date(value);
@@ -36,7 +37,7 @@ function PurchasesContent() {
   const handleComplete = (txId: string) => {
     setPendingId(txId);
     completeMutation.mutate(txId, {
-      onError: () => alert("처리에 실패했습니다. 다시 시도해주세요."),
+      onError: (error) => alert(apiErrorDetail(error) ?? "처리에 실패했습니다."),
       onSettled: () => setPendingId(null),
     });
   };
