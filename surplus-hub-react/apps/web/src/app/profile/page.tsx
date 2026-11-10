@@ -131,19 +131,18 @@ function ProfileContent() {
               <h2 className="text-lg font-extrabold text-foreground">{displayName}</h2>
               <p className="text-[13px] text-muted-foreground">{locationLabel}</p>
             </div>
-            <div
-              data-testid="profile-trust-badge"
-              className={
-                isBusinessVerified
-                  ? "flex items-center gap-1 rounded-chip border border-olive-bd bg-olive-bg px-2.5 py-1 text-olive-tx"
-                  : "flex items-center gap-1 rounded-chip bg-accent px-2.5 py-1 text-accent-foreground"
-              }
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-3.5 h-3.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
-              </svg>
-              <span className="text-xs font-bold">{isBusinessVerified ? "사업자 인증 완료" : "인증회원"}</span>
-            </div>
+            {/* 인증 배지는 실제 인증(사업자 인증, trustLevel >= 80)을 마친 경우에만 — 가입 기본값(1)은 미인증 */}
+            {isBusinessVerified && (
+              <div
+                data-testid="profile-trust-badge"
+                className="flex items-center gap-1 rounded-chip border border-olive-bd bg-olive-bg px-2.5 py-1 text-olive-tx"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-3.5 h-3.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
+                </svg>
+                <span className="text-xs font-bold">사업자 인증 완료</span>
+              </div>
+            )}
           </div>
 
           {/* Manner Temperature — 서버 값이 있을 때만 렌더 */}

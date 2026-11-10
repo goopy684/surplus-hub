@@ -22,6 +22,8 @@ class ChatRoom(BaseModel):
     material_price: Optional[int] = Field(None, alias="materialPrice")
     material_status: Optional[str] = Field(None, alias="materialStatus")
     material_image_url: Optional[str] = Field(None, alias="materialImageUrl")
+    # 클라이언트가 내 역할(판매자/구매자)을 알아야 빠른 답장 등을 고를 수 있다
+    seller_id: Optional[int] = Field(None, alias="sellerId")
     other_user_id: int = Field(..., alias="otherUserId")
     other_user_name: str = Field(..., alias="otherUserName")
     other_user_avatar: Optional[str] = Field(None, alias="otherUserAvatar")

@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ReportModal } from "../../../components/ReportModal";
+import { hasStoredAuthToken } from "../../../components/authGatePolicy";
 
 const STATUS_LABELS: Record<string, string> = {
   ACTIVE: "판매중",
@@ -89,8 +90,9 @@ export default function MaterialDetailPage({ params }: { params: { id: string } 
   };
 
   const handlePurchaseRequest = (quantity: number) => {
-    // 비로그인 시 채팅 CTA처럼 로그인 게이트가 있는 화면으로 보낸다
-    if (!currentUser) {
+    // 비로그인 시 채팅 CTA처럼 로그인 게이트가 있는 화면으로 보낸다.
+    // currentUser는 /users/me 응답 전(로딩 중)에도 undefined라 토큰 유무로 판단한다 (SH-38)
+    if (!currentUser && !hasStoredAuthToken()) {
       router.push("/sign-in");
       return;
     }
@@ -297,7 +299,8 @@ export default function MaterialDetailPage({ params }: { params: { id: string } 
               <span className="font-semibold text-foreground">{item.category || "기타"}</span>
             </div>
             <div className="flex min-h-[44px] items-center justify-between border-b border-line-2 text-sm">
-              <span className="text-muted-foreground">수량</span>
+              {/* 분할 판매 후 수량·가격은 남은 재고 기준으로 줄어든다 (제목은 등록 당시 문구 그대로) */}
+              <span className="text-muted-foreground">남은 수량</span>
               <span className="font-semibold text-foreground tabular">{quantityLabel}</span>
             </div>
             <div className="flex min-h-[44px] items-center justify-between border-b border-line-2 text-sm">
@@ -451,7 +454,9 @@ export default function MaterialDetailPage({ params }: { params: { id: string } 
                 ) : null;
               })()}
             </div>
-            <p className="mt-0.5 truncate text-[11.5px] font-medium text-muted-foreground">거래 조건은 판매자와 협의</p>
+            <p className="mt-0.5 truncate text-[11.5px] font-medium text-muted-foreground">
+              {item.quantity && item.quantity > 0 ? `남은 ${quantityLabel} 기준 · ` : ""}거래 조건은 판매자와 협의
+            </p>
           </div>
         </div>
         {isOwner ? (

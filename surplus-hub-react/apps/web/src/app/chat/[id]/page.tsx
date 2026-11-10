@@ -8,7 +8,7 @@ import {
   useChatWebSocket,
   getChatSuggestions,
   translateText,
-  QUICK_REPLIES,
+  getQuickReplies,
   TRANSLATION_LANGUAGES,
 } from "@repo/core";
 import Link from "next/link";
@@ -206,7 +206,7 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
     };
   }, [params.id, data?.data]);
 
-  const replyChips = Array.from(new Set<string>([...QUICK_REPLIES, ...smartReplies]));
+  const replyChips = Array.from(new Set<string>([...getQuickReplies(currentUser?.id, room?.sellerId), ...smartReplies]));
 
   if (isLoading) {
     return (
@@ -230,7 +230,7 @@ function ChatRoomContent({ params }: { params: { id: string } }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
           </svg>
         </button>
-        <h1 className="text-[17px] font-extrabold tracking-[-0.4px] text-foreground">채팅</h1>
+        <h1 className="min-w-0 truncate text-[17px] font-extrabold tracking-[-0.4px] text-foreground">{room?.otherUser.name || "채팅"}</h1>
         {/* 연결 상태 인디케이터 */}
         {isConnected && (
           <span className="ml-2 w-2.5 h-2.5 rounded-full bg-primary inline-block" />
