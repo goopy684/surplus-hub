@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.core.cache import cache_get_json, cache_set_json, invalidate_material_caches, make_cache_key
 from app.crud.crud_material import crud_material
 from app.crud.crud_like import crud_material_like
 from app.crud.crud_transaction import StockConflictError
@@ -59,6 +60,14 @@ def read_materials(
         }
 
     # Offset-based pagination (backward compatible)
+    key = make_cache_key(
+        "materials:list", page=page, limit=limit, category=category, keyword=keyword, sort=sort,
+        condition_grade=condition_grade, location=location,
+    )
+    cached = cache_get_json(key)
+    if cached is not None:
+        return cached
+
     materials, total_count = crud_material.get_multi_with_filters(
         db, page=page, limit=limit, category=category, keyword=keyword, sort=sort,
         condition_grade=condition_grade, location_address=location,
@@ -69,7 +78,7 @@ def read_materials(
 
     data = [MaterialSchema.model_validate(m) for m in materials]
 
-    return {
+    result = MaterialListResponse.model_validate({
         "status": "success",
         "data": data,
         "meta": {
@@ -79,7 +88,9 @@ def read_materials(
             "hasNextPage": has_next_page,
             "totalPages": total_pages,
         },
-    }
+    }).model_dump(mode="json", by_alias=True)
+    cache_set_json(key, result, ttl_seconds=30)
+    return result
 
 
 @router.post(
@@ -103,6 +114,7 @@ def create_material(
     # AI: auto-generate embedding in background (non-blocking)
     from app.ai.services.embedding_hook import update_material_embedding_background
     background_tasks.add_task(update_material_embedding_background, db_obj.id)
+    invalidate_material_caches()
 
     return {
         "status": "success",
@@ -158,6 +170,7 @@ def update_material(
     # AI: re-generate embedding in background (non-blocking)
     from app.ai.services.embedding_hook import update_material_embedding_background
     background_tasks.add_task(update_material_embedding_background, updated.id)
+    invalidate_material_caches()
 
     return {
         "status": "success",
@@ -183,6 +196,7 @@ def delete_material(
         raise HTTPException(status_code=403, detail="Not authorized to delete this material")
 
     crud_material.soft_delete(db, db_obj=material)
+    invalidate_material_caches()
     return {"status": "success", "data": {"message": "Material deleted"}}
 
 
@@ -217,6 +231,7 @@ def update_material_status(
         updated = crud_material.update_status(db, db_obj=material, status=status, buyer_id=body.buyer_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    invalidate_material_caches()
 
     return {
         "status": "success",
@@ -240,6 +255,7 @@ def toggle_material_like(
 
     is_liked = crud_material_like.toggle(db, user_id=current_user.id, material_id=id)
     db.refresh(material)
+    invalidate_material_caches()
     return {
         "status": "success",
         "data": LikeStatusResponse(isLiked=is_liked, likesCount=material.likes_count or 0),

@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.core.cache import invalidate_material_caches
 from app.crud.crud_admin import crud_admin
 from app.crud.crud_moderation import crud_moderation
 from app.models.user import User
@@ -84,6 +85,8 @@ def create_sanction(
         )
     except PermissionError as e:
         raise HTTPException(status_code=403, detail=str(e))
+    # BAN cancels the user's pending transactions and releases RESERVED listings to ACTIVE.
+    invalidate_material_caches()
 
     crud_admin.create_audit_log(
         db,

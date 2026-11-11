@@ -62,6 +62,8 @@ const nextConfig = {
       { protocol: "https", hostname: "via.placeholder.com" },
       ...apiRemotePatterns,
     ],
+    // Uploaded images are immutable (unique key per upload), so keep optimized copies for a day.
+    minimumCacheTTL: 86400,
     // DiceBear serves avatars as SVG; next/image refuses to optimize SVG by
     // default (400). The host allowlist above is restricted to trusted avatar
     // services, and next renders these under a no-script sandbox CSP, so this

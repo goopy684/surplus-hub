@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.core.cache import invalidate_material_caches
 from app.core.notify import notify
 from app.crud.crud_material import crud_material
 from app.crud.crud_transaction import crud_transaction
@@ -62,6 +63,7 @@ def create_transaction(
         )
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
+    invalidate_material_caches()
 
     # Notify the seller of the incoming purchase request
     item = f"'{material.title}'"
@@ -178,6 +180,7 @@ def confirm_transaction(
         tx = crud_transaction.confirm_transaction(db, db_obj=tx)
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
+    invalidate_material_caches()
 
     # Notify the buyer that the seller accepted
     notify(
@@ -217,5 +220,6 @@ def complete_transaction(
         tx = crud_transaction.complete_transaction(db, db_obj=tx)
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))
+    invalidate_material_caches()
 
     return {"status": "success", "data": _format_transaction(tx)}

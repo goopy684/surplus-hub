@@ -6,6 +6,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.core.cache import cache_get_json, cache_set_json, make_cache_key
 from app.crud.crud_admin import crud_admin
 from app.crud.crud_dashboard import crud_dashboard
 from app.models.user import User
@@ -13,6 +14,16 @@ from app.models.user import User
 router = APIRouter()
 
 _VALID_EXPORT_TYPES = {"users", "materials", "transactions"}
+_TTL = 60
+
+
+def _cached(key: str, compute) -> Any:
+    cached = cache_get_json(key)
+    if cached is not None:
+        return cached
+    result = compute()
+    cache_set_json(key, result, ttl_seconds=_TTL)
+    return result
 
 
 @router.get("/summary", summary="Dashboard KPI summary")
@@ -20,8 +31,10 @@ def get_dashboard_summary(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin_user("MODERATOR")),
 ) -> Any:
-    summary = crud_dashboard.get_summary(db)
-    return {"status": "success", "data": summary}
+    return _cached(
+        "admin:dashboard:summary",
+        lambda: {"status": "success", "data": crud_dashboard.get_summary(db)},
+    )
 
 
 @router.get("/stats/users", summary="User registration trend")
@@ -31,8 +44,10 @@ def get_user_stats(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin_user("MODERATOR")),
 ) -> Any:
-    data = crud_dashboard.get_user_stats(db, period=period, days=days)
-    return {"status": "success", "data": {"data": data, "period": period}}
+    return _cached(
+        make_cache_key("admin:dashboard:stats:users", period=period, days=days),
+        lambda: {"status": "success", "data": {"data": crud_dashboard.get_user_stats(db, period=period, days=days), "period": period}},
+    )
 
 
 @router.get("/stats/materials", summary="Material listing trend")
@@ -42,8 +57,10 @@ def get_material_stats(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin_user("MODERATOR")),
 ) -> Any:
-    data = crud_dashboard.get_material_stats(db, period=period, days=days)
-    return {"status": "success", "data": {"data": data, "period": period}}
+    return _cached(
+        make_cache_key("admin:dashboard:stats:materials", period=period, days=days),
+        lambda: {"status": "success", "data": {"data": crud_dashboard.get_material_stats(db, period=period, days=days), "period": period}},
+    )
 
 
 @router.get("/stats/transactions", summary="Transaction trend")
@@ -53,8 +70,10 @@ def get_transaction_stats(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_admin_user("MODERATOR")),
 ) -> Any:
-    data = crud_dashboard.get_transaction_stats(db, period=period, days=days)
-    return {"status": "success", "data": {"data": data, "period": period}}
+    return _cached(
+        make_cache_key("admin:dashboard:stats:transactions", period=period, days=days),
+        lambda: {"status": "success", "data": {"data": crud_dashboard.get_transaction_stats(db, period=period, days=days), "period": period}},
+    )
 
 
 @router.get("/stats/active-users", summary="Distinct active users trend (DAU/WAU/MAU)")

@@ -1,4 +1,5 @@
 from sqladmin import ModelView
+from app.core.cache import invalidate_material_caches
 from app.models.user import User
 from app.models.material import Material
 from app.models.chat import ChatRoom, Message
@@ -67,6 +68,12 @@ class MaterialAdmin(ModelView, model=Material):
         "created_at": "등록일",
         "updated_at": "수정일",
     }
+
+    async def after_model_change(self, data, model, is_created, request) -> None:
+        invalidate_material_caches()
+
+    async def after_model_delete(self, model, request) -> None:
+        invalidate_material_caches()
 
 
 class ChatRoomAdmin(ModelView, model=ChatRoom):
