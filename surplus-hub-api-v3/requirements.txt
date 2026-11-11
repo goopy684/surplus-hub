@@ -24,6 +24,7 @@ boto3>=1.28.0
 Pillow>=10.0.0
 firebase-admin>=6.0.0
 slowapi>=0.1.9
+redis>=5.0.0
 itsdangerous>=2.1.0
 # AI
 pgvector>=0.3.0

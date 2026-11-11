@@ -75,6 +75,8 @@ class S3Storage(BaseStorage):
             Key=key,
             Body=file_content,
             ContentType=content_type,
+            # Keys are unique per upload, so the object never changes — let CDN/browsers keep it.
+            CacheControl="public, max-age=31536000, immutable",
         )
         return url
 

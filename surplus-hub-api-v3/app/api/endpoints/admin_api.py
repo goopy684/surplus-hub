@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.core.cache import invalidate_material_caches
 from app.core.notify import notify
 from app.crud.crud_admin import crud_admin
 from app.crud.crud_material import crud_material
@@ -49,6 +50,7 @@ def review_material(
     db.add(material)
     db.commit()
     db.refresh(material)
+    invalidate_material_caches()
     crud_admin.create_audit_log(
         db,
         admin_id=current_user.id,

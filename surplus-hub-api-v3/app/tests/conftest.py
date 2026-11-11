@@ -255,3 +255,15 @@ def reset_rate_limiter():
         except Exception:
             pass
     yield
+
+
+# ---------------------------------------------------------------------------
+# Response cache is process-global — clear it so cached lists never leak
+# between tests.
+# ---------------------------------------------------------------------------
+@pytest.fixture(autouse=True)
+def clear_response_cache():
+    from app.core.cache import cache_clear_all
+    cache_clear_all()
+    yield
+    cache_clear_all()

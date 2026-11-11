@@ -34,6 +34,14 @@ def test_r2_without_public_base_fails_before_uploading():
     s3._client.put_object.assert_not_called()
 
 
+def test_upload_sets_immutable_cache_control():
+    s3 = storage.S3Storage()
+    s3._client = MagicMock()
+    with _settings(**R2, STORAGE_PUBLIC_BASE_URL="https://cdn.example.com"):
+        s3.upload_file(b"x", "a.jpg", "image/jpeg")
+    assert s3._client.put_object.call_args.kwargs["CacheControl"] == "public, max-age=31536000, immutable"
+
+
 def test_presigned_public_url_uses_base():
     s3 = storage.S3Storage()
     s3._client = MagicMock()

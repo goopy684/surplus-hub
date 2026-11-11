@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.core.cache import cache_get_json, cache_set_json, make_cache_key
 from app.core.rate_limit import limiter
 from app.crud.crud_chat import crud_chat_room
 from app.models.user import User
@@ -179,14 +180,21 @@ def search_suggestions(
     limit: int = Query(5, ge=1, le=20),
     db: Session = Depends(deps.get_db),
 ) -> Any:
-    suggestions = search_service.get_search_suggestions(db, query=q, limit=limit)
+    key = make_cache_key("ai:suggestions", q=q.strip().lower(), limit=limit)
+    cached = cache_get_json(key)
+    if cached is not None:
+        return cached
 
-    return {
+    suggestions = search_service.get_search_suggestions(db, query=q.strip(), limit=limit)
+
+    result = {
         "status": "success",
         "data": SearchSuggestionsResponse(
             suggestions=[SearchSuggestion(**s) for s in suggestions]
-        ).model_dump(by_alias=True),
+        ).model_dump(mode="json", by_alias=True),
     }
+    cache_set_json(key, result, ttl_seconds=300)
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -263,10 +271,18 @@ def suggest_price(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
+    key = make_cache_key(
+        "ai:price", title=body.title.strip().lower(), category=body.category,
+        condition=body.condition, quantity=body.quantity,
+    )
+    cached = cache_get_json(key)
+    if cached is not None:
+        return cached
+
     try:
         result = registration_service.suggest_material_price(
             db=db,
-            title=body.title,
+            title=body.title.strip(),
             category=body.category,
             condition=body.condition,
             quantity=body.quantity,
@@ -274,10 +290,12 @@ def suggest_price(
     except Exception as exc:
         raise _handle_ai_error(exc, "Price suggestion service")
 
-    return {
+    response = {
         "status": "success",
-        "data": result.model_dump(by_alias=True),
+        "data": result.model_dump(mode="json", by_alias=True),
     }
+    cache_set_json(key, response, ttl_seconds=1800)
+    return response
 
 
 # ---------------------------------------------------------------------------

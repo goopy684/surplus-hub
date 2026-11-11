@@ -4,14 +4,19 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 env:
   PYTHON_VERSION: "3.11"
+  NODE_VERSION: "20"
 
 jobs:
-  lint-and-type-check:
+  # ---- surplus-hub-api-v3 ----
+  api-lint-and-type-check:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: surplus-hub-api-v3
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -26,9 +31,12 @@ jobs:
         run: |
           python -c "from app.main import app; print('Import check passed')"
 
-  test:
+  api-test:
     runs-on: ubuntu-latest
-    needs: lint-and-type-check
+    needs: api-lint-and-type-check
+    defaults:
+      run:
+        working-directory: surplus-hub-api-v3
     services:
       postgres:
         # pgvector image: the app's migrations CREATE EXTENSION vector, which
@@ -69,11 +77,54 @@ jobs:
       - name: Run tests
         run: pytest app/tests/ -v --tb=short
 
-  docker-build:
+  api-docker-build:
     runs-on: ubuntu-latest
-    needs: test
+    needs: api-test
     if: github.ref == 'refs/heads/main'
+    defaults:
+      run:
+        working-directory: surplus-hub-api-v3
     steps:
       - uses: actions/checkout@v4
       - name: Build Docker image
         run: docker build -t surplus-hub-api:${{ github.sha }} .
+
+  # ---- surplus-hub-react ----
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: surplus-hub-react
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Lint (web)
+        run: npx turbo run lint --filter=web
+      - name: Check types (web)
+        run: npx turbo run check-types --filter=web
+      - name: Test (web)
+        run: npm run test --workspace=web
+      - name: Build (web)
+        env:
+          # NOTE: client reads NEXT_PUBLIC_API_URL (not *_API_BASE_URL).
+          NEXT_PUBLIC_API_URL: https://api.example.com
+        run: npx turbo run build --filter=web
+
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: surplus-hub-react
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Check types (mobile)
+        run: npm run check-types --workspace=mobile

@@ -26,7 +26,8 @@ docker-compose.yml
 docs
 create_sample_data.py
 create_test_user.py
-scripts
+scripts/*
+!scripts/fix_storage_urls.py
 static/uploads
 
 # NOTE: alembic/, alembic.ini, app/, gunicorn.conf.py, requirements.txt and
