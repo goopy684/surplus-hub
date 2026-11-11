@@ -45,9 +45,10 @@ class S3Storage(BaseStorage):
                 "service_name": "s3",
                 "region_name": settings.AWS_S3_REGION,
                 "config": Config(
-                    connect_timeout=5,
-                    read_timeout=10,
-                    retries={"max_attempts": 2},
+                    # 모바일 고해상도 사진(수 MB)을 R2에 올릴 때 10초 read timeout이 부족하다
+                    connect_timeout=15,
+                    read_timeout=60,
+                    retries={"max_attempts": 3},
                 ),
             }
             if settings.AWS_ACCESS_KEY_ID:

@@ -6,6 +6,7 @@ import {
   generateDescription,
   suggestPrice,
   uploadImage,
+  dataUrlToFile,
   AiPriceSuggestion,
   MATERIAL_CATEGORIES,
   QUANTITY_UNITS,
@@ -67,6 +68,14 @@ const CategoryIcons = {
 // 백엔드 /api/v1/upload/image 허용 형식·용량과 동일
 const UPLOAD_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 const MAX_UPLOAD_MB = 10;
+// 일부 모바일 브라우저는 비표준 MIME을 쓰거나 type을 비운다 — 백엔드가 같은 보정을 한다
+const MOBILE_IMAGE_TYPE_ALIASES = ["image/jpg", "image/pjpeg", "image/x-png"];
+const IMAGE_EXTENSION_RE = /\.(jpe?g|png|webp|heic|heif)$/i;
+
+const isAllowedImage = (file: File) =>
+  UPLOAD_IMAGE_TYPES.includes(file.type) ||
+  MOBILE_IMAGE_TYPE_ALIASES.includes(file.type) ||
+  (file.type === "" && IMAGE_EXTENSION_RE.test(file.name));
 
 const CONDITION_GRADES = [
   { label: "상 (양호)", value: "상" },
@@ -134,12 +143,14 @@ function RegisterContent() {
       // 등록 시 /upload/image가 거절할 사진은 고를 때 바로 걸러 어떤 파일인지 알려준다
       const rejected: string[] = [];
       Array.from(files).forEach((file) => {
-        if (!UPLOAD_IMAGE_TYPES.includes(file.type) || file.size > MAX_UPLOAD_MB * 1024 * 1024) {
+        if (!isAllowedImage(file) || file.size > MAX_UPLOAD_MB * 1024 * 1024) {
           rejected.push(file.name);
           return;
         }
         const reader = new FileReader();
         reader.onloadend = () => {
+          // 업로드 시 파일을 다시 읽지 못하는 모바일 브라우저용 JSON 폴백에 쓴다 (file 참조는 그대로 유지)
+          (file as File & { __previewDataUrl?: string }).__previewDataUrl = reader.result as string;
           setImages((prev) => [...prev, { url: reader.result as string, file }].slice(0, 10));
         };
         reader.readAsDataURL(file);
@@ -258,7 +269,18 @@ function RegisterContent() {
     let photoUrls: string[];
     setIsUploading(true);
     try {
-      photoUrls = await Promise.all(images.map((img) => uploadImage(img.file)));
+      photoUrls = await Promise.all(
+        images.map(async (img) => {
+          try {
+            return await uploadImage(img.file);
+          } catch (err) {
+            // 원본 File 핸들이 무효화된 경우(Android ERR_UPLOAD_FILE_CHANGED 등) 미리보기로 인메모리 File을 만들어 1회 재시도
+            const fallbackFile = dataUrlToFile(img.url, img.file.name, img.file.type);
+            if (!fallbackFile) throw err;
+            return uploadImage(fallbackFile);
+          }
+        })
+      );
     } catch {
       alert("사진 업로드에 실패했습니다. 다시 시도해주세요.");
       return;

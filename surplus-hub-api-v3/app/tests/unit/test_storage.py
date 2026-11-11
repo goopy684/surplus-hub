@@ -97,3 +97,37 @@ def test_fix_storage_urls_only_rewrites_image_messages():
     finally:
         s.rollback()
         s.close()
+
+
+JPEG = b"\xff\xd8\xff\xe0" + b"\x00" * 16
+
+
+def test_resolve_image_content_type():
+    from app.api.endpoints.upload import _resolve_image_content_type as resolve
+
+    assert resolve("image/jpg", "a.jpg", JPEG) == "image/jpeg"
+    assert resolve("IMAGE/PNG; charset=binary", "a.png", b"") == "image/png"
+    assert resolve("application/octet-stream", "photo", JPEG) == "image/jpeg"
+    assert resolve("", "a.HEIC", b"") == "image/heic"
+    assert resolve("application/octet-stream", "x", b"RIFF\0\0\0\0WEBPVP8 ") == "image/webp"
+    assert resolve("image/gif", "a.jpg", JPEG) is None  # 명시적 비허용 타입은 보정하지 않는다
+    assert resolve("", "a.txt", b"hello") is None
+
+
+def test_upload_image_base64(client, auth_headers):
+    import base64
+
+    from app.api.endpoints import upload
+
+    ok = "data:image/jpg;base64," + base64.b64encode(JPEG).decode()
+    with patch.object(upload.storage, "upload_file", return_value="https://cdn/x.jpg") as put:
+        r = client.post("/api/v1/upload/image-base64", json={"dataUrl": ok, "filename": "p.jpg"}, headers=auth_headers)
+        assert r.status_code == 200, r.text
+        assert r.json() == {"url": "https://cdn/x.jpg"}
+        assert put.call_args.kwargs["content_type"] == "image/jpeg"
+
+        gif = "data:image/gif;base64," + base64.b64encode(JPEG).decode()
+        for bad in (gif, "data:image/jpeg;base64,!!!", "nope"):
+            r = client.post("/api/v1/upload/image-base64", json={"dataUrl": bad}, headers=auth_headers)
+            assert r.status_code == 400, bad
+        assert put.call_count == 1
