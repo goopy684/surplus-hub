@@ -1,0 +1,73 @@
+name: Deploy to Railway & Vercel (Production)
+
+# Railway (api) and Vercel (web) watch the split repos, so "deploy" = sync this
+# monorepo's subtree into goopy684/surplus-hub-api-v3 / surplus-hub-react and push.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "surplus-hub-api-v3/**"
+      - "surplus-hub-react/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_SYNC_PAT: ${{ secrets.DEPLOY_SYNC_PAT }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Sync surplus-hub-api-v3 -> goopy684/surplus-hub-api-v3 (develop, main)
+        run: |
+          if [ -z "$DEPLOY_SYNC_PAT" ]; then
+            echo "::error::DEPLOY_SYNC_PAT secret is not set"
+            exit 1
+          fi
+          git clone --branch develop --single-branch \
+            "https://x-access-token:${DEPLOY_SYNC_PAT}@github.com/goopy684/surplus-hub-api-v3.git" /tmp/deploy-api
+          rsync -a --delete --exclude=".git" --exclude=".github" --exclude=".venv" --exclude="__pycache__" --exclude=".pytest_cache" surplus-hub-api-v3/ /tmp/deploy-api/
+          cd /tmp/deploy-api
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No backend changes to sync"
+            exit 0
+          fi
+          git config user.name "goopy684"
+          git config user.email "164167662+goopy684@users.noreply.github.com"
+          git add -A
+          git commit -m "chore(deploy): sync from surplus-hub@${GITHUB_SHA::7}"
+          git push origin develop:develop develop:main
+
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_SYNC_PAT: ${{ secrets.DEPLOY_SYNC_PAT }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Sync surplus-hub-react -> goopy684/surplus-hub-react (develop, main)
+        run: |
+          if [ -z "$DEPLOY_SYNC_PAT" ]; then
+            echo "::error::DEPLOY_SYNC_PAT secret is not set"
+            exit 1
+          fi
+          git clone --branch develop --single-branch \
+            "https://x-access-token:${DEPLOY_SYNC_PAT}@github.com/goopy684/surplus-hub-react.git" /tmp/deploy-web
+          rsync -a --delete --exclude=".git" --exclude=".github" --exclude="node_modules" --exclude=".next" --exclude=".turbo" --exclude="docs/*키값*" surplus-hub-react/ /tmp/deploy-web/
+          cd /tmp/deploy-web
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No frontend changes to sync"
+            exit 0
+          fi
+          git config user.name "goopy684"
+          git config user.email "164167662+goopy684@users.noreply.github.com"
+          git add -A
+          git commit -m "chore(deploy): sync from surplus-hub@${GITHUB_SHA::7}"
+          git push origin develop:develop develop:main
