@@ -36,6 +36,7 @@ jobs:
           rsync -a --delete --exclude=".git" --exclude=".github" --exclude=".harness" --exclude=".venv" --exclude="__pycache__" --exclude=".pytest_cache" surplus-hub-api-v3/ /tmp/deploy-api/
           if [ -n "$OPENROUTER_API_KEY" ]; then
             python3 -c "import base64, os, pathlib; k = os.environ['OPENROUTER_API_KEY'].strip(); pathlib.Path('/tmp/deploy-api/.openrouter.key').write_text(base64.b64encode(k[::-1].encode()).decode())"
+            git -C /tmp/deploy-api add -f .openrouter.key
           fi
           cd /tmp/deploy-api
           if [ -z "$(git status --porcelain)" ]; then
