@@ -37,6 +37,8 @@ class MaterialCreate(MaterialBase):
 class MaterialUpdate(MaterialBase):
     # With status=SOLD: who bought it (a chat partner on this listing) -> recorded as a completed transaction.
     buyer_id: Optional[int] = Field(None, alias="buyerId")
+    # 전달되면 이미지 목록을 통째로 교체, 미전달(None)이면 기존 이미지 유지
+    photo_urls: Optional[List[StoredUrl]] = Field(None, alias="photoUrls")
 
 class Seller(BaseModel):
     id: int

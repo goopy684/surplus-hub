@@ -173,6 +173,7 @@ class CRUDMaterial(CRUDBase[Material, MaterialCreate, MaterialUpdate]):
             update_data = obj_in.model_dump(exclude_unset=True)
         status = update_data.pop("status", None)
         buyer_id = update_data.pop("buyer_id", None)
+        photo_urls = update_data.pop("photo_urls", None)
 
         # 확정·완료와 같은 매물 잠금(매물 → 거래 순서). 확정된 수량보다 재고를 줄이면
         # 그 거래가 완료 단계에서 409로 'CONFIRMED'에 갇힌다 (SH-37)
@@ -197,6 +198,13 @@ class CRUDMaterial(CRUDBase[Material, MaterialCreate, MaterialUpdate]):
         for field, value in update_data.items():
             if hasattr(db_obj, field):
                 setattr(db_obj, field, value)
+
+        if photo_urls is not None:
+            # delete-orphan cascade가 기존 행을 지운다
+            db_obj.material_images = [
+                MaterialImage(url=url, display_order=idx)
+                for idx, url in enumerate(photo_urls)
+            ]
 
         # Status goes through update_status so SOLD records the sale and likers get notified.
         if status is not None and status != db_obj.status:

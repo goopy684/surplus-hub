@@ -241,6 +241,33 @@ class TestUpdateMaterial:
         assert data["title"] == "Updated Steel Beam"
         assert data["price"] == 120000
 
+    def test_update_photo_urls_replaces_and_omitted_keeps(
+        self, client: TestClient, auth_headers: dict
+    ):
+        """photoUrls 전달 시 이미지 교체, 미전달 시 기존 이미지 유지."""
+        base = {
+            "title": "Photo Swap",
+            "description": "d",
+            "price": 1,
+            "location": {"address": "Seoul"},
+        }
+        url = f"{API_V1_STR}/materials/{_created_material_id}"
+        new_urls = ["https://example.com/a.jpg", "https://example.com/b.jpg"]
+
+        r = client.put(url, json={**base, "photoUrls": new_urls}, headers=auth_headers)
+        assert r.status_code == 200
+        data = r.json()["data"]
+        assert data["images"] == new_urls
+        assert data["thumbnailUrl"] == new_urls[0]
+
+        r = client.put(url, json=base, headers=auth_headers)
+        assert r.json()["data"]["images"] == new_urls
+
+        r = client.put(
+            url, json={**base, "photoUrls": ["data:image/png;base64,AAAA"]}, headers=auth_headers
+        )
+        assert r.status_code == 422
+
     def test_update_nonexistent_returns_404(
         self, client: TestClient, auth_headers: dict
     ):

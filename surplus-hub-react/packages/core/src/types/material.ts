@@ -79,6 +79,7 @@ export interface MaterialUpdateInput {
   conditionGrade?: string;
   status?: string;
   buyerId?: number;
+  photoUrls?: string[];
 }
 
 export interface MaterialLikeStatus {
