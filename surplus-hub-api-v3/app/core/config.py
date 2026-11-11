@@ -93,7 +93,7 @@ class Settings(BaseSettings):
 
     # AI Services
     APP_ENV: str = "local"  # local | dev | stage | prod
-    AI_PROVIDER: str = "default"  # default | vertex
+    AI_PROVIDER: str = "default"  # default | vertex | openrouter
     GOOGLE_AI_API_KEY: Optional[str] = None
     GOOGLE_CLOUD_PROJECT: Optional[str] = None
     GOOGLE_CLOUD_LOCATION: str = "asia-northeast3"
@@ -101,6 +101,14 @@ class Settings(BaseSettings):
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
     EMBEDDING_MODEL_NAME: str = "BAAI/bge-m3"
     EMBEDDING_DIMENSION: int = 1024
+
+    # OpenRouter (OpenAI-compatible gateway) — Vision / LLM / Embedding.
+    OPENROUTER_API_KEY: Optional[str] = None
+    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
+    OPENROUTER_VISION_MODEL: str = "google/gemini-2.5-flash-lite"
+    OPENROUTER_DEFAULT_MODEL: str = "google/gemini-2.5-flash-lite"
+    OPENROUTER_REASONING_MODEL: str = "google/gemini-2.5-flash"
+    OPENROUTER_EMBEDDING_MODEL: str = "google/gemini-embedding-001"
 
     # Local LLM via Ollama (OpenAI-compatible) — used when APP_ENV=local.
     # See dev/research/local-llm-setup-guide.md.
@@ -119,19 +127,48 @@ class Settings(BaseSettings):
     def use_vertex(self) -> bool:
         return self.AI_PROVIDER == "vertex"
 
+    @property
+    def use_openrouter(self) -> bool:
+        """OpenRouter is explicit (AI_PROVIDER) or implied by an OpenRouter key.
+
+        isinstance checks keep this False when settings is a MagicMock in tests.
+        """
+        provider = self.AI_PROVIDER
+        if provider == "openrouter":
+            return True
+        key = self.OPENROUTER_API_KEY
+        if isinstance(key, str) and key and provider not in ("local", "openai", "vertex"):
+            return True
+        openai_key = self.OPENAI_API_KEY
+        return (
+            isinstance(openai_key, str)
+            and openai_key.startswith("sk-or-v1-")
+            and provider not in ("local", "vertex")
+        )
+
+    @property
+    def openrouter_api_key(self) -> Optional[str]:
+        key = self.OPENROUTER_API_KEY
+        if isinstance(key, str) and key:
+            return key
+        openai_key = self.OPENAI_API_KEY
+        if isinstance(openai_key, str) and openai_key.startswith("sk-or-v1-"):
+            return openai_key
+        return None
+
     # Max upload
     MAX_UPLOAD_SIZE_MB: int = 10
 
     @property
     def use_local_embedding(self) -> bool:
-        if self.use_vertex:
+        if self.use_vertex or Settings.use_openrouter.fget(self):
             return False
         return self.APP_ENV == "local"
 
     @property
     def use_local_llm(self) -> bool:
         """Use a local Ollama LLM for text generation when running locally."""
-        if self.use_vertex:
+        if self.use_vertex or Settings.use_openrouter.fget(self):
             return False
         return self.APP_ENV == "local"
 
@@ -166,7 +203,7 @@ class Settings(BaseSettings):
                 "Set a strong random SECRET_KEY in .env for production.",
                 stacklevel=2,
             )
-        if self.APP_ENV != "local" and not self.use_vertex and not self.OPENAI_API_KEY:
+        if self.APP_ENV != "local" and not self.use_vertex and not self.use_openrouter and not self.OPENAI_API_KEY:
             warnings.warn(
                 f"APP_ENV={self.APP_ENV} requires OPENAI_API_KEY for embedding. "
                 "Set OPENAI_API_KEY in .env or embedding will fail.",

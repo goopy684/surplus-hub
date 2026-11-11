@@ -15,6 +15,7 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 _client = None
+_openrouter_client = None
 _lock = threading.Lock()
 
 MODEL_NAME = "gemini-2.5-flash-lite"
@@ -53,6 +54,23 @@ def _get_client():
                     )
                     logger.info("Gemini vision client initialized (API key)")
     return _client
+
+
+def _get_openrouter_client():
+    """Thread-safe singleton for the OpenAI-compatible OpenRouter client."""
+    global _openrouter_client
+    if _openrouter_client is None:
+        with _lock:
+            if _openrouter_client is None:
+                import openai
+                _openrouter_client = openai.OpenAI(
+                    base_url=settings.OPENROUTER_BASE_URL,
+                    api_key=settings.openrouter_api_key,
+                    timeout=30.0,
+                    max_retries=0,  # tenacity on analyze_image owns retries
+                )
+                logger.info("OpenRouter vision client initialized (model=%s)", settings.OPENROUTER_VISION_MODEL)
+    return _openrouter_client
 
 
 def _parse_data_uri(data_uri: str) -> tuple[bytes, str]:
@@ -116,7 +134,8 @@ def analyze_image(
             "(이미지 추정과 다르면 키워드를 따른다)."
         )
 
-    client = _get_client()
+    use_openrouter = getattr(settings, "use_openrouter", False) is True
+    client = _get_openrouter_client() if use_openrouter else _get_client()
 
     # Resolve image bytes + mime type from various sources
     if image_url.startswith("data:"):
@@ -126,7 +145,23 @@ def analyze_image(
     else:
         image_bytes, mime_type = _download_image(image_url)
 
-    if settings.use_vertex:
+    if use_openrouter:
+        if image_bytes is None:
+            url = image_url  # gs:// is not fetchable by OpenRouter; passed through as-is
+        else:
+            url = f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
+        completion = client.chat.completions.create(
+            model=settings.OPENROUTER_VISION_MODEL,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": {"url": url}},
+                ],
+            }],
+        )
+        text = (completion.choices[0].message.content or "").strip()
+    elif settings.use_vertex:
         from google.genai import types
 
         parts = [types.Part.from_text(text=prompt)]
@@ -139,6 +174,7 @@ def analyze_image(
             model=MODEL_NAME,
             contents=[types.Content(role="user", parts=parts)],
         )
+        text = response.text.strip()
     else:
         if image_bytes is not None:
             b64 = base64.b64encode(image_bytes).decode("ascii")
@@ -150,9 +186,9 @@ def analyze_image(
             model=MODEL_NAME,
             contents=[{"parts": [{"text": prompt}, image_part]}],
         )
+        text = response.text.strip()
 
     # Parse JSON from response
-    text = response.text.strip()
     # Strip markdown code fences if present
     if text.startswith("```"):
         text = text.split("\n", 1)[1]

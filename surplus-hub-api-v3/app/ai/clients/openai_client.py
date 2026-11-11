@@ -20,8 +20,19 @@ _VERTEX_MODEL_MAP = {
 }
 
 
+def _use_openrouter() -> bool:
+    # `is True` so a MagicMock settings object never selects OpenRouter.
+    return getattr(settings, "use_openrouter", False) is True
+
+
 def _map_model(model: str) -> str:
-    """Map OpenAI model name to Gemini equivalent when using Vertex."""
+    """Map OpenAI model name to its Gemini equivalent (Vertex / OpenRouter)."""
+    if _use_openrouter():
+        if model == "gpt-5-nano":
+            return settings.OPENROUTER_DEFAULT_MODEL
+        if model == "gpt-5-mini":
+            return settings.OPENROUTER_REASONING_MODEL
+        return model if "/" in model else settings.OPENROUTER_DEFAULT_MODEL
     if settings.use_vertex:
         return _VERTEX_MODEL_MAP.get(model, "gemini-2.5-flash-lite")
     return model
@@ -66,6 +77,15 @@ def _get_client():
                         location=settings.GOOGLE_CLOUD_LOCATION,
                     )
                     logger.info("Vertex AI text client initialized (project=%s)", settings.GOOGLE_CLOUD_PROJECT)
+                elif _use_openrouter():
+                    import openai
+                    _client = openai.OpenAI(
+                        base_url=settings.OPENROUTER_BASE_URL,
+                        api_key=settings.openrouter_api_key,
+                        timeout=30.0,
+                        max_retries=3,
+                    )
+                    logger.info("OpenRouter client initialized (timeout=30s, max_retries=3)")
                 else:
                     import openai
                     _client = openai.OpenAI(
@@ -115,7 +135,7 @@ def generate_text(
         return response.text or ""
 
     response = client.chat.completions.create(
-        model=model,
+        model=_map_model(model),
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -171,7 +191,7 @@ def generate_text_with_history(
 
     full_messages = [{"role": "system", "content": system_prompt}] + messages
     response = client.chat.completions.create(
-        model=model,
+        model=_map_model(model),
         messages=full_messages,
         max_tokens=max_tokens,
         temperature=temperature,

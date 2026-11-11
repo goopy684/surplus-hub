@@ -6,7 +6,7 @@ import logging
 import threading
 from typing import Optional
 
-from app.ai.clients.openai_client import generate_text, DEFAULT_MODEL
+from app.ai.clients.openai_client import generate_text, DEFAULT_MODEL, _map_model
 from app.ai.prompts.translation import TRANSLATION_PROMPT
 from app.core.config import settings
 from app.schemas.ai_schemas import TranslateResponse
@@ -96,7 +96,7 @@ def translate_text(
             translatedText=cached["translated_text"],
             sourceLanguage=cached.get("detected_language", source_language),
             targetLanguage=target_language,
-            modelUsed=DEFAULT_MODEL,
+            modelUsed=_map_model(DEFAULT_MODEL),
         )
 
     # Build user prompt
@@ -136,5 +136,5 @@ def translate_text(
         translatedText=data.get("translated_text", result_text),
         sourceLanguage=detected if detected != "auto" else source_language,
         targetLanguage=target_language,
-        modelUsed=DEFAULT_MODEL,
+        modelUsed=_map_model(DEFAULT_MODEL),
     )

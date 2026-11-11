@@ -8,7 +8,7 @@ from typing import List, Optional, Tuple
 from sqlalchemy.orm import Session
 
 from app.ai.clients.gemini import analyze_image
-from app.ai.clients.openai_client import generate_text, DEFAULT_MODEL
+from app.ai.clients.openai_client import generate_text, DEFAULT_MODEL, _map_model
 from app.ai.prompts.material import (
     DESCRIPTION_GENERATION_PROMPT,
     PRICE_SUGGESTION_PROMPT,
@@ -139,7 +139,7 @@ def generate_material_description(
 
     return DescriptionGenerateResponse(
         description=strip_markdown(description),
-        modelUsed=DEFAULT_MODEL,
+        modelUsed=_map_model(DEFAULT_MODEL),
     )
 
 

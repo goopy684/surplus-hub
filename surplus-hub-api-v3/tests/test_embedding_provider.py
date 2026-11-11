@@ -400,3 +400,57 @@ class TestOpenAIErrorHandling:
                 provider.generate("hello")
 
             mock_call.assert_called_once_with("hello", dimensions=1024)
+
+
+# ---------------------------------------------------------------------------
+# OpenRouter provider
+# ---------------------------------------------------------------------------
+
+class TestOpenRouter:
+    def test_selected_when_ai_provider_openrouter(self):
+        from app.ai.clients.embeddings import OpenRouterEmbeddingProvider
+
+        with patch.object(embeddings_module.settings, "AI_PROVIDER", "openrouter"), \
+             patch.object(embeddings_module.settings, "APP_ENV", "prod"):
+            assert isinstance(_get_provider(), OpenRouterEmbeddingProvider)
+
+    def test_openrouter_key_implies_provider_unless_explicit_other(self):
+        s = embeddings_module.settings
+        with patch.object(s, "OPENROUTER_API_KEY", "k"):
+            with patch.object(s, "AI_PROVIDER", "default"):
+                assert s.use_openrouter is True
+            with patch.object(s, "AI_PROVIDER", "vertex"):
+                assert s.use_openrouter is False
+
+    def test_sk_or_openai_key_is_reused(self):
+        s = embeddings_module.settings
+        with patch.object(s, "OPENROUTER_API_KEY", None), \
+             patch.object(s, "OPENAI_API_KEY", "sk-or-v1-abc"), \
+             patch.object(s, "AI_PROVIDER", "default"):
+            assert s.use_openrouter is True
+            assert s.openrouter_api_key == "sk-or-v1-abc"
+            assert s.use_local_embedding is False
+
+    def test_generate_uses_openrouter_model_and_client(self):
+        from app.ai.clients.embeddings import OpenRouterEmbeddingProvider
+
+        provider = OpenRouterEmbeddingProvider()
+        item = MagicMock(embedding=_make_vector(1024), index=0)
+        client = MagicMock()
+        client.embeddings.create.return_value = MagicMock(data=[item])
+        provider._client = client
+
+        assert len(provider.generate("hi")) == 1024
+        kwargs = client.embeddings.create.call_args.kwargs
+        assert kwargs["model"] == embeddings_module.settings.OPENROUTER_EMBEDDING_MODEL
+        assert kwargs["dimensions"] == embeddings_module.settings.EMBEDDING_DIMENSION
+
+    def test_openai_client_maps_models(self):
+        from app.ai.clients import openai_client
+
+        s = openai_client.settings
+        with patch.object(s, "AI_PROVIDER", "openrouter"):
+            assert openai_client._map_model("gpt-5-nano") == s.OPENROUTER_DEFAULT_MODEL
+            assert openai_client._map_model("gpt-5-mini") == s.OPENROUTER_REASONING_MODEL
+            assert openai_client._map_model("anthropic/claude-x") == "anthropic/claude-x"
+            assert openai_client._map_model("unknown") == s.OPENROUTER_DEFAULT_MODEL

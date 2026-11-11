@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.ai.clients.openai_client import (
     DEFAULT_MODEL,
     REASONING_MODEL,
+    _map_model,
     generate_text,
     generate_text_with_history,
 )
@@ -117,7 +118,7 @@ def generate_community_answer(
     if not post:
         return CommunityAnswerResponse(
             answer="해당 게시글을 찾을 수 없습니다.",
-            modelUsed=DEFAULT_MODEL,
+            modelUsed=_map_model(DEFAULT_MODEL),
         )
 
     # Use reasoning model for long content or safety-related questions
@@ -138,7 +139,7 @@ def generate_community_answer(
 
     return CommunityAnswerResponse(
         answer=strip_markdown(answer),
-        modelUsed=model,
+        modelUsed=_map_model(model),
     )
 
 

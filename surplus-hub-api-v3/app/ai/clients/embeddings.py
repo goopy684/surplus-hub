@@ -1,9 +1,10 @@
 """Environment-based embedding provider with thread-safe singleton pattern.
 
-Supports three providers:
+Supports four providers:
 - LocalEmbeddingProvider: Ollama (OpenAI-compatible) e.g. bge-m3 (APP_ENV=local)
 - OpenAIEmbeddingProvider: OpenAI text-embedding-3-small (APP_ENV=dev/stage/prod)
 - VertexEmbeddingProvider: Gemini embedding via Vertex AI (AI_PROVIDER=vertex)
+- OpenRouterEmbeddingProvider: OpenRouter /embeddings (AI_PROVIDER=openrouter)
 """
 
 import logging
@@ -100,6 +101,9 @@ class OpenAIEmbeddingProvider:
                     )
         return self._client
 
+    def _embedding_model(self) -> str:
+        return settings.OPENAI_EMBEDDING_MODEL
+
     def _call_api(self, input_data, dimensions: int):
         """Single API call with retry logic."""
         from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
@@ -114,7 +118,7 @@ class OpenAIEmbeddingProvider:
         )
         def _do_call():
             return client.embeddings.create(
-                model=settings.OPENAI_EMBEDDING_MODEL,
+                model=self._embedding_model(),
                 input=input_data,
                 dimensions=dimensions,
             )
@@ -133,6 +137,34 @@ class OpenAIEmbeddingProvider:
             sorted_data = sorted(response.data, key=lambda x: x.index)
             all_embeddings.extend([d.embedding for d in sorted_data])
         return all_embeddings
+
+
+class OpenRouterEmbeddingProvider(OpenAIEmbeddingProvider):
+    """OpenRouter embeddings — same OpenAI-compatible API, different base URL/key/model."""
+
+    def _get_client(self):
+        if self._client is None:
+            with self._lock:
+                if self._client is None:
+                    import openai
+
+                    if not settings.openrouter_api_key:
+                        raise ValueError(
+                            "OPENROUTER_API_KEY is required when AI_PROVIDER=openrouter."
+                        )
+                    self._client = openai.OpenAI(
+                        base_url=settings.OPENROUTER_BASE_URL,
+                        api_key=settings.openrouter_api_key,
+                    )
+                    logger.info(
+                        "OpenRouter embedding client initialized (model=%s, dim=%d)",
+                        settings.OPENROUTER_EMBEDDING_MODEL,
+                        settings.EMBEDDING_DIMENSION,
+                    )
+        return self._client
+
+    def _embedding_model(self) -> str:
+        return settings.OPENROUTER_EMBEDDING_MODEL
 
 
 class VertexEmbeddingProvider:
@@ -198,6 +230,8 @@ def _get_provider():
             if _provider is None:
                 if settings.use_vertex:
                     _provider = VertexEmbeddingProvider()
+                elif getattr(settings, "use_openrouter", False) is True:
+                    _provider = OpenRouterEmbeddingProvider()
                 elif settings.use_local_embedding:
                     _provider = LocalEmbeddingProvider()
                 else:
