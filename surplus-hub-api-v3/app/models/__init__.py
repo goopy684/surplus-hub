@@ -15,3 +15,4 @@ from app.models.search_log import SearchLog
 from app.models.admin import AdminAuditLog
 from app.models.moderation import Report, UserSanction, AdminNote, BannedWord
 from app.models.stats import DailyStats, UserDailyActivity
+from app.models.disposal_advisory import DisposalAdvisory

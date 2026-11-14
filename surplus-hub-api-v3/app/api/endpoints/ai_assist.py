@@ -20,6 +20,8 @@ from app.schemas.ai_schemas import (
     CommunityAnswerResponse,
     DescriptionGenerateRequest,
     DescriptionGenerateResponse,
+    DisposalEvaluateRequest,
+    DisposalOverrideRequest,
     ImageAnalysisRequest,
     ImageAnalysisResponse,
     PriceSuggestRequest,
@@ -37,6 +39,8 @@ from app.ai.services import search as search_service
 from app.ai.services import registration as registration_service
 from app.ai.services import qa_bot as qa_bot_service
 from app.ai.services import translation as translation_service
+from app.ai.services import disposal_gate
+from app.models.disposal_advisory import DisposalAdvisory
 
 logger = logging.getLogger(__name__)
 
@@ -220,6 +224,73 @@ def analyze_image(
     return {
         "status": "success",
         "data": result.model_dump(by_alias=True),
+    }
+
+
+# ---------------------------------------------------------------------------
+# 모듈 0: 처분 경로 판별 게이트 (판매글·시세 LLM 호출 전)
+# ---------------------------------------------------------------------------
+@router.post(
+    "/evaluate-disposal",
+    summary="Evaluate Disposal Route",
+    description="Decide REUSE / RECYCLE / SCRAP from image analysis + similar listings and trades, and record it.",
+)
+@limiter.limit("20/minute")
+def evaluate_disposal(
+    request: Request,
+    body: DisposalEvaluateRequest,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    advisory = disposal_gate.evaluate_disposal(
+        db,
+        user_id=current_user.id,
+        title=body.title,
+        category=body.category,
+        condition=body.condition,
+        tags=body.tags,
+        material_type=body.material_type,
+        damage_level=body.damage_level,
+        is_mixed_waste=body.is_mixed_waste,
+        recyclable_material=body.recyclable_material,
+    )
+    return {
+        "status": "success",
+        "data": disposal_gate.to_response(advisory).model_dump(by_alias=True),
+    }
+
+
+@router.patch(
+    "/disposal-advisories/{advisory_id}",
+    summary="Override Disposal Route",
+    description="Seller re-selects the disposal route of their own advisory.",
+)
+@limiter.limit("30/minute")
+def override_disposal_route(
+    request: Request,
+    advisory_id: int,
+    body: DisposalOverrideRequest,
+    db: Session = Depends(deps.get_db),
+    current_user: User = Depends(deps.get_current_active_user),
+) -> Any:
+    # 매물 등록(POST /materials/)과 같은 행 잠금 — 연결 직전 재지정이 끼어들지 않게
+    advisory = db.query(DisposalAdvisory).filter(DisposalAdvisory.id == advisory_id).with_for_update().first()
+    if not advisory:
+        raise HTTPException(status_code=404, detail="Disposal advisory not found")
+    if advisory.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to modify this advisory")
+    if advisory.material_id is not None:
+        raise HTTPException(status_code=422, detail="이미 매물 등록에 사용된 판정은 변경할 수 없습니다.")
+    error = disposal_gate.override_error(advisory, body.selected_route, body.override_reason)
+    if error:
+        raise HTTPException(status_code=422, detail=error)
+
+    disposal_gate.apply_override(advisory, body.selected_route, body.override_reason)
+    db.commit()
+    db.refresh(advisory)
+    return {
+        "status": "success",
+        "data": disposal_gate.to_response(advisory).model_dump(by_alias=True),
     }
 
 

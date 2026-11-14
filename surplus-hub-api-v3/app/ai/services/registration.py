@@ -13,6 +13,7 @@ from app.ai.prompts.material import (
     DESCRIPTION_GENERATION_PROMPT,
     PRICE_SUGGESTION_PROMPT,
 )
+from app.ai.services.disposal_gate import infer_disposal_signals
 from app.ai.text import strip_markdown
 from app.crud.crud_category import TRADE_CATEGORIES
 from app.schemas.ai_schemas import (
@@ -96,6 +97,12 @@ def analyze_material_image(image_url: str, keyword: Optional[str] = None) -> Ima
     """
     result = analyze_image(image_url, categories=list(TRADE_CATEGORIES), keyword=keyword or None)
     name, quantity, quantity_unit = parse_keyword(keyword)
+    damage_level, is_mixed_waste, recyclable_material = infer_disposal_signals(
+        [keyword, result.get("title_suggestion"), result.get("material_type"), *(result.get("tags") or [])],
+        result.get("damage_level"),
+        result.get("is_mixed_waste") is True,
+        result.get("recyclable_material"),
+    )
 
     return ImageAnalysisResponse(
         category=_normalize_category(result.get("category")),
@@ -106,6 +113,9 @@ def analyze_material_image(image_url: str, keyword: Optional[str] = None) -> Ima
         confidence=result.get("confidence", 0.0),
         quantity=quantity,
         quantityUnit=quantity_unit,
+        damageLevel=damage_level,
+        isMixedWaste=is_mixed_waste,
+        recyclableMaterial=recyclable_material,
     )
 
 
