@@ -1,3 +1,5 @@
+import type { DisposalRoute } from "./ai";
+
 export interface MaterialItem {
   id: string;
   title: string;
@@ -39,6 +41,10 @@ export interface MaterialCreateInput {
   conditionGrade?: string;
   status?: string;
   photoUrls?: string[];
+  /** 모듈 0 처분 경로 판정 id — 전달하면 서버가 REUSE 확정 여부를 다시 검증한다 */
+  advisoryId?: number;
+  selectedRoute?: DisposalRoute;
+  overrideReason?: string;
 }
 
 export interface PaginationMeta {

@@ -50,6 +50,7 @@ import app.models.subscription  # noqa: F401, E402
 import app.models.admin  # noqa: F401, E402
 import app.models.moderation  # noqa: F401, E402
 import app.models.stats  # noqa: F401, E402
+import app.models.disposal_advisory  # noqa: F401, E402
 
 
 # ---------------------------------------------------------------------------

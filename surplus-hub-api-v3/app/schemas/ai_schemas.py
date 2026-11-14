@@ -1,6 +1,6 @@
 """Pydantic v2 schemas for all AI endpoints."""
 
-from typing import List, Optional
+from typing import List, Literal, Optional
 from pydantic import BaseModel, Field
 
 
@@ -77,6 +77,77 @@ class ImageAnalysisResponse(BaseModel):
     # 키워드에서 읽은 수량 — 있으면 폼 수량을 이 값으로 채운다
     quantity: Optional[int] = None
     quantity_unit: Optional[str] = Field(None, alias="quantityUnit")
+    # 모듈 0 처분 경로 판별용 신호 (Vision AI + 키워드 보정)
+    damage_level: str = Field("NONE", alias="damageLevel")  # NONE / MINOR / SEVERE
+    is_mixed_waste: bool = Field(False, alias="isMixedWaste")
+    recyclable_material: Optional[str] = Field(None, alias="recyclableMaterial")
+
+    class Config:
+        populate_by_name = True
+
+
+# ---------------------------------------------------------------------------
+# Disposal Gate (모듈 0 · 처분 경로 판별)
+# ---------------------------------------------------------------------------
+DisposalRoute = Literal["REUSE", "RECYCLE", "SCRAP"]
+
+
+class DisposalEvaluateRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    category: Optional[str] = Field(None, max_length=50)
+    condition: Optional[str] = None
+    tags: List[str] = []
+    material_type: Optional[str] = Field(None, alias="materialType")
+    damage_level: Optional[str] = Field(None, alias="damageLevel")
+    is_mixed_waste: bool = Field(False, alias="isMixedWaste")
+    recyclable_material: Optional[str] = Field(None, alias="recyclableMaterial")
+
+    class Config:
+        populate_by_name = True
+
+
+class DisposalEvidence(BaseModel):
+    condition_grade: Optional[str] = Field(None, alias="conditionGrade")
+    category: Optional[str] = None
+    damage_level: str = Field(alias="damageLevel")
+    is_mixed_waste: bool = Field(alias="isMixedWaste")
+    recyclable_material: Optional[str] = Field(None, alias="recyclableMaterial")
+    similar_active_count: int = Field(alias="similarActiveCount")
+    similar_sold_count: int = Field(alias="similarSoldCount")
+    completed_trade_count: int = Field(alias="completedTradeCount")
+
+    class Config:
+        populate_by_name = True
+
+
+class DisposalChannel(BaseModel):
+    name: str
+    description: str
+    url: Optional[str] = None
+
+    class Config:
+        populate_by_name = True
+
+
+class DisposalEvaluateResponse(BaseModel):
+    advisory_id: int = Field(alias="advisoryId")
+    recommended_route: DisposalRoute = Field(alias="recommendedRoute")
+    selected_route: DisposalRoute = Field(alias="selectedRoute")
+    can_override_to_reuse: bool = Field(alias="canOverrideToReuse")
+    override_reason: Optional[str] = Field(None, alias="overrideReason")
+    headline: str
+    reasoning: str
+    evidence: DisposalEvidence
+    steps: List[str] = []
+    channels: List[DisposalChannel] = []
+
+    class Config:
+        populate_by_name = True
+
+
+class DisposalOverrideRequest(BaseModel):
+    selected_route: DisposalRoute = Field(alias="selectedRoute")
+    override_reason: Optional[str] = Field(None, alias="overrideReason", max_length=200)
 
     class Config:
         populate_by_name = True

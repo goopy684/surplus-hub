@@ -8,6 +8,58 @@ export interface AiImageAnalysis {
   /** 판매자 키워드에서 읽은 수량 ("PVC 파이프 50개" → 50, "개") */
   quantity?: number;
   quantityUnit?: string;
+  /** 처분 경로 판별용 Vision 신호 (백엔드 정규화·키워드 보정) */
+  materialType?: string;
+  damageLevel?: DamageLevel;
+  isMixedWaste?: boolean;
+  recyclableMaterial?: string;
+}
+
+/** 모듈 0 처분 경로 */
+export type DisposalRoute = "REUSE" | "RECYCLE" | "SCRAP";
+export type DamageLevel = "NONE" | "MINOR" | "SEVERE";
+
+/** 판정 근거 — 유사 매물·체결 건수는 실제 DB 조회 결과 */
+export interface AiDisposalEvidence {
+  conditionGrade?: string;
+  category?: string;
+  damageLevel: DamageLevel;
+  isMixedWaste: boolean;
+  recyclableMaterial?: string;
+  similarActiveCount: number;
+  similarSoldCount: number;
+  completedTradeCount: number;
+}
+
+export interface AiDisposalChannel {
+  name: string;
+  description: string;
+  url?: string;
+}
+
+export interface AiDisposalEvaluation {
+  advisoryId: number;
+  recommendedRoute: DisposalRoute;
+  selectedRoute: DisposalRoute;
+  /** false = 혼합 건설폐기물 — 직거래 재지정 불가 */
+  canOverrideToReuse: boolean;
+  overrideReason?: string;
+  headline: string;
+  reasoning: string;
+  evidence: AiDisposalEvidence;
+  steps: string[];
+  channels: AiDisposalChannel[];
+}
+
+export interface AiDisposalEvaluateInput {
+  title: string;
+  category?: string;
+  condition?: string;
+  tags?: string[];
+  materialType?: string;
+  damageLevel?: DamageLevel;
+  isMixedWaste?: boolean;
+  recyclableMaterial?: string;
 }
 
 export interface AiDescription {

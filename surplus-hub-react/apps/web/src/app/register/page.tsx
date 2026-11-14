@@ -3,11 +3,16 @@
 import {
   useCreateMaterial,
   analyzeImage,
+  evaluateDisposal,
+  overrideDisposalRoute,
   generateDescription,
   suggestPrice,
   uploadImage,
   dataUrlToFile,
   AiPriceSuggestion,
+  AiImageAnalysis,
+  AiDisposalEvaluation,
+  DisposalRoute,
   MATERIAL_CATEGORIES,
   QUANTITY_UNITS,
   TRADE_METHOD_OPTIONS,
@@ -104,11 +109,29 @@ const LOCATIONS = [
 ] as const;
 
 const AI_ANALYSIS_STEPS = [
-  "이미지 인식 중",
-  "카테고리 분류 중",
-  "설명 생성 중",
-  "시세 분석 중",
+  "이미지 인식 및 상태·공종 분석 중",
+  "처분 경로 1차 판별 중",
+  "규격 판매글 생성 중",
+  "유사 매물 시세 산출 중",
 ] as const;
+
+// 모듈 0 처분 경로 — 직거래(REUSE)일 때만 판매글·시세 LLM과 사진 업로드를 진행한다
+const DISPOSAL_ROUTES: { value: DisposalRoute; label: string }[] = [
+  { value: "REUSE", label: "Reuse · 직거래 등록" },
+  { value: "RECYCLE", label: "Recycle · 재활용 연계" },
+  { value: "SCRAP", label: "Scrap · 고철·폐기" },
+];
+
+const SCRAP_OVERRIDE_REASONS = [
+  "표면 먼지·보관 흔적일 뿐 본품 양호",
+  "외포장 손상(내부 자재 정상)",
+  "수리·부품용 직거래 수요 있음",
+] as const;
+
+const errorDetail = (err: unknown): string | undefined => {
+  const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+  return typeof detail === "string" ? detail : undefined;
+};
 
 function RegisterContent() {
   const router = useRouter();
@@ -123,6 +146,13 @@ function RegisterContent() {
   const [keyword, setKeyword] = useState("");
   const [aiError, setAiError] = useState<string | null>(null);
   const [marketPrice, setMarketPrice] = useState<AiPriceSuggestion["marketPrice"] | null>(null);
+  const [analysis, setAnalysis] = useState<AiImageAnalysis | null>(null);
+  const [advisory, setAdvisory] = useState<AiDisposalEvaluation | null>(null);
+  // 판매글·시세는 REUSE로 확정될 때 한 번만 생성한다 (Recycle/Scrap 재지정 시 지연 생성)
+  const [listingReady, setListingReady] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showScrapReasons, setShowScrapReasons] = useState(false);
+  const [routeError, setRouteError] = useState<string | null>(null);
 
   // AI result form
   const [form, setForm] = useState({
@@ -165,42 +195,72 @@ function RegisterContent() {
     setImages(images.filter((_, i) => i !== index));
   };
 
+  // 판매자가 키워드에 적은 수량("50개")은 AI 추정보다 우선한다
+  const keywordQuantity = (result: AiImageAnalysis) => {
+    const quantityUnit = (QUANTITY_UNITS as readonly string[]).includes(result.quantityUnit ?? "")
+      ? result.quantityUnit
+      : undefined;
+    return { quantityUnit, quantity: quantityUnit ? result.quantity : undefined };
+  };
+
+  // 규격 판매글 + 유사 매물 시세 (LLM) — 직거래로 확정된 자재에만 호출
+  const fillListing = async (result: AiImageAnalysis, onStep?: (idx: number) => void) => {
+    const { quantity, quantityUnit } = keywordQuantity(result);
+    onStep?.(2);
+    const descResult = await generateDescription(result.title, result.category, images[0]?.url, {
+      tags: result.tags,
+      condition: result.condition,
+      quantity,
+      quantityUnit,
+    });
+    onStep?.(3);
+    const priceResult = await suggestPrice(result.title, result.category, descResult.description, {
+      condition: result.condition,
+      quantity,
+    });
+    setMarketPrice(priceResult.marketPrice);
+    setForm((prev) => ({ ...prev, description: descResult.description, price: priceResult.price.toString() }));
+    setListingReady(true);
+  };
+
+  const resetAnalysis = () => {
+    setStep("upload");
+    setImages([]);
+    setKeyword("");
+    setAnalysis(null);
+    setAdvisory(null);
+    setListingReady(false);
+    setMarketPrice(null);
+    setShowScrapReasons(false);
+    setRouteError(null);
+  };
+
   const handleAIAnalysis = async () => {
     setStep("ai-analyzing");
     setAnalysisStep(0);
     setAiError(null);
+    setRouteError(null);
+    setShowScrapReasons(false);
+    setListingReady(false);
+    setMarketPrice(null);
 
     try {
-      // Step 1: 이미지 인식
-      setAnalysisStep(0);
+      // Step 1: 이미지 인식 및 상태·공종 분석
       const firstImage = images[0]?.url ?? "";
       const imageAnalysis = await analyzeImage(firstImage, keyword || undefined);
 
-      // Step 2: 카테고리 분류 완료
+      // Step 2: 처분 경로 1차 판별 (모듈 0)
       setAnalysisStep(1);
-
-      // Step 3: 설명 생성
-      setAnalysisStep(2);
-      // 판매자가 키워드에 적은 수량("50개")은 AI 추정보다 우선한다
-      const quantityUnit = (QUANTITY_UNITS as readonly string[]).includes(imageAnalysis.quantityUnit ?? "")
-        ? imageAnalysis.quantityUnit
-        : undefined;
-      const quantity = quantityUnit ? imageAnalysis.quantity : undefined;
-      const descResult = await generateDescription(
-        imageAnalysis.title,
-        imageAnalysis.category,
-        firstImage,
-        { tags: imageAnalysis.tags, condition: imageAnalysis.condition, quantity, quantityUnit }
-      );
-
-      // Step 4: 시세 분석
-      setAnalysisStep(3);
-      const priceResult = await suggestPrice(
-        imageAnalysis.title,
-        imageAnalysis.category,
-        descResult.description,
-        { condition: imageAnalysis.condition, quantity }
-      );
+      const evaluation = await evaluateDisposal({
+        title: imageAnalysis.title,
+        category: imageAnalysis.category,
+        condition: imageAnalysis.condition,
+        tags: imageAnalysis.tags,
+        materialType: imageAnalysis.materialType,
+        damageLevel: imageAnalysis.damageLevel,
+        isMixedWaste: imageAnalysis.isMixedWaste,
+        recyclableMaterial: imageAnalysis.recyclableMaterial,
+      });
 
       // 카테고리를 업종 카테고리와 매칭 (백엔드는 이름 일치로 필터하므로 못 찾으면 기타)
       const matchedCategory =
@@ -210,19 +270,26 @@ function RegisterContent() {
       const matchedGrade = CONDITION_GRADES.some((g) => g.value === imageAnalysis.condition)
         ? imageAnalysis.condition ?? ""
         : "";
+      const { quantity, quantityUnit } = keywordQuantity(imageAnalysis);
 
-      setMarketPrice(priceResult.marketPrice);
       setForm({
         title: imageAnalysis.title,
         category: matchedCategory,
-        description: descResult.description,
-        price: priceResult.price.toString(),
+        description: "",
+        price: "",
         quantity: quantity ? String(quantity) : "1",
         quantityUnit: quantityUnit ?? "개",
         tradeMethod: "DIRECT",
         conditionGrade: matchedGrade,
         location: "",
       });
+      setAnalysis(imageAnalysis);
+      setAdvisory(evaluation);
+
+      // Step 3·4: 직거래 판정일 때만 판매글·시세 생성
+      if (evaluation.selectedRoute === "REUSE") {
+        await fillListing(imageAnalysis, setAnalysisStep);
+      }
       setStep("ai-result");
     } catch (err: unknown) {
       let errorMsg = "AI 분석에 실패했습니다. 다시 시도해주세요.";
@@ -237,6 +304,42 @@ function RegisterContent() {
       setAiError(errorMsg);
       setStep("upload");
     }
+  };
+
+  // 판매자 경로 재지정 — 서버에 기록한 뒤, 직거래로 바뀌면 판매글·시세를 그때 생성한다
+  const changeRoute = async (route: DisposalRoute, reason?: string) => {
+    if (!advisory || !analysis || route === advisory.selectedRoute) return;
+    setRouteError(null);
+    setIsGenerating(true);
+    try {
+      const updated = await overrideDisposalRoute(advisory.advisoryId, route, reason);
+      setAdvisory(updated);
+      setShowScrapReasons(false);
+      if (updated.selectedRoute === "REUSE" && !listingReady) {
+        try {
+          await fillListing(analysis);
+        } catch {
+          // 경로는 이미 바뀌었다 — 폼을 열어 직접 입력하게 한다
+          setListingReady(true);
+          setRouteError("판매글·시세 자동 생성에 실패했습니다. 직접 입력해 주세요.");
+        }
+      }
+    } catch (err) {
+      setRouteError(errorDetail(err) ?? "경로를 변경하지 못했습니다. 다시 시도해주세요.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleRouteClick = (route: DisposalRoute) => {
+    if (!advisory) return;
+    // 일반 Scrap 판정을 직거래로 바꾸려면 사유를 먼저 고른다 (혼합 폐기물은 버튼이 비활성)
+    if (route === "REUSE" && advisory.recommendedRoute === "SCRAP" && advisory.selectedRoute !== "REUSE") {
+      setShowScrapReasons(true);
+      return;
+    }
+    setShowScrapReasons(false);
+    void changeRoute(route);
   };
 
   const handleUseCurrentLocation = () => {
@@ -303,6 +406,7 @@ function RegisterContent() {
         },
         ...(form.conditionGrade ? { conditionGrade: form.conditionGrade } : {}),
         photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
+        ...(advisory ? { advisoryId: advisory.advisoryId } : {}),
       });
 
       alert("자재가 성공적으로 등록되었습니다.");
@@ -553,7 +657,27 @@ function RegisterContent() {
         )}
 
         {/* Step 3: AI Result */}
-        {step === "ai-result" && (
+        {step === "ai-result" && advisory && (
+          <>
+            <DisposalGateCard
+              advisory={advisory}
+              busy={isGenerating}
+              showScrapReasons={showScrapReasons}
+              routeError={routeError}
+              onRouteClick={handleRouteClick}
+              onReason={(reason) => void changeRoute("REUSE", reason)}
+            />
+            {advisory.selectedRoute !== "REUSE" && <DisposalGuide advisory={advisory} onReset={resetAnalysis} />}
+            {advisory.selectedRoute === "REUSE" && !listingReady && isGenerating && (
+              <div role="status" className="mb-6 flex items-center gap-3 rounded-card bg-canvas p-4 text-sm text-foreground">
+                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                규격 판매글과 유사 매물 시세를 생성하는 중입니다
+              </div>
+            )}
+          </>
+        )}
+
+        {step === "ai-result" && advisory?.selectedRoute === "REUSE" && listingReady && (
           <>
             {/* AI Confidence Badge */}
             <div className="bg-accent rounded-card px-3.5 py-3 mb-6 flex items-start gap-2">
@@ -881,6 +1005,170 @@ function RegisterContent() {
         )}
       </div>
     </div>
+  );
+}
+
+const ROUTE_BUTTON_BASE =
+  "flex-1 min-h-[48px] rounded-field border-[1.5px] px-2 text-[13px] leading-tight transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50";
+
+function EvidenceChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center rounded-chip border border-line bg-surface px-2.5 py-1 text-xs font-medium text-foreground tabular">
+      {children}
+    </span>
+  );
+}
+
+// 모듈 0 · 처분 경로 판별 게이트: 판정 근거(실제 조회 수치)와 3-Way 경로 재지정
+function DisposalGateCard({
+  advisory,
+  busy,
+  showScrapReasons,
+  routeError,
+  onRouteClick,
+  onReason,
+}: {
+  advisory: AiDisposalEvaluation;
+  busy: boolean;
+  showScrapReasons: boolean;
+  routeError: string | null;
+  onRouteClick: (route: DisposalRoute) => void;
+  onReason: (reason: string) => void;
+}) {
+  const ev = advisory.evidence;
+  const reuseBlocked = !advisory.canOverrideToReuse;
+  return (
+    <section aria-labelledby="disposal-gate-title" className="mb-6 rounded-card bg-canvas p-4">
+      <span className="inline-flex rounded-chip bg-accent px-2.5 py-0.5 text-[11px] font-bold text-accent-foreground">
+        모듈 0 · 처분 경로 판별 게이트
+      </span>
+      <h2 id="disposal-gate-title" className="mt-2 text-base font-extrabold text-foreground">
+        {advisory.headline}
+      </h2>
+      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{advisory.reasoning}</p>
+
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {ev.conditionGrade && <EvidenceChip>상태 등급 {ev.conditionGrade}</EvidenceChip>}
+        {ev.category && <EvidenceChip>공종 {ev.category}</EvidenceChip>}
+        <EvidenceChip>유사 매물 {ev.similarActiveCount + ev.similarSoldCount}건</EvidenceChip>
+        <EvidenceChip>체결 실적 {ev.completedTradeCount}건</EvidenceChip>
+        {ev.recyclableMaterial && <EvidenceChip>소재 가치: {ev.recyclableMaterial}</EvidenceChip>}
+      </div>
+
+      <div role="group" aria-label="처분 경로 선택" className="mt-4 flex gap-2">
+        {DISPOSAL_ROUTES.map((route) => {
+          const isSelected = advisory.selectedRoute === route.value;
+          return (
+            <button
+              key={route.value}
+              type="button"
+              aria-pressed={isSelected}
+              disabled={busy || (route.value === "REUSE" && reuseBlocked)}
+              onClick={() => onRouteClick(route.value)}
+              className={`${ROUTE_BUTTON_BASE} ${isSelected
+                ? "border-primary bg-accent text-accent-foreground font-bold"
+                : "border-line bg-surface text-foreground font-medium hover:bg-field active:bg-field"
+                }`}
+            >
+              {route.label}
+              {advisory.recommendedRoute === route.value && (
+                <span className="mt-0.5 block text-[11px] font-bold text-accent-foreground">AI 판정</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {reuseBlocked && (
+        <p className="mt-2 text-xs font-medium text-destructive">
+          혼합 건설폐기물은 법적으로 직거래 매물로 등록할 수 없어 직거래 재지정이 불가합니다.
+        </p>
+      )}
+
+      {showScrapReasons && !reuseBlocked && (
+        <div className="mt-3 rounded-field border border-line bg-surface p-3">
+          <p id="scrap-reason-label" className="mb-2 text-sm font-bold text-foreground">
+            직거래로 바꾸는 사유를 선택해주세요
+          </p>
+          <div role="group" aria-labelledby="scrap-reason-label" className="flex flex-col gap-2">
+            {SCRAP_OVERRIDE_REASONS.map((reason) => (
+              <button
+                key={reason}
+                type="button"
+                disabled={busy}
+                onClick={() => onReason(reason)}
+                className="min-h-[44px] rounded-field border border-line bg-surface px-3 text-left text-sm font-medium text-foreground transition-colors hover:bg-field active:bg-field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {reason}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {routeError && (
+        <p role="alert" className="mt-2 text-xs font-medium text-destructive">
+          {routeError}
+        </p>
+      )}
+    </section>
+  );
+}
+
+// Recycle/Scrap 경로 안내 — 매물 등록 폼 대신 선별·처리 절차와 공공 채널을 보여준다
+function DisposalGuide({ advisory, onReset }: { advisory: AiDisposalEvaluation; onReset: () => void }) {
+  const isScrap = advisory.selectedRoute === "SCRAP";
+  return (
+    <section aria-label={isScrap ? "고철·폐기 처리 안내" : "재활용 연계 안내"} className="mb-6 space-y-4">
+      <div
+        className={`rounded-card border p-4 text-sm font-medium ${isScrap
+          ? "border-destructive/20 bg-destructive/10 text-destructive"
+          : "border-olive-bd bg-olive-bg text-olive-tx"
+          }`}
+      >
+        {isScrap
+          ? "직거래 매물 등록이 차단되었습니다. 아래 절차로 고철 매각·폐기물 처리를 진행하세요."
+          : "직거래 대신 재활용 매각을 권장합니다. 원소재를 분리하면 계근 매입이 쉬워집니다."}
+      </div>
+
+      <ol className="space-y-2">
+        {advisory.steps.map((text, idx) => (
+          <li key={text} className="flex gap-3 rounded-card bg-surface border border-line p-3.5 text-sm leading-relaxed text-foreground">
+            <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-field text-xs font-bold num">
+              {idx + 1}
+            </span>
+            {text}
+          </li>
+        ))}
+      </ol>
+
+      <div className="space-y-2">
+        {advisory.channels.map((channel) => (
+          <div key={channel.name} className="rounded-card bg-canvas p-3.5">
+            <p className="text-sm font-bold text-foreground">{channel.name}</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{channel.description}</p>
+            {channel.url && (
+              <a
+                href={channel.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-1 inline-flex min-h-[44px] items-center text-sm font-bold text-accent-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {channel.url.replace(/^https?:\/\//, "")} 바로가기
+              </a>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={onReset}
+        className="w-full min-h-[52px] rounded-btn bg-field text-sm font-bold text-foreground transition-colors hover:bg-line-2 active:bg-line-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        다른 자재 분석하기
+      </button>
+    </section>
   );
 }
 

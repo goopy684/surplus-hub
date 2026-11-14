@@ -1,6 +1,11 @@
 import { apiClient, unwrapApiData } from "./client";
 import {
   AiImageAnalysis,
+  AiDisposalChannel,
+  AiDisposalEvaluateInput,
+  AiDisposalEvaluation,
+  DamageLevel,
+  DisposalRoute,
   AiDescription,
   AiPriceSuggestion,
   AiChatSuggestion,
@@ -31,7 +36,69 @@ export const analyzeImage = async (
     tags: Array.isArray(raw.tags) ? raw.tags.filter((t): t is string => typeof t === "string") : [],
     quantity: typeof raw.quantity === "number" && raw.quantity > 0 ? raw.quantity : undefined,
     quantityUnit: readString(raw.quantityUnit),
+    materialType: readString(raw.materialType),
+    damageLevel: readDamageLevel(raw.damageLevel),
+    isMixedWaste: raw.isMixedWaste === true,
+    recyclableMaterial: readString(raw.recyclableMaterial),
   };
+};
+
+const DISPOSAL_ROUTES: DisposalRoute[] = ["REUSE", "RECYCLE", "SCRAP"];
+
+const readDamageLevel = (value: unknown): DamageLevel =>
+  value === "MINOR" || value === "SEVERE" ? value : "NONE";
+
+const readRoute = (value: unknown): DisposalRoute =>
+  DISPOSAL_ROUTES.includes(value as DisposalRoute) ? (value as DisposalRoute) : "REUSE";
+
+const mapDisposalEvaluation = (data: unknown): AiDisposalEvaluation => {
+  const raw = readRecord(data);
+  const ev = readRecord(raw.evidence);
+  return {
+    advisoryId: readNumber(raw.advisoryId),
+    recommendedRoute: readRoute(raw.recommendedRoute),
+    selectedRoute: readRoute(raw.selectedRoute),
+    canOverrideToReuse: raw.canOverrideToReuse !== false,
+    overrideReason: readString(raw.overrideReason),
+    headline: readString(raw.headline) || "",
+    reasoning: readString(raw.reasoning) || "",
+    evidence: {
+      conditionGrade: readString(ev.conditionGrade),
+      category: readString(ev.category),
+      damageLevel: readDamageLevel(ev.damageLevel),
+      isMixedWaste: ev.isMixedWaste === true,
+      recyclableMaterial: readString(ev.recyclableMaterial),
+      similarActiveCount: readNumber(ev.similarActiveCount),
+      similarSoldCount: readNumber(ev.similarSoldCount),
+      completedTradeCount: readNumber(ev.completedTradeCount),
+    },
+    steps: Array.isArray(raw.steps) ? raw.steps.filter((t): t is string => typeof t === "string") : [],
+    channels: Array.isArray(raw.channels)
+      ? raw.channels.map((c): AiDisposalChannel => {
+          const r = readRecord(c);
+          return { name: readString(r.name) || "", description: readString(r.description) || "", url: readString(r.url) };
+        })
+      : [],
+  };
+};
+
+/** 모듈 0: 판매글·시세 생성 전에 처분 경로(REUSE/RECYCLE/SCRAP)를 판정하고 기록한다 */
+export const evaluateDisposal = async (input: AiDisposalEvaluateInput): Promise<AiDisposalEvaluation> => {
+  const response = await apiClient.post("/api/v1/ai/evaluate-disposal", input);
+  return mapDisposalEvaluation(unwrapApiData<unknown>(response.data));
+};
+
+/** 판매자 경로 재지정. SCRAP → REUSE는 overrideReason 필수, 혼합 폐기물은 서버가 422로 거부 */
+export const overrideDisposalRoute = async (
+  advisoryId: number,
+  selectedRoute: DisposalRoute,
+  overrideReason?: string
+): Promise<AiDisposalEvaluation> => {
+  const response = await apiClient.patch(`/api/v1/ai/disposal-advisories/${advisoryId}`, {
+    selectedRoute,
+    overrideReason,
+  });
+  return mapDisposalEvaluation(unwrapApiData<unknown>(response.data));
 };
 
 export const generateDescription = async (

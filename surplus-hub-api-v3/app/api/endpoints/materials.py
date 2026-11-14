@@ -9,6 +9,8 @@ from app.core.cache import cache_get_json, cache_set_json, invalidate_material_c
 from app.crud.crud_material import crud_material
 from app.crud.crud_like import crud_material_like
 from app.crud.crud_transaction import StockConflictError
+from app.ai.services import disposal_gate
+from app.models.disposal_advisory import DisposalAdvisory
 from app.models.material import Material
 from app.models.user import User
 from app.schemas.material import MaterialCreate, MaterialUpdate, Material as MaterialSchema  # noqa: F401
@@ -93,6 +95,31 @@ def read_materials(
     return result
 
 
+def _checked_advisory(db: Session, material_in: MaterialCreate, current_user: User) -> Optional[DisposalAdvisory]:
+    """모듈 0 가드레일: advisoryId가 오면 직거래(REUSE)로 확정된 본인 판정만 매물 생성을 허용한다."""
+    if material_in.advisory_id is None:
+        return None
+    # 행 잠금: 같은 판정으로 동시에 두 매물이 생기지 않게 (커밋까지 유지)
+    advisory = db.query(DisposalAdvisory).filter(DisposalAdvisory.id == material_in.advisory_id).with_for_update().first()
+    if advisory is None:
+        raise HTTPException(status_code=422, detail="Disposal advisory not found")
+    if advisory.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to use this advisory")
+    if advisory.material_id is not None:
+        raise HTTPException(status_code=422, detail="이미 다른 매물 등록에 사용된 판정입니다.")
+
+    route = material_in.selected_route or advisory.selected_route
+    reason = material_in.override_reason if material_in.selected_route else advisory.override_reason
+    error = disposal_gate.override_error(advisory, route, reason)
+    if error:
+        raise HTTPException(status_code=422, detail=error)
+    if route != "REUSE":
+        raise HTTPException(status_code=422, detail="직거래(REUSE)로 판정된 자재만 매물로 등록할 수 있습니다.")
+    if material_in.selected_route:
+        disposal_gate.apply_override(advisory, route, reason)  # 매물 생성과 같은 커밋으로 저장
+    return advisory
+
+
 @router.post(
     "/",
     summary="Create Material",
@@ -104,11 +131,13 @@ def create_material(
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
+    advisory = _checked_advisory(db, material_in, current_user)
     db_obj = crud_material.create_with_images(
         db,
         obj_in=material_in,
         seller_id=current_user.id,
         image_urls=material_in.photo_urls,
+        advisory=advisory,
     )
 
     # AI: auto-generate embedding in background (non-blocking)

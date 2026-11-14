@@ -145,7 +145,6 @@
 /surplus-hub-react/README.md
 /surplus-hub-web/deployment/README.md
 /README.md
-/surplus-hub-react/apps/web/src/app/__tests__/register.test.tsx
 /surplus-hub-react/REQUIREMENTS.md
 /surplus-hub-web/surplus_hub_landing_page_v1_1/screen.png
 /surplus-hub-web/surplus_hub_landing_page_v1_2/screen.png
@@ -187,3 +186,6 @@ surplus-hub-api-v3/.claude/bash-command-log.txt
 __pycache__/
 *.py[cod]
 *.class
+
+# Local harness workflow state (plan/tasks/gate logs)
+/.harness/

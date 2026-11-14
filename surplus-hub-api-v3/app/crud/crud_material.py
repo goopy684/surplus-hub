@@ -10,6 +10,7 @@ from app.crud.crud_transaction import (
     crud_transaction,
     lock_material,
 )
+from app.models.disposal_advisory import DisposalAdvisory
 from app.models.like import MaterialLike
 from app.models.material import Material
 from app.models.material_image import MaterialImage
@@ -127,6 +128,7 @@ class CRUDMaterial(CRUDBase[Material, MaterialCreate, MaterialUpdate]):
         obj_in: MaterialCreate,
         seller_id: int,
         image_urls: Optional[List[str]] = None,
+        advisory: Optional[DisposalAdvisory] = None,
     ) -> Material:
         db_obj = Material(
             title=obj_in.title,
@@ -155,6 +157,10 @@ class CRUDMaterial(CRUDBase[Material, MaterialCreate, MaterialUpdate]):
                 display_order=idx,
             )
             db.add(img)
+
+        # 처분 경로 판정 연결도 매물 생성과 같은 커밋에 묶는다
+        if advisory is not None:
+            advisory.material_id = db_obj.id
 
         db.commit()
         db.refresh(db_obj)

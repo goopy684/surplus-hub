@@ -33,6 +33,10 @@ class MaterialBase(BaseModel):
 
 class MaterialCreate(MaterialBase):
     photo_urls: Optional[List[StoredUrl]] = Field(None, alias="photoUrls")
+    # 모듈 0 처분 경로 판정 연결 (미전달 시 기존 등록 흐름 그대로)
+    advisory_id: Optional[int] = Field(None, alias="advisoryId")
+    selected_route: Optional[str] = Field(None, alias="selectedRoute")
+    override_reason: Optional[str] = Field(None, alias="overrideReason", max_length=200)
 
 class MaterialUpdate(MaterialBase):
     # With status=SOLD: who bought it (a chat partner on this listing) -> recorded as a completed transaction.

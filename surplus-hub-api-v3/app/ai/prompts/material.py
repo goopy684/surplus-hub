@@ -12,13 +12,25 @@ IMAGE_ANALYSIS_PROMPT = f"""\
   "title_suggestion": "추천 상품명 (20자 이내)",
   "condition": "상태 등급 — 반드시 상/중/하 중 하나",
   "material_type": "규격이 드러나는 구체적 자재명 (예: SUS304 배관 25A, H빔 200x200, LED 평판등 640x640)",
-  "confidence": 0.0~1.0
+  "confidence": 0.0~1.0,
+  "damage_level": "파손·오염 정도 — 반드시 NONE/MINOR/SEVERE 중 하나",
+  "is_mixed_waste": false,
+  "recyclable_material": "원소재 재활용 가치 — 알루미늄 | 구리/전선 | 스테인리스 | 고철/강재 | 기타 재활용 중 하나, 해당 없으면 null"
 }}
 
 상태 등급 기준:
 - 상: 미개봉·신품급
 - 중: 사용감 적고 기능 이상 없음
 - 하: 사용감·흠집·녹 있음
+
+파손·오염 기준 (damage_level):
+- NONE: 파손·오염 없음
+- MINOR: 표면 흠집·먼지·경미한 녹 (원래 용도로 사용 가능)
+- SEVERE: 깨짐·휨·심한 부식·침수·오염으로 원래 용도로 재사용이 어려움
+
+is_mixed_waste: 여러 종류의 철거 잔해·폐콘크리트·폐목재가 섞인 건설폐기물 더미면 true, 단일 자재면 false
+
+recyclable_material: 자재 원소재가 알루미늄(창호·샷시), 구리/전선(전선·케이블·동관), 스테인리스(SUS 배관), 고철/강재(철근·H빔·강관·비계)처럼 금속 재활용 가치가 있을 때만 해당 값, 아니면 null
 
 분석 기준:
 - 자재의 종류와 용도를 정확히 파악
