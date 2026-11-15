@@ -25,6 +25,8 @@ PUSH_PREF_BY_TYPE: dict[str, Optional[str]] = {
     "CHAT": "push_chat",
     "MATERIAL_STATUS": "push_material",
     "TRANSACTION": "push_material",
+    # 보관함 수요 상승 알림: 사용자가 직접 요청한 자재 알림이라 광고가 아니다
+    "TRIAGE_DEMAND": "push_material",
     "REVIEW": "push_community",
     "COMMENT": "push_community",
     "LIKE": "push_community",

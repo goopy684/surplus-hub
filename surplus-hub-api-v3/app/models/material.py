@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text, or_
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -46,6 +46,11 @@ class Material(Base):
     category = Column(String, index=True)
     condition_grade = Column(String, nullable=True)
 
+    # 거래 전 AI 진단(triage)에서 전환된 매물: 유동성 점수(고유동성 배지)와 처분 경로.
+    # 경로 B/C는 메인 피드·검색에서 빠지고 track 필터로만 조회된다. NULL은 일반 매물.
+    liquidity_score = Column(Integer, nullable=True)
+    disposition_path = Column(String, nullable=True)
+
     status = Column(String, default="ACTIVE")
     likes_count = Column(Integer, default=0)
 
@@ -90,3 +95,10 @@ class Material(Base):
 
     def __str__(self) -> str:
         return f"{self.title} (#{self.id})"
+
+
+# 공개 피드·검색에 노출되는 매물: 처분 경로 B/C(소재 매입·중량 처분)가 아닌 것 (NULL 포함)
+PUBLIC_TRACK_FILTER = or_(
+    Material.disposition_path.is_(None),
+    Material.disposition_path.notin_(("B", "C")),
+)

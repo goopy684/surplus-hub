@@ -43,6 +43,8 @@ require("ts-node").register({
     moduleResolution: "node",
     target: "es2020",
     esModuleInterop: true,
+    // TS 6에서 moduleResolution=node가 deprecated 에러(TS5107)가 되어 실행이 막힌다.
+    ignoreDeprecations: "6.0",
   },
 });
 
@@ -108,6 +110,10 @@ assert.equal(notificationRoute({ referenceType: " MATERIAL ", referenceId: "7" }
 // 모바일 커뮤니티 게시글 상세 라우트(/community/[id]) 연결 완료 (P3-2).
 assert.equal(notificationRoute({ referenceType: "post", referenceId: "9" }), "/community/9");
 assert.equal(notificationRoute({ referenceType: "community", referenceId: "9" }), "/community/9");
+
+// 보관함 수요 상승 알림(TRIAGE_DEMAND) → 진단 결과 화면.
+assert.equal(notificationRoute({ referenceType: "triage", referenceId: "12" }), "/triage/12");
+assert.equal(notificationRoute({ referenceType: " TRIAGE ", referenceId: 12 }), "/triage/12");
 
 // 리졸버가 거르는 값들.
 assert.equal(notificationRoute({ referenceType: "chat_room" }), null);

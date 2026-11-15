@@ -11,9 +11,16 @@ from app.crud.crud_transaction import (
     lock_material,
 )
 from app.models.like import MaterialLike
-from app.models.material import Material
+from app.models.material import PUBLIC_TRACK_FILTER, Material
 from app.models.material_image import MaterialImage
 from app.schemas.material import MaterialCreate, MaterialUpdate
+
+
+def _track_filter(track: Optional[str]):
+    """공개 목록의 처분 경로 필터: 기본은 B/C 제외(NULL·A 노출), "B"/"C"면 그 트랙만."""
+    if track in ("B", "C"):
+        return Material.disposition_path == track
+    return PUBLIC_TRACK_FILTER
 
 
 class CRUDMaterial(CRUDBase[Material, MaterialCreate, MaterialUpdate]):
@@ -35,11 +42,12 @@ class CRUDMaterial(CRUDBase[Material, MaterialCreate, MaterialUpdate]):
         trade_method: Optional[str] = None,
         condition_grade: Optional[str] = None,
         location_address: Optional[str] = None,
+        track: Optional[str] = None,
     ) -> tuple[List[Material], int]:
         query = db.query(Material).options(
             joinedload(Material.seller),
             selectinload(Material.material_images),
-        ).filter(Material.status == status)
+        ).filter(Material.status == status).filter(_track_filter(track))
 
         if category and category != "전체":
             query = query.filter(Material.category == category)
@@ -274,6 +282,7 @@ class CRUDMaterial(CRUDBase[Material, MaterialCreate, MaterialUpdate]):
         keyword: Optional[str] = None,
         sort: Optional[str] = None,
         status: str = "ACTIVE",
+        track: Optional[str] = None,
     ) -> tuple[List[Material], Optional[int]]:
         """Cursor-based pagination using ID as stable cursor.
         Sorts by ID descending (newest first). For custom sorting,
@@ -283,7 +292,7 @@ class CRUDMaterial(CRUDBase[Material, MaterialCreate, MaterialUpdate]):
         query = db.query(Material).options(
             joinedload(Material.seller),
             selectinload(Material.material_images),
-        ).filter(Material.status == status)
+        ).filter(Material.status == status).filter(_track_filter(track))
 
         if category and category != "전체":
             query = query.filter(Material.category == category)

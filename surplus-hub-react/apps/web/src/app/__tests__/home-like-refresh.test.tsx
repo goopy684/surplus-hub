@@ -5,6 +5,8 @@ import { mergeMaterialPage, useMaterials } from '@repo/core'
 jest.mock('@repo/core', () => ({
   ...jest.requireActual('@repo/core'),
   useMaterials: jest.fn(),
+  // 홈 전광판 위젯 — 이 테스트의 관심사가 아니므로 빈 응답
+  useHotDemands: () => ({ data: undefined }),
 }))
 
 const item = (id: number, likesCount = 0) => ({

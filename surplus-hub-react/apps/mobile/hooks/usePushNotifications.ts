@@ -53,11 +53,12 @@ const reportFailure = (message: string, error?: unknown) => {
  */
 export const notificationRoute = (
   input?: Parameters<typeof resolveNotificationTarget>[0]
-): `/chat/${string}` | `/material/${string}` | `/community/${string}` | null => {
+): `/chat/${string}` | `/material/${string}` | `/community/${string}` | `/triage/${string}` | null => {
   const target = resolveNotificationTarget(input);
   if (target?.kind === "chat") return `/chat/${target.id}`;
   if (target?.kind === "material") return `/material/${target.id}`;
   if (target?.kind === "post") return `/community/${target.id}`;
+  if (target?.kind === "triage") return `/triage/${target.id}`;
   return null;
 };
 

@@ -49,6 +49,8 @@ function SearchPageContent() {
   const { data: materialData, isLoading: materialLoading, error: materialError } = useMaterials({
     keyword: !aiSearchActive && submittedKeyword ? submittedKeyword : undefined,
     category: !aiSearchActive && selectedCategory ? selectedCategory : undefined,
+    // 검색어를 수요로 기록할 때 쓰는 위치 — 이미 얻은 좌표가 있을 때만 (새 권한 요청 없음)
+    ...(!aiSearchActive && submittedKeyword && coords ? { lat: coords.lat, lng: coords.lng } : {}),
     page: 1,
     limit: 20,
   });

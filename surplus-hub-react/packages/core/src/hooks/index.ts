@@ -8,5 +8,6 @@ export * from "./useTransactions";
 export * from "./useReviews";
 export * from "./useEvents";
 export * from "./useAiSearch";
+export * from "./useTriage";
 export * from "./useAdmin";
 export * from "./useNotifications";

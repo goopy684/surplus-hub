@@ -96,6 +96,7 @@ function ProfileContent() {
   const isBusinessVerified = (currentUser.trustLevel ?? 0) >= 80;
 
   const settingsItems = [
+    { label: "내 창고 보관함", href: "/triage/vault" },
     { label: "프로필 및 B2B 사업자 인증", href: "/profile/edit" },
     { label: "받은 거래 후기", href: "/profile/reviews" },
     { label: "알림 설정", href: "/notifications" },

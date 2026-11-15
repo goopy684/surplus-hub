@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
@@ -37,6 +37,7 @@ from app.ai.services import search as search_service
 from app.ai.services import registration as registration_service
 from app.ai.services import qa_bot as qa_bot_service
 from app.ai.services import translation as translation_service
+from app.ai.services import triage as triage_service
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +89,7 @@ def _handle_ai_error(exc: Exception, service_name: str) -> HTTPException:
 @limiter.limit("30/minute")
 def semantic_search(
     request: Request,
+    background_tasks: BackgroundTasks,
     q: str,
     page: int = 1,
     limit: int = 20,
@@ -150,7 +152,13 @@ def semantic_search(
         )
 
     # Log search query asynchronously (best-effort)
-    search_service.log_search_query(db, query=q, results_count=total)
+    search_service.log_search_query(
+        db, query=q, results_count=total, location_lat=location_lat, location_lng=location_lng,
+    )
+    # 보관함 진단 중 이 검색어와 맞는 품목의 수요를 재산정하고, 크게 오르면 알린다
+    background_tasks.add_task(
+        triage_service.rescore_vault_for_search_background, db.get_bind(), q, location_lat, location_lng,
+    )
 
     return {
         "status": "success",
