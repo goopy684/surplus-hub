@@ -4,6 +4,7 @@ export * from "./user";
 export * from "./community";
 export * from "./notification";
 export * from "./ai";
+export * from "./triage";
 export * from "./transaction";
 export * from "./review";
 export * from "./event";

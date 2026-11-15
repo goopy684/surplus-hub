@@ -41,7 +41,7 @@ export interface NotificationPreferences {
 }
 
 export interface NotificationTarget {
-  kind: "chat" | "material" | "post";
+  kind: "chat" | "material" | "post" | "triage";
   id: string;
 }
 
@@ -52,6 +52,7 @@ const NOTIFICATION_TARGET_KINDS: Record<string, NotificationTarget["kind"]> = {
   material: "material",
   post: "post",
   community: "post",
+  triage: "triage",
 };
 
 // 알림 탭 → 화면 이동용 정규화. 라우트 문자열은 앱마다 달라 공유하지 않고 종류/id만 넘긴다.

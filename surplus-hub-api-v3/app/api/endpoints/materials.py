@@ -1,10 +1,12 @@
 from typing import Any, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.api import deps
+from app.ai.services import search as search_service
+from app.ai.services import triage as triage_service
 from app.core.cache import cache_get_json, cache_set_json, invalidate_material_caches, make_cache_key
 from app.crud.crud_material import crud_material
 from app.crud.crud_like import crud_material_like
@@ -42,13 +44,37 @@ def read_materials(
     cursor: Optional[int] = None,
     condition_grade: Optional[str] = None,
     location: Optional[str] = None,
+    track: Optional[str] = None,
+    # 검색 위치 — 목록을 거르지 않고 수요 기록에만 쓴다 (반경 수요 밀도)
+    lat: Optional[float] = Query(None, ge=-90, le=90),
+    lng: Optional[float] = Query(None, ge=-180, le=180),
+    background_tasks: BackgroundTasks = None,
 ) -> Any:
+    # 처분 경로 트랙: B/C만 별도 목록, 그 외 값은 무시(기본 피드 = B/C 제외)
+    track = track if track in ("B", "C") else None
+
+    def log_demand(total: int) -> None:
+        """키워드 검색을 수요 신호로 남긴다. 홈·검색 화면의 일반 검색이 이 경로라, 빼면 수요 대부분이 안 잡힌다.
+
+        첫 페이지에서만 기록한다 (더 보기·무한 스크롤은 같은 검색이다).
+        """
+        term = (keyword or "").strip()
+        if not term or page > 1 or cursor is not None:
+            return
+        search_service.log_search_query(db, query=term, results_count=total, location_lat=lat, location_lng=lng)
+        if background_tasks is not None:
+            background_tasks.add_task(
+                triage_service.rescore_vault_for_search_background, db.get_bind(), term, lat, lng,
+            )
+
     # Cursor-based pagination (for mobile infinite scroll)
     if cursor is not None or page == 0:
         items, next_cursor = crud_material.get_multi_cursor(
-            db, cursor=cursor, limit=limit, category=category, keyword=keyword, sort=sort
+            db, cursor=cursor, limit=limit, category=category, keyword=keyword, sort=sort,
+            track=track,
         )
         data = [MaterialSchema.model_validate(m) for m in items]
+        log_demand(len(items))
         return {
             "status": "success",
             "data": data,
@@ -62,15 +88,16 @@ def read_materials(
     # Offset-based pagination (backward compatible)
     key = make_cache_key(
         "materials:list", page=page, limit=limit, category=category, keyword=keyword, sort=sort,
-        condition_grade=condition_grade, location=location,
+        condition_grade=condition_grade, location=location, track=track,
     )
     cached = cache_get_json(key)
     if cached is not None:
+        log_demand((cached.get("meta") or {}).get("totalCount") or 0)  # 캐시 적중도 검색은 일어난 것이다
         return cached
 
     materials, total_count = crud_material.get_multi_with_filters(
         db, page=page, limit=limit, category=category, keyword=keyword, sort=sort,
-        condition_grade=condition_grade, location_address=location,
+        condition_grade=condition_grade, location_address=location, track=track,
     )
 
     total_pages = (total_count + limit - 1) // limit if total_count > 0 else 0
@@ -90,6 +117,7 @@ def read_materials(
         },
     }).model_dump(mode="json", by_alias=True)
     cache_set_json(key, result, ttl_seconds=30)
+    log_demand(total_count)
     return result
 
 

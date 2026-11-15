@@ -1,8 +1,10 @@
 "use client";
 
-import { MaterialItem, mergeMaterialPage, useMaterials } from "@repo/core";
+import { HIGH_LIQUIDITY_SCORE, MaterialItem, mergeMaterialPage, useMaterials } from "@repo/core";
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { TriageHomeWidgets } from "../components/TriageHomeWidgets";
+import { useGrantedCoords } from "../utils/useGrantedCoords";
 
 // 업종별 카테고리 — 백엔드 seed_categories와 동기화 (조명/문/건자재/전기/설비/기타)
 const CATEGORIES = [
@@ -56,21 +58,29 @@ export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [selectedRegion, setSelectedRegion] = useState<string>("전체");
   const [sortOption, setSortOption] = useState<"latest" | "price_asc" | "price_desc">("latest");
+  // 마켓 트랙 — 기본(undefined)은 메인 마켓, B/C는 전문 매입처 트랙
+  const [track, setTrack] = useState<"B" | "C" | undefined>(undefined);
   const [page, setPage] = useState(1);
   const [materials, setMaterials] = useState<MaterialItem[]>([]);
   const [hasReachedMax, setHasReachedMax] = useState(false);
 
-  const queryParams = useMemo(
-    () => ({
+  // 검색어를 수요로 기록할 때 쓰는 위치 — 이미 허용된 경우에만 (권한 팝업 없음)
+  const grantedCoords = useGrantedCoords();
+
+  const queryParams = useMemo(() => {
+    const keyword = submittedKeyword.trim() ? submittedKeyword.trim() : undefined;
+    return {
       page,
       limit: PAGE_SIZE,
       category: selectedCategory,
       sort: sortOption,
-      keyword: submittedKeyword.trim() ? submittedKeyword.trim() : undefined,
+      keyword,
       location: selectedRegion !== "전체" ? selectedRegion : undefined,
-    }),
-    [page, selectedCategory, sortOption, submittedKeyword, selectedRegion]
-  );
+      track,
+      // 검색할 때만 좌표를 붙인다 — 일반 피드의 쿼리 키·캐시는 그대로 둔다
+      ...(keyword && grantedCoords ? { lat: grantedCoords.lat, lng: grantedCoords.lng } : {}),
+    };
+  }, [page, selectedCategory, sortOption, submittedKeyword, selectedRegion, track, grantedCoords]);
 
   const { data, isLoading, isFetching, error } = useMaterials(queryParams);
 
@@ -78,7 +88,7 @@ export default function Home() {
     setPage(1);
     setMaterials([]);
     setHasReachedMax(false);
-  }, [selectedCategory, submittedKeyword, sortOption, selectedRegion]);
+  }, [selectedCategory, submittedKeyword, sortOption, selectedRegion, track]);
 
   useEffect(() => {
     if (!data) return;
@@ -227,6 +237,8 @@ export default function Home() {
             </button>
           </form>
 
+          <TriageHomeWidgets />
+
           {/* CATEGORY RAIL — 단일 DOM (모바일 스크롤 칩 → 데스크톱 wrap) */}
           <nav
             aria-label="카테고리"
@@ -263,16 +275,28 @@ export default function Home() {
             ) : (
               <span />
             )}
-            <select
-              aria-label="정렬"
-              value={sortOption}
-              onChange={(e) => setSortOption(e.target.value as "latest" | "price_asc" | "price_desc")}
-              className="min-h-[44px] cursor-pointer bg-transparent text-[13px] font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="latest">최신순</option>
-              <option value="price_asc">가격 낮은순</option>
-              <option value="price_desc">가격 높은순</option>
-            </select>
+            <div className="flex items-center gap-3">
+              <select
+                aria-label="마켓"
+                value={track ?? ""}
+                onChange={(e) => setTrack((e.target.value || undefined) as "B" | "C" | undefined)}
+                className="min-h-[44px] cursor-pointer bg-transparent text-[13px] font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="">일반 매물</option>
+                <option value="B">소재 매입 호가</option>
+                <option value="C">중량 일괄 처분</option>
+              </select>
+              <select
+                aria-label="정렬"
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value as "latest" | "price_asc" | "price_desc")}
+                className="min-h-[44px] cursor-pointer bg-transparent text-[13px] font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="latest">최신순</option>
+                <option value="price_asc">가격 낮은순</option>
+                <option value="price_desc">가격 높은순</option>
+              </select>
+            </div>
           </div>
 
           {/* MATERIAL GRID — 사진 중심 카탈로그 카드 */}
@@ -281,6 +305,8 @@ export default function Home() {
               const isSold = item.status === "SOLD";
               const grade = item.conditionGrade;
               const hasGrade = grade === "상" || grade === "중" || grade === "하";
+              const isHighLiquidity =
+                item.dispositionPath === "A" && (item.liquidityScore ?? 0) >= HIGH_LIQUIDITY_SCORE;
               const meta = [formatLocation(item.location), item.createdAt ? new Date(item.createdAt).toLocaleDateString() : null]
                 .filter(Boolean)
                 .join(" · ");
@@ -301,10 +327,13 @@ export default function Home() {
                         </svg>
                       </div>
                     )}
-                    {(item.status === "RESERVED" || hasGrade) && !isSold && (
+                    {(item.status === "RESERVED" || hasGrade || isHighLiquidity) && !isSold && (
                       <div className="absolute left-2 top-2 flex gap-1">
                         {item.status === "RESERVED" && (
                           <span className="rounded-chip bg-surface px-2.5 py-1 text-[11.5px] font-bold text-foreground">예약중</span>
+                        )}
+                        {isHighLiquidity && (
+                          <span className="rounded-chip bg-primary px-2.5 py-1 text-[11.5px] font-bold text-primary-foreground">고유동성</span>
                         )}
                         {hasGrade && (
                           <span

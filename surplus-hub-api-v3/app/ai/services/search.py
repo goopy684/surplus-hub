@@ -10,7 +10,7 @@ from sqlalchemy import case, func, or_, text
 from sqlalchemy.orm import Session
 
 from app.ai.clients.embeddings import build_search_text, generate_embedding
-from app.models.material import Material
+from app.models.material import PUBLIC_TRACK_FILTER, Material
 
 logger = logging.getLogger(__name__)
 
@@ -130,8 +130,11 @@ def _base_filter(
     location_lng: Optional[float],
     radius_km: Optional[float],
 ):
-    """두 검색 함수가 공유하는 필터. Returns (base_filter, distance_col or None)."""
-    base_filter = Material.status == status
+    """두 검색 함수가 공유하는 필터. Returns (base_filter, distance_col or None).
+
+    처분 경로 B/C 매물은 공개 검색에서 항상 뺀다 (피드 순도).
+    """
+    base_filter = (Material.status == status) & PUBLIC_TRACK_FILTER
     if category:
         base_filter = base_filter & (Material.category == category)
     if price_min is not None:
@@ -392,6 +395,7 @@ def vector_search_only(
     rows = (
         db.query(Material, similarity)
         .filter(Material.status == status)
+        .filter(PUBLIC_TRACK_FILTER)
         .filter(Material.embedding_vector.isnot(None))
         .filter((1 - cosine_distance) >= MIN_SIMILARITY)
         .order_by(cosine_distance)
@@ -501,12 +505,17 @@ def log_search_query(
     query: str,
     results_count: int,
     user_id: Optional[int] = None,
+    location_lat: Optional[float] = None,
+    location_lng: Optional[float] = None,
 ) -> None:
-    """Log a search query for analytics and suggestions."""
+    """Log a search query for analytics and suggestions (좌표는 반경 수요 밀도용)."""
     try:
         from app.models.search_log import SearchLog
 
-        log = SearchLog(query=query, user_id=user_id, results_count=results_count)
+        log = SearchLog(
+            query=query, user_id=user_id, results_count=results_count,
+            location_lat=location_lat, location_lng=location_lng,
+        )
         db.add(log)
         db.commit()
     except Exception:

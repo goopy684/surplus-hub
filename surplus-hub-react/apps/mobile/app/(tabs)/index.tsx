@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { View, Text, FlatList, ActivityIndicator, TextInput, TouchableOpacity, Image, ScrollView } from "react-native";
-import { MaterialItem, mergeMaterialPage, useMaterials, useUnreadCount } from "@repo/core";
+import { HIGH_LIQUIDITY_SCORE, MaterialItem, mergeMaterialPage, useMaterials, useUnreadCount } from "@repo/core";
 import { useRouter } from "expo-router";
+import { TriageHomeWidgets } from "../../components/TriageHomeWidgets";
 
 // 백엔드 seed_categories와 동기화 (조명/문·창호/건자재/전기/설비/기타) — 웹 home과 동일
 const CATEGORIES = ["조명", "문/창호", "건축자재", "전기", "설비", "기타"] as const;
@@ -140,6 +141,8 @@ export default function Home() {
             </View>
           </View>
 
+          <TriageHomeWidgets />
+
           {/* CATEGORY RAIL — 필터 칩 (활성 = ink 채움 + 흰 글자) */}
           <ScrollView
             horizontal
@@ -210,6 +213,8 @@ export default function Home() {
         const isSold = item.status === "SOLD";
         const grade = item.conditionGrade;
         const hasGrade = grade === "상" || grade === "중" || grade === "하";
+        // 경로 A + 점수 문턱 — 경로 재지정만으로는 배지를 얻지 못한다.
+        const isHighLiquidity = item.dispositionPath === "A" && (item.liquidityScore ?? 0) >= HIGH_LIQUIDITY_SCORE;
         const meta = [formatLocation(item.location), item.createdAt ? new Date(item.createdAt).toLocaleDateString() : null]
           .filter(Boolean)
           .join(" · ");
@@ -225,7 +230,7 @@ export default function Home() {
               {item.imageUrl ? (
                 <Image source={{ uri: item.imageUrl }} className="h-full w-full" resizeMode="cover" />
               ) : null}
-              {!isSold && (item.status === "RESERVED" || hasGrade) ? (
+              {!isSold && (item.status === "RESERVED" || hasGrade || isHighLiquidity) ? (
                 <View className="absolute left-2 top-2 flex-row gap-1">
                   {item.status === "RESERVED" ? (
                     <View className="rounded-chip bg-surface px-2.5 py-1">
@@ -241,6 +246,11 @@ export default function Home() {
                       <Text className={`text-[11.5px] font-bold ${grade === "상" ? "text-olive-tx" : "text-ink-2"}`}>
                         {grade}
                       </Text>
+                    </View>
+                  ) : null}
+                  {isHighLiquidity ? (
+                    <View className="rounded-chip bg-primary px-2.5 py-1">
+                      <Text className="text-[11.5px] font-bold text-primary-foreground">고유동성</Text>
                     </View>
                   ) : null}
                 </View>

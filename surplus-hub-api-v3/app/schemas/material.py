@@ -63,6 +63,9 @@ class Material(MaterialBase):
     created_at: datetime
     images: List[str] = [] # Mock images
     thumbnail_url: Optional[str] = Field(None, alias="thumbnailUrl")
+    # AI 진단에서 전환된 매물만 값이 있다 (응답 전용 — 생성·수정 요청으로는 바꿀 수 없음)
+    liquidity_score: Optional[int] = Field(None, alias="liquidityScore")
+    disposition_path: Optional[str] = Field(None, alias="dispositionPath")
 
     @property
     def thumbnail_url_prop(self):

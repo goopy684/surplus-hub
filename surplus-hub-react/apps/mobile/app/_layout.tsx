@@ -58,6 +58,9 @@ function AppStack() {
       <Stack.Screen name="material/[id]" options={{ title: "자재 상세" }} />
       <Stack.Screen name="community/[id]" options={{ title: "게시글 상세" }} />
       <Stack.Screen name="community/write" options={{ title: "새 게시글 작성" }} />
+      <Stack.Screen name="triage/index" options={{ title: "3초 가치진단" }} />
+      <Stack.Screen name="triage/[id]" options={{ title: "AI 감정 리포트" }} />
+      <Stack.Screen name="triage/vault" options={{ title: "내 창고 보관함" }} />
       <Stack.Screen name="search" options={{ title: "검색" }} />
       <Stack.Screen name="notifications" options={{ title: "알림" }} />
       <Stack.Screen name="notification-settings" options={{ title: "알림 설정" }} />

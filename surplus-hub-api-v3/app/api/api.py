@@ -4,7 +4,7 @@ from app.api.endpoints import (
     auth, users, materials, chats, community, upload, categories,
     notifications, reviews, transactions, events, admin_api, ai_assist,
     admin_roles, reports, admin_users, admin_moderation, admin_dashboard,
-    admin_notifications,
+    admin_notifications, triage,
 )
 
 api_router = APIRouter()
@@ -27,3 +27,4 @@ api_router.include_router(admin_moderation.router, prefix="/admin/moderation", t
 api_router.include_router(admin_dashboard.router, prefix="/admin/dashboard", tags=["admin-dashboard"])
 api_router.include_router(admin_notifications.router, prefix="/admin/notifications", tags=["admin-notifications"])
 api_router.include_router(ai_assist.router, prefix="/ai", tags=["ai"])
+api_router.include_router(triage.router, prefix="/ai/triage", tags=["ai-triage"])

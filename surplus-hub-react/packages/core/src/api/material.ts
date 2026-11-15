@@ -88,6 +88,8 @@ const mapMaterialItem = (raw: unknown): MaterialItem => {
     ),
     likesCount: parseNumber(item.likesCount ?? item.likes_count, 0),
     conditionGrade: readString(item.conditionGrade ?? item.condition_grade),
+    liquidityScore: parseOptionalNumber(item.liquidityScore ?? item.liquidity_score),
+    dispositionPath: readString(item.dispositionPath ?? item.disposition_path),
     createdAt: normalizeIso(item.createdAt ?? item.created_at),
   };
 };
@@ -107,6 +109,7 @@ export const fetchMaterials = async (
       ...(params.location ? { location: params.location } : {}),
       ...(params.lat !== undefined ? { lat: params.lat } : {}),
       ...(params.lng !== undefined ? { lng: params.lng } : {}),
+      ...(params.track ? { track: params.track } : {}),
     },
   });
 
