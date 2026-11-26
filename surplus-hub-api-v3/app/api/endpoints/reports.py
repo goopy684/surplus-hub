@@ -11,7 +11,7 @@ from app.schemas.moderation import ReportCreate, ReportResponse
 
 router = APIRouter()
 
-VALID_TARGET_TYPES = {"user", "material", "post", "comment"}
+VALID_TARGET_TYPES = {"user", "material", "post", "comment", "wanted"}
 VALID_REASONS = {"spam", "abuse", "fraud", "inappropriate", "other"}
 
 

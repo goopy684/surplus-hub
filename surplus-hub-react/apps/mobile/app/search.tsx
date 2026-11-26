@@ -179,6 +179,16 @@ export default function SearchScreen() {
                 <Text className="text-center text-base text-ink-2">
                   {submittedKeyword ? "검색 결과가 없습니다." : "검색어를 입력하면 필터가 적용됩니다."}
                 </Text>
+                {/* 홈 구해요 섹션은 요청이 0건이면 숨으므로, 첫 요청은 여기서 시작된다 */}
+                {submittedKeyword ? (
+                  <TouchableOpacity
+                    accessibilityRole="link"
+                    onPress={() => router.push("/wanted/new")}
+                    className="mt-2 min-h-[44px] items-center justify-center"
+                  >
+                    <Text className="text-sm font-semibold text-ink underline">찾는 자재를 구해요에 올리기</Text>
+                  </TouchableOpacity>
+                ) : null}
               </View>
             ) : null
           }

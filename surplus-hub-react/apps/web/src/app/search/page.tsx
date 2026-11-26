@@ -382,6 +382,13 @@ function SearchPageContent() {
             {results.length === 0 && (
               <div className="rounded-card bg-field p-6 text-center text-sm text-muted-foreground">
                 검색 결과가 없습니다.
+                {/* 구해요 섹션은 요청이 0건이면 숨으므로, 첫 요청은 여기서 시작된다 */}
+                <Link
+                  href="/wanted/new"
+                  className="mt-2 flex min-h-[44px] items-center justify-center font-semibold text-foreground underline transition-colors hover:text-ink-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  찾는 자재를 구해요에 올리기
+                </Link>
               </div>
             )}
           </div>

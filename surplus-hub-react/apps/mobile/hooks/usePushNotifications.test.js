@@ -115,6 +115,11 @@ assert.equal(notificationRoute({ referenceType: "community", referenceId: "9" })
 assert.equal(notificationRoute({ referenceType: "triage", referenceId: "12" }), "/triage/12");
 assert.equal(notificationRoute({ referenceType: " TRIAGE ", referenceId: 12 }), "/triage/12");
 
+// 구매 요청 매칭 알림(WANTED_MATCH) → 구매 요청 상세.
+assert.equal(notificationRoute({ referenceType: "wanted", referenceId: "12" }), "/wanted/12");
+assert.equal(notificationRoute({ referenceType: " WANTED ", referenceId: 12 }), "/wanted/12");
+assert.equal(notificationRoute({ referenceType: "wanted", referenceId: "-1" }), null);
+
 // 리졸버가 거르는 값들.
 assert.equal(notificationRoute({ referenceType: "chat_room" }), null);
 assert.equal(notificationRoute({ referenceType: "chat_room", referenceId: "0" }), null);

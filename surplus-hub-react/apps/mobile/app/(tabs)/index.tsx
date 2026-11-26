@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { View, Text, FlatList, ActivityIndicator, TextInput, TouchableOpacity, Image, ScrollView } from "react-native";
-import { HIGH_LIQUIDITY_SCORE, MaterialItem, mergeMaterialPage, useMaterials, useUnreadCount } from "@repo/core";
+import {
+  HIGH_LIQUIDITY_SCORE,
+  MaterialItem,
+  formatWantedSpec,
+  mergeMaterialPage,
+  useMaterials,
+  useUnreadCount,
+  useWantedList,
+} from "@repo/core";
 import { useRouter } from "expo-router";
 import { TriageHomeWidgets } from "../../components/TriageHomeWidgets";
 
@@ -14,6 +22,43 @@ const formatLocation = (location?: string): string => {
   if (/^\s*Lat\s*:/i.test(location) || /Lng\s*:/i.test(location)) return "위치 정보 없음";
   return location;
 };
+
+// 열린 구매 요청 최대 3건. 0건이면 렌더하지 않는다 (design.md 정직성 규칙).
+// 홈에서는 위치 권한을 묻지 않으므로 전 지역 최신순이다.
+function NewWanted() {
+  const router = useRouter();
+  const { data } = useWantedList({ limit: 3 });
+  const items = data?.data.slice(0, 3) ?? [];
+  if (items.length === 0) return null;
+
+  return (
+    <View className="bg-surface px-5 pb-3">
+      <View className="rounded-card border border-line-2 bg-surface p-4">
+        <View className="flex-row items-center justify-between">
+          <Text className="text-[15px] font-bold text-ink">새로 올라온 구해요</Text>
+          <TouchableOpacity accessibilityRole="link" onPress={() => router.push("/wanted")} className="min-h-[44px] justify-center">
+            <Text className="text-[13px] font-semibold text-ink-2">전체 보기</Text>
+          </TouchableOpacity>
+        </View>
+        {items.map((item) => (
+          <TouchableOpacity
+            key={item.id}
+            accessibilityRole="link"
+            onPress={() => router.push(`/wanted/${item.id}`)}
+            className="border-t border-line-2 py-2.5"
+          >
+            <Text numberOfLines={1} className="text-[14px] font-semibold text-ink">
+              {item.title}
+            </Text>
+            <Text numberOfLines={1} className="text-xs text-ink-2">
+              {[item.category, formatWantedSpec(item), item.locationAddress].filter(Boolean).join(" · ")}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+}
 
 export default function Home() {
   const [searchInput, setSearchInput] = useState("");
@@ -142,6 +187,7 @@ export default function Home() {
           </View>
 
           <TriageHomeWidgets />
+          <NewWanted />
 
           {/* CATEGORY RAIL — 필터 칩 (활성 = ink 채움 + 흰 글자) */}
           <ScrollView

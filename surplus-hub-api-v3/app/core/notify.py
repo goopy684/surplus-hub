@@ -27,6 +27,8 @@ PUSH_PREF_BY_TYPE: dict[str, Optional[str]] = {
     "TRANSACTION": "push_material",
     # 보관함 수요 상승 알림: 사용자가 직접 요청한 자재 알림이라 광고가 아니다
     "TRIAGE_DEMAND": "push_material",
+    # 구매 요청 매칭 알림: 사용자가 등록한 요청에 맞는 매물 소식이라 광고가 아니다
+    "WANTED_MATCH": "push_material",
     "REVIEW": "push_community",
     "COMMENT": "push_community",
     "LIKE": "push_community",

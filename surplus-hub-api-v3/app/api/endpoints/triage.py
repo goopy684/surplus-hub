@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.api import deps
 from app.ai.services import triage as triage_service
+from app.ai.services import wanted as wanted_service
 from app.core.cache import cache_get_json, cache_set_json, invalidate_material_caches, make_cache_key
 from app.core.rate_limit import limiter
 from app.models.material import Material
@@ -230,6 +231,7 @@ def convert(
 
     from app.ai.services.embedding_hook import update_material_embedding_background
     background_tasks.add_task(update_material_embedding_background, material.id)
+    wanted_service.enqueue_match(background_tasks, db, material)
     invalidate_material_caches()
 
     return {

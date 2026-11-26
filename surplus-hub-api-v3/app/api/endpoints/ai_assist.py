@@ -104,6 +104,7 @@ def semantic_search(
     trade_method: Optional[str] = Query(None, alias="tradeMethod"),
     sort_by: Optional[str] = Query("relevance", alias="sortBy"),
     db: Session = Depends(deps.get_db),
+    searcher: str = Depends(deps.get_searcher_key),
 ) -> Any:
     results, total, search_mode = search_service.hybrid_search(
         db,
@@ -151,14 +152,15 @@ def semantic_search(
             )
         )
 
-    # Log search query asynchronously (best-effort)
-    search_service.log_search_query(
+    # Log search query (best-effort). 같은 검색자의 반복 검색은 기록·재산정하지 않는다
+    if search_service.log_search_query(
         db, query=q, results_count=total, location_lat=location_lat, location_lng=location_lng,
-    )
-    # 보관함 진단 중 이 검색어와 맞는 품목의 수요를 재산정하고, 크게 오르면 알린다
-    background_tasks.add_task(
-        triage_service.rescore_vault_for_search_background, db.get_bind(), q, location_lat, location_lng,
-    )
+        searcher=searcher,
+    ):
+        # 보관함 진단 중 이 검색어와 맞는 품목의 수요를 재산정하고, 크게 오르면 알린다
+        background_tasks.add_task(
+            triage_service.rescore_vault_for_search_background, db.get_bind(), q, location_lat, location_lng,
+        )
 
     return {
         "status": "success",

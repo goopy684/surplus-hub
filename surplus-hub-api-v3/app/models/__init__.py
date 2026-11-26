@@ -16,3 +16,4 @@ from app.models.admin import AdminAuditLog
 from app.models.moderation import Report, UserSanction, AdminNote, BannedWord
 from app.models.stats import DailyStats, UserDailyActivity
 from app.models.triage import AiTriageDiagnosis
+from app.models.wanted import WantedRequest

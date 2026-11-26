@@ -24,6 +24,7 @@ from app.crud.crud_category import TRADE_CATEGORIES
 from app.models.material import Material
 from app.models.search_log import SearchLog
 from app.models.triage import AiTriageDiagnosis
+from app.models.wanted import WantedRequest, open_wanted
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,9 @@ HOT_FREE_TEXT_MIN_COUNT = 3
 PRIOR_WEIGHT = 5
 NOTIFY_DELTA = 10
 NOTIFY_INTERVAL = timedelta(hours=24)
+# 열린 구매 요청 1건 = 검색 3건. 검색은 의도가 불분명하지만 요청은 "이걸 사겠다"는 명시적 수요다
+# ponytail: 보정 전 상수. 요청→체결 전환 데이터가 쌓이면 검색 대비 실측 비율로 교체
+WANTED_WEIGHT = 3
 VISION_CACHE_PREFIX = "ai:triage:vision"
 VISION_CACHE_TTL = 24 * 3600
 
@@ -224,6 +228,18 @@ def _demand_terms(material_key: Optional[str], title: Optional[str], spec_text: 
     return list(dict.fromkeys(tokens))[:5]
 
 
+def _wanted_material(title: str, description: Optional[str]) -> Optional[str]:
+    return detect_material(f"{title} {description or ''}")
+
+
+def _wanted_terms(title: str, description: Optional[str]) -> list[str]:
+    """구매 요청의 매칭 용어. 소재는 제목·설명에서 찾고, 그 밖의 토큰은 제목에서만 뽑는다.
+
+    설명의 "바로 수령 가능" 같은 문구가 토큰이 되면 무관한 매물까지 맞아 알림이 샌다.
+    """
+    return _demand_terms(_wanted_material(title, description), title, None)
+
+
 def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     p1, p2 = math.radians(lat1), math.radians(lat2)
     dp, dl = p2 - p1, math.radians(lng2 - lng1)
@@ -267,6 +283,19 @@ def _fetch_logs(db: Session, since: datetime, terms: Optional[list[str]] = None,
             return []
         q = q.filter(or_(*(SearchLog.query.ilike(f"%{t}%") for t in terms)))
     return q.order_by(SearchLog.id.desc()).limit(limit).all()
+
+
+def _open_wanted(db: Session, now: datetime, terms: Optional[list[str]] = None, limit: int = CANDIDATE_LIMIT):
+    """열린 구매 요청 (검색 로그처럼 최신 N건만). terms가 빈 목록이면 빈 or_()를 만들지 않고 바로 []."""
+    q = db.query(
+        WantedRequest.user_id, WantedRequest.title, WantedRequest.description,
+        WantedRequest.location_lat, WantedRequest.location_lng, WantedRequest.radius_km,
+    ).filter(open_wanted(now))
+    if terms is not None:
+        if not terms:
+            return []
+        q = q.filter(or_(*(c.ilike(f"%{t}%") for t in terms for c in (WantedRequest.title, WantedRequest.description))))
+    return q.order_by(WantedRequest.id.desc()).limit(limit).all()
 
 
 _SIMILAR_STATUSES = ("ACTIVE", "RESERVED", "SOLD")  # HIDDEN·REVIEWING 제외
@@ -319,11 +348,26 @@ def _vector_neighbour_prices(db: Session, query_text: str, since: datetime, excl
         return []
 
 
-def _demand_evidence(db: Session, *, material_key, title, spec_text, lat, lng, exclude_material_id=None) -> dict:
+def _demand_evidence(
+    db: Session, *, material_key, title, spec_text, lat, lng, exclude_material_id=None, exclude_user_id=None,
+) -> dict:
     now = _now()
     terms = _demand_terms(material_key, title, spec_text)
     logs = [r for r in _fetch_logs(db, now - timedelta(days=SEARCH_WINDOW_DAYS), terms) if _matches(terms, r.query)]
     weights = [w for w in (_log_weight(r, lat, lng) for r in logs) if w > 0]
+    # 구매 요청은 요청자가 정한 반경 안이면 수요다 (매칭 알림과 같은 기준)
+    # 같은 요청자의 요청 여러 건은 1명으로 센다 (상한 안에서 같은 요청을 반복 등록해 점수를 올리지 못하게).
+    # 요청 쪽은 매칭 알림과 같은 용어(_wanted_terms)로 맞춘다 — 설명의 "바로 수령 가능"이 무관한 진단의 수요가 되지 않게.
+    # 진단 주인 본인의 요청은 수요가 아니다
+    by_requester: dict[int, float] = {}
+    for r in _open_wanted(db, now, terms):
+        if r.user_id == exclude_user_id:
+            continue
+        hit = _matches(terms, " ".join(_wanted_terms(r.title, r.description)))
+        w = _log_weight(r, lat, lng, r.radius_km) if hit else 0
+        if w > 0:
+            by_requester[r.user_id] = max(w, by_requester.get(r.user_id, 0))
+    wanted_weights = list(by_requester.values())
 
     similar = _similar_materials(db, terms, now - timedelta(days=SIMILAR_WINDOW_DAYS))
     # 이 진단에서 전환된 매물 자신은 근거에서 뺀다 — 넣으면 등록하자마자 "안 팔린 매물"로 세어 점수가 내려간다
@@ -335,8 +379,9 @@ def _demand_evidence(db: Session, *, material_key, title, spec_text, lat, lng, e
             and _within(lat, lng, r.location_lat, r.location_lng)
         ]
     return {
-        "searches": sum(weights),
+        "searches": sum(weights) + WANTED_WEIGHT * sum(wanted_weights),
         "search_count": len(weights),
+        "wanted_count": len(wanted_weights),
         "sold": sum(1 for r in similar if r.status == "SOLD"),
         "active": sum(1 for r in similar if r.status in ("ACTIVE", "RESERVED")),
         "prices": [r.price for r in similar if (r.price or 0) > 0],
@@ -392,6 +437,7 @@ def _apply_score(diag: AiTriageDiagnosis, evidence: dict, *, update_path: bool) 
         "reuseScore": round(s["reuse"], 1),
         "materialBonus": round(s["bonus"], 1),
         "searchCount": evidence["search_count"],
+        "wantedCount": evidence["wanted_count"],
         "similarActiveCount": evidence["active"],
         "similarSoldCount": evidence["sold"],
     })
@@ -494,6 +540,7 @@ def diagnose(db: Session, user, payload) -> AiTriageDiagnosis:
 
     evidence = _demand_evidence(
         db, material_key=material_key, title=title, spec_text=analysis_text, lat=payload.lat, lng=payload.lng,
+        exclude_user_id=user.id,
     )
 
     # 폐기손실 비교 (1.5)
@@ -560,6 +607,7 @@ def rescore(db: Session, diag: AiTriageDiagnosis) -> AiTriageDiagnosis:
     evidence = _demand_evidence(
         db, material_key=diag.material_key, title=diag.title, spec_text=diag.spec_text,
         lat=diag.location_lat, lng=diag.location_lng, exclude_material_id=diag.material_id,
+        exclude_user_id=diag.user_id,
     )
     _apply_score(diag, evidence, update_path=diag.status != STATUS_LISTED)
     return diag
@@ -669,15 +717,30 @@ def hot_demands(
         if w <= 0 or not text:
             continue
         key = detect_material(text) or text.lower()
-        g = groups.setdefault(key, {"weight": 0.0, "count": 0, "sample": text})  # 최신순이라 첫 값이 최근 검색어
+        g = groups.setdefault(key, {"weight": 0.0, "count": 0, "wanted": 0, "sample": text})  # 최신순이라 첫 값이 최근 검색어
         g["weight"] += w
         g["count"] += 1
+    # 열린 구매 요청 = 명시적 수요. 같은 소재(또는 같은 문구) 그룹에 검색 WANTED_WEIGHT건 무게로 더한다
+    # 요청자당 그룹 1건 — 한 사람이 같은 문구를 3건 올려 자유 문구 노출 문턱(3)을 넘지 못하게
+    seen: set[tuple[str, int]] = set()
+    for row in _open_wanted(db, now, limit=HOT_CANDIDATE_LIMIT):
+        w = WANTED_WEIGHT * _log_weight(row, lat, lng, radius_km)
+        title = " ".join((row.title or "").split())
+        if w <= 0 or not _wanted_terms(title, row.description):
+            continue
+        key = _wanted_material(title, row.description) or title.lower()
+        if (key, row.user_id) in seen:
+            continue
+        seen.add((key, row.user_id))
+        g = groups.setdefault(key, {"weight": 0.0, "count": 0, "wanted": 0, "sample": title})
+        g["weight"] += w
+        g["wanted"] += 1
 
     items = []
     for key, g in groups.items():
         mat = MATERIALS.get(key)
         # 소재 사전에 없는 그룹은 남이 입력한 검색어가 그대로 홈에 뜬다 — 1~2회짜리 문구는 올리지 않는다
-        if mat is None and g["count"] < HOT_FREE_TEXT_MIN_COUNT:
+        if mat is None and g["count"] + g["wanted"] < HOT_FREE_TEXT_MIN_COUNT:
             continue
         d, _ = _demand_density(_prior(infer_category(g["sample"])), g["weight"], 0, 0)
         score = _score(1.0, 1.0, (mat or UNKNOWN)["value"], d)["score"]
@@ -687,10 +750,11 @@ def hot_demands(
             "key": key,
             "label": mat["label"] if mat else g["sample"],
             "searchCount": g["count"],
+            "wantedCount": g["wanted"],
             "liquidityScore": score,
             "_weight": g["weight"],
         })
-    # "급구" = 검색 수요(가중 건수) 우선. 점수는 소재 가치가 섞여 있어 동률 정렬에만 쓴다
+    # "급구" = 검색·요청 수요(가중 건수) 우선. 점수는 소재 가치가 섞여 있어 동률 정렬에만 쓴다
     items.sort(key=lambda i: (i["_weight"], i["liquidityScore"]), reverse=True)
     for i in items:
         del i["_weight"]
@@ -792,7 +856,7 @@ def serialize_diagnosis(diag: AiTriageDiagnosis, *, public: bool = False) -> dic
         "breakdown": {
             k: bd.get(k, 0) for k in (
                 "condition", "spec", "demand", "materialValue", "reuseScore", "materialBonus",
-                "searchCount", "similarActiveCount", "similarSoldCount",
+                "searchCount", "wantedCount", "similarActiveCount", "similarSoldCount",
             )
         },
         "coldStart": bool(diag.cold_start),

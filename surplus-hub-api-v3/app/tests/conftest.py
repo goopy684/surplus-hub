@@ -52,6 +52,7 @@ import app.models.moderation  # noqa: F401, E402
 import app.models.stats  # noqa: F401, E402
 import app.models.search_log  # noqa: F401, E402
 import app.models.triage  # noqa: F401, E402
+import app.models.wanted  # noqa: F401, E402
 
 
 # ---------------------------------------------------------------------------

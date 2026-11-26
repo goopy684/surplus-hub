@@ -9,6 +9,7 @@ const TARGET_TYPE_LABELS: Record<Report["targetType"], string> = {
   material: "자재",
   post: "게시글",
   comment: "댓글",
+  wanted: "구매 요청",
 };
 
 const STATUS_LABELS: Record<Report["status"], string> = {
