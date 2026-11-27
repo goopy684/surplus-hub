@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.api import deps
 from app.ai.services import search as search_service
 from app.ai.services import triage as triage_service
+from app.ai.services import wanted as wanted_service
 from app.core.cache import cache_get_json, cache_set_json, invalidate_material_caches, make_cache_key
 from app.crud.crud_material import crud_material
 from app.crud.crud_like import crud_material_like
@@ -49,6 +50,7 @@ def read_materials(
     lat: Optional[float] = Query(None, ge=-90, le=90),
     lng: Optional[float] = Query(None, ge=-180, le=180),
     background_tasks: BackgroundTasks = None,
+    searcher: str = Depends(deps.get_searcher_key),
 ) -> Any:
     # 처분 경로 트랙: B/C만 별도 목록, 그 외 값은 무시(기본 피드 = B/C 제외)
     track = track if track in ("B", "C") else None
@@ -61,8 +63,10 @@ def read_materials(
         term = (keyword or "").strip()
         if not term or page > 1 or cursor is not None:
             return
-        search_service.log_search_query(db, query=term, results_count=total, location_lat=lat, location_lng=lng)
-        if background_tasks is not None:
+        logged = search_service.log_search_query(
+            db, query=term, results_count=total, location_lat=lat, location_lng=lng, searcher=searcher,
+        )
+        if logged and background_tasks is not None:
             background_tasks.add_task(
                 triage_service.rescore_vault_for_search_background, db.get_bind(), term, lat, lng,
             )
@@ -142,6 +146,7 @@ def create_material(
     # AI: auto-generate embedding in background (non-blocking)
     from app.ai.services.embedding_hook import update_material_embedding_background
     background_tasks.add_task(update_material_embedding_background, db_obj.id)
+    wanted_service.enqueue_match(background_tasks, db, db_obj)
     invalidate_material_caches()
 
     return {
@@ -188,6 +193,7 @@ def update_material(
     if material.seller_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not authorized to update this material")
 
+    was_active = material.status == "ACTIVE"
     try:
         updated = crud_material.update_material(db, db_obj=material, obj_in=material_in)
     except StockConflictError as e:
@@ -198,6 +204,8 @@ def update_material(
     # AI: re-generate embedding in background (non-blocking)
     from app.ai.services.embedding_hook import update_material_embedding_background
     background_tasks.add_task(update_material_embedding_background, updated.id)
+    if not was_active:  # 비공개 → ACTIVE 전환일 때만 (이미 공개된 매물 수정은 새 소식이 아니다)
+        wanted_service.enqueue_match(background_tasks, db, updated)
     invalidate_material_caches()
 
     return {
@@ -236,6 +244,7 @@ def delete_material(
 def update_material_status(
     id: int,
     body: MaterialStatusUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(deps.get_db),
     current_user: User = Depends(deps.get_current_active_user),
 ) -> Any:
@@ -255,10 +264,13 @@ def update_material_status(
             detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}",
         )
 
+    was_active = material.status == "ACTIVE"
     try:
         updated = crud_material.update_status(db, db_obj=material, status=status, buyer_id=body.buyer_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    if not was_active:
+        wanted_service.enqueue_match(background_tasks, db, updated)
     invalidate_material_caches()
 
     return {

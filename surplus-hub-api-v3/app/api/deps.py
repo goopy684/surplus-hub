@@ -28,6 +28,22 @@ def get_client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def get_searcher_key(request: Request) -> str:
+    """수요 집계용 검색자 식별자: 유효한 액세스 토큰이면 계정, 아니면 IP. 인가에는 쓰지 않는다.
+
+    통신사 CGNAT·사무실 NAT는 여러 사람이 IP 하나를 쓰므로 로그인 사용자는 계정으로 구분한다.
+    """
+    auth = request.headers.get("Authorization", "")
+    if auth[:7].lower() == "bearer ":
+        try:
+            payload = jwt.decode(auth[7:], settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            if payload.get("type") != "refresh" and payload.get("sub"):
+                return f"u:{payload['sub']}"
+        except jwt.PyJWTError:
+            pass
+    return f"ip:{get_client_ip(request)}"
+
+
 def get_current_user(
     db: Session = Depends(get_db),
     token: HTTPAuthorizationCredentials = Depends(security_scheme),

@@ -36,7 +36,7 @@ export interface StatsResponse {
 export interface Report {
   id: number;
   reporterId: number;
-  targetType: "user" | "material" | "post" | "comment";
+  targetType: "user" | "material" | "post" | "comment" | "wanted";
   targetId: number;
   reason: string;
   description?: string | null;
@@ -110,7 +110,7 @@ export interface ModerationQueueItem {
 }
 
 export interface CreateReportInput {
-  targetType: "user" | "material" | "post" | "comment";
+  targetType: "user" | "material" | "post" | "comment" | "wanted";
   targetId: number;
   reason: string;
   description?: string;

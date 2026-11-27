@@ -59,6 +59,7 @@ export const mapTriageDiagnosis = (raw: unknown): TriageDiagnosis => {
       searchCount: readNumber(breakdown.searchCount),
       similarActiveCount: readNumber(breakdown.similarActiveCount),
       similarSoldCount: readNumber(breakdown.similarSoldCount),
+      wantedCount: readNumber(breakdown.wantedCount),
     },
     coldStart: item.coldStart === true,
     analysisMode: readString(item.analysisMode) || "rule_based",
@@ -131,6 +132,7 @@ export const fetchHotDemands = async (params: HotDemandParams = {}): Promise<Hot
             key: readString(item.key) || "",
             label: readString(item.label) || "",
             searchCount: readNumber(item.searchCount),
+            wantedCount: readNumber(item.wantedCount),
             liquidityScore: readNumber(item.liquidityScore),
           };
         })

@@ -61,6 +61,9 @@ function AppStack() {
       <Stack.Screen name="triage/index" options={{ title: "3초 가치진단" }} />
       <Stack.Screen name="triage/[id]" options={{ title: "AI 감정 리포트" }} />
       <Stack.Screen name="triage/vault" options={{ title: "내 창고 보관함" }} />
+      <Stack.Screen name="wanted/index" options={{ title: "구해요" }} />
+      <Stack.Screen name="wanted/new" options={{ title: "구해요 등록" }} />
+      <Stack.Screen name="wanted/[id]" options={{ title: "구매 요청" }} />
       <Stack.Screen name="search" options={{ title: "검색" }} />
       <Stack.Screen name="notifications" options={{ title: "알림" }} />
       <Stack.Screen name="notification-settings" options={{ title: "알림 설정" }} />

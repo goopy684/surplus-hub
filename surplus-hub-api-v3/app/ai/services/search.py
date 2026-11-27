@@ -500,6 +500,9 @@ def get_search_suggestions(
     return unique[:limit]
 
 
+SEARCH_DEDUPE_TTL = 24 * 3600
+
+
 def log_search_query(
     db: Session,
     query: str,
@@ -507,8 +510,21 @@ def log_search_query(
     user_id: Optional[int] = None,
     location_lat: Optional[float] = None,
     location_lng: Optional[float] = None,
-) -> None:
-    """Log a search query for analytics and suggestions (좌표는 반경 수요 밀도용)."""
+    searcher: Optional[str] = None,
+) -> bool:
+    """Log a search query for analytics and suggestions (좌표는 반경 수요 밀도용).
+
+    검색 로그는 급구 전광판과 보관함 수요 알림의 근거다. `searcher`가 주어지면 같은 검색자의
+    같은 검색어는 24시간에 1건만 남긴다 — 새로고침·창 포커스 재요청·반복 입력이 수요로 부풀지 않게.
+    기록했으면 True (호출부는 이때만 보관함 재산정을 건다).
+    """
+    from app.core.cache import cache_get_json, cache_set_json, make_cache_key
+
+    seen_key = None
+    if searcher:
+        seen_key = make_cache_key("ai:demand-seen", s=searcher, q=" ".join(query.split()).lower())
+        if cache_get_json(seen_key):
+            return False
     try:
         from app.models.search_log import SearchLog
 
@@ -521,3 +537,8 @@ def log_search_query(
     except Exception:
         db.rollback()
         logger.debug("Failed to log search query", exc_info=True)
+        return False
+    if seen_key:
+        # ponytail: get→set 사이 동시 요청은 2건 기록될 수 있다. 정확히 1건이 필요하면 Redis SET NX로 교체
+        cache_set_json(seen_key, 1, ttl_seconds=SEARCH_DEDUPE_TTL)
+    return True

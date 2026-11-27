@@ -234,7 +234,7 @@ export const bulkProcessReports = async (
 // ─── User Report (사용자용) ───────────────────────────────────────────────────
 
 export const createReport = async (data: {
-  targetType: "user" | "material" | "post" | "comment";
+  targetType: "user" | "material" | "post" | "comment" | "wanted";
   targetId: number;
   reason: string;
   description?: string;

@@ -30,7 +30,7 @@ const normalizeSort = (sort?: string): "latest" | "price_asc" | "price_desc" => 
   return sortMap[sort] ?? "latest";
 };
 
-const mapMaterialItem = (raw: unknown): MaterialItem => {
+export const mapMaterialItem = (raw: unknown): MaterialItem => {
   const item = readRecord(raw);
   const locationObj = readRecord(item.location);
   const sellerObj = readRecord(item.seller);

@@ -18,6 +18,7 @@ const TARGET_ROUTES: Record<NotificationTarget["kind"], string> = {
   material: "/material",
   post: "/community",
   triage: "/triage",
+  wanted: "/wanted",
 };
 
 const NOTIFICATION_ICONS: Record<string, string> = {

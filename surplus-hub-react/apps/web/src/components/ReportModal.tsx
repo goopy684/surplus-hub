@@ -14,7 +14,7 @@ const REPORT_REASONS = [
 type ReportModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  targetType: "user" | "material" | "post" | "comment";
+  targetType: "user" | "material" | "post" | "comment" | "wanted";
   targetId: number;
   targetLabel?: string;
 };

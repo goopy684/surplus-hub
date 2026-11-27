@@ -371,8 +371,12 @@ class TestDemandCoverage:
         """홈·검색 화면의 일반 키워드 검색(/materials?keyword=)도 수요로 기록된다."""
         lat, lng = _loc(18)
         before = db.query(SearchLog).filter(SearchLog.query == "네뷸라커플러").count()
-        for _ in range(3):
-            assert client.get(f"/api/v1/materials/?keyword=네뷸라커플러&lat={lat}&lng={lng}").status_code == 200
+        for i in range(3):  # 서로 다른 검색자 3명
+            r = client.get(
+                f"/api/v1/materials/?keyword=네뷸라커플러&lat={lat}&lng={lng}",
+                headers={"X-Forwarded-For": f"10.0.0.{i + 1}"},
+            )
+            assert r.status_code == 200
         client.get(f"/api/v1/materials/?keyword=네뷸라커플러&page=2&lat={lat}&lng={lng}")  # 더 보기는 같은 검색
         client.get("/api/v1/materials/?category=설비")  # 키워드 없는 탐색은 검색이 아니다
         logs = db.query(SearchLog).filter(SearchLog.query == "네뷸라커플러").all()
@@ -380,6 +384,24 @@ class TestDemandCoverage:
 
         d = _post(client, auth_headers, specText="네뷸라커플러 50A", lat=lat, lng=lng).json()["data"]
         assert d["breakdown"]["searchCount"] == 3 and d["coldStart"] is False
+
+    def test_repeat_search_by_same_searcher_counts_once(
+        self, client: TestClient, auth_headers, auth_headers2, db,
+    ):
+        """새로고침·창 포커스 재요청·반복 입력은 수요가 아니다: 검색자×검색어당 24시간 1건, 재산정도 1회."""
+        q = "/api/v1/materials/?keyword=펄서{}%20앵글"
+        count = lambda: db.query(SearchLog).filter(SearchLog.query.like("펄서%")).count()  # noqa: E731
+        with patch.object(triage_service, "rescore_vault_for_search_background") as bg:
+            for _ in range(3):
+                client.get(q.format(""), headers=auth_headers)  # 같은 계정
+            client.get(q.format("  "), headers=auth_headers)  # 공백만 다른 검색어도 같은 검색
+            assert count() == 1 and bg.call_count == 1
+            client.get(q.format(""), headers=auth_headers2)  # 다른 계정은 같은 IP여도 따로 센다
+            client.get(q.format(""))  # 비로그인은 IP로 구분
+            client.get(q.format(""))
+            assert count() == 3 and bg.call_count == 3
+            client.get(q.format(""), headers={"Authorization": "Bearer not-a-jwt"})  # 깨진 토큰 = 비로그인(IP)
+            assert count() == 3
 
     def test_notifies_when_crossing_path_a_even_under_ten_points(self, client: TestClient, auth_headers, db):
         """10점 미만 상승이어도 70점(A)을 새로 넘으면 알린다."""
@@ -518,7 +540,8 @@ class TestDemandNotification:
 
 class TestHotDemands:
     def test_no_logs_no_items(self, client: TestClient):
-        with patch.object(triage_service, "_fetch_logs", return_value=[]):
+        with patch.object(triage_service, "_fetch_logs", return_value=[]), \
+             patch.object(triage_service, "_open_wanted", return_value=[]):  # 수요 근거 둘 다 없음
             r = client.get(f"{URL}/hot-demands")
         assert r.status_code == 200
         assert r.json()["data"]["items"] == [] and r.json()["data"]["scope"] == "all"

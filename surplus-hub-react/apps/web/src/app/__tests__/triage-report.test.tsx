@@ -20,7 +20,7 @@ const fixture: TriageDiagnosis = {
   expectedDays: 8,
   breakdown: {
     condition: 1, spec: 1, demand: 0.65, materialValue: 0.7, reuseScore: 80.8,
-    materialBonus: 4, searchCount: 0, similarActiveCount: 0, similarSoldCount: 0,
+    materialBonus: 4, searchCount: 0, similarActiveCount: 0, similarSoldCount: 0, wantedCount: 0,
   },
   coldStart: true,
   analysisMode: 'rule_based',

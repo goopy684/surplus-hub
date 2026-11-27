@@ -83,6 +83,8 @@ export interface TriageBreakdown {
   searchCount: number;
   similarActiveCount: number;
   similarSoldCount: number;
+  /** 수요 근거에 합산된 열린 구매 요청 수 */
+  wantedCount: number;
 }
 
 export interface TriageDiagnosis {
@@ -139,6 +141,8 @@ export interface HotDemandItem {
   key: string;
   label: string;
   searchCount: number;
+  /** 열린 구매 요청 수 */
+  wantedCount: number;
   liquidityScore: number;
 }
 

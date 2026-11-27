@@ -1,6 +1,13 @@
 "use client";
 
-import { HIGH_LIQUIDITY_SCORE, MaterialItem, mergeMaterialPage, useMaterials } from "@repo/core";
+import {
+  HIGH_LIQUIDITY_SCORE,
+  MaterialItem,
+  formatWantedSpec,
+  mergeMaterialPage,
+  useMaterials,
+  useWantedList,
+} from "@repo/core";
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { TriageHomeWidgets } from "../components/TriageHomeWidgets";
@@ -37,7 +44,6 @@ const REGIONS = [
   "제주특별자치도",
 ] as const;
 
-const FIXED_SORT = "latest" as const;
 const PAGE_SIZE = 20;
 const formatLocation = (location?: string): string => {
   if (!location || !location.trim()) return "위치 정보 없음";
@@ -51,6 +57,44 @@ const CHIP_BASE =
 const CHIP_ACTIVE = "border-ink bg-ink font-bold text-surface";
 const CHIP_INACTIVE = "border-line bg-surface font-medium text-foreground hover:bg-field active:bg-field";
 
+// 열린 구매 요청 최대 3건. 0건이면 렌더하지 않는다 (design.md 정직성 규칙)
+function NearbyWanted({ coords }: { coords: { lat: number; lng: number } | null }) {
+  const { data } = useWantedList({ limit: 3, ...(coords ?? {}) });
+  const items = data?.data.slice(0, 3) ?? [];
+  if (items.length === 0) return null;
+
+  return (
+    <section aria-labelledby="nearby-wanted-title" className="mx-5 mt-3 rounded-card border border-line p-4 md:mx-0 md:mt-0 md:mb-5">
+      <div className="flex items-center justify-between">
+        <h2 id="nearby-wanted-title" className="text-[15px] font-extrabold tracking-[-0.3px] text-foreground">
+          {coords ? "근처 구해요" : "새로 올라온 구해요"}
+        </h2>
+        <Link
+          href="/wanted"
+          className="inline-flex min-h-[44px] items-center text-[13px] font-semibold text-muted-foreground transition-colors hover:text-foreground active:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          전체 보기
+        </Link>
+      </div>
+      <ul className="divide-y divide-line-2">
+        {items.map((item) => {
+          const meta = [item.category, formatWantedSpec(item), item.locationAddress].filter(Boolean).join(" · ");
+          return (
+            <li key={item.id}>
+              <Link
+                href={`/wanted/${item.id}`}
+                className="block py-2 transition-colors hover:bg-field active:bg-field focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <p className="truncate text-sm font-semibold text-foreground">{item.title}</p>
+                <p className="truncate text-xs text-muted-foreground">{meta}</p>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
 
 export default function Home() {
   const [searchInput, setSearchInput] = useState("");
@@ -238,6 +282,7 @@ export default function Home() {
           </form>
 
           <TriageHomeWidgets />
+          <NearbyWanted coords={grantedCoords} />
 
           {/* CATEGORY RAIL — 단일 DOM (모바일 스크롤 칩 → 데스크톱 wrap) */}
           <nav
@@ -319,6 +364,7 @@ export default function Home() {
                   {/* Thumbnail */}
                   <div className="relative aspect-square w-full overflow-hidden rounded-thumb bg-field">
                     {item.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- 업로드된 원본 URL을 그대로 보여준다
                       <img src={item.imageUrl} alt={item.title} className="h-full w-full object-cover" />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center text-ink-3">

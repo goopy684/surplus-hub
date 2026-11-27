@@ -7,6 +7,7 @@ export * from "./community";
 export * from "./upload";
 export * from "./ai";
 export * from "./triage";
+export * from "./wanted";
 export * from "./notifications";
 export * from "./transaction";
 export * from "./review";
