@@ -98,3 +98,10 @@ def test_sqladmin_session_rechecks_superuser(db, test_superuser):
         demoted = _user(db, "fix_demoted@example.com", is_superuser=False)
         req = SimpleNamespace(session={"admin_user_id": str(demoted.id)})
         assert asyncio.run(admin_auth.authenticate(req)) is False
+
+
+def test_sqladmin_login_page_renders(client):
+    """templates/sqladmin shadows the package templates, so a parent that does not resolve 500s the login page."""
+    r = client.get("/admin/login")
+    assert r.status_code == 200
+    assert "<form" in r.text
