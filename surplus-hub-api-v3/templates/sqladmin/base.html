@@ -1,11 +1,45 @@
-{% extends "sqladmin_original/base.html" %}
-{# Override only to inject a small Korean relabeling script. sqladmin has no
-   i18n, and its framework chrome (buttons, table headers, search) is hardcoded
-   English across many large templates. Rather than vendor/maintain those
-   templates, we relabel the fixed set of framework strings on each page. Model
-   names and column labels are localized via the Python ModelView API. #}
+{# Overrides the sqladmin package base.html (templates_dir shadows it, so the
+   original skeleton is inlined here). Adds a small Korean relabeling script in
+   the tail block. sqladmin has no i18n, and its framework chrome (buttons,
+   table headers, search) is hardcoded English across many large templates.
+   Rather than vendor/maintain those templates, we relabel the fixed set of
+   framework strings on each page. Model names and column labels are localized
+   via the Python ModelView API. #}
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <link rel="stylesheet" href="{{ url_for('admin:statics', path='css/tabler.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('admin:statics', path='css/tabler-icons.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('admin:statics', path='css/fontawesome.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('admin:statics', path='css/select2.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('admin:statics', path='css/flatpickr.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('admin:statics', path='css/main.css') }}">
+  {% if admin.favicon_url %}
+  <link rel="icon" href="{{ admin.favicon_url }}">
+  {% endif %}
+  {% block head %}
+  {% endblock %}
+  <title>{{ admin.title }}</title>
+</head>
+
+<body>
+  {% block body %}
+  <main>
+    {% block main %}
+    {% endblock %}
+  </main>
+  {% endblock %}
+  <script type="text/javascript" src="{{ url_for('admin:statics', path='js/jquery.min.js') }}"></script>
+  <script type="text/javascript" src="{{ url_for('admin:statics', path='js/tabler.min.js') }}"></script>
+  <script type="text/javascript" src="{{ url_for('admin:statics', path='js/popper.min.js') }}"></script>
+  <script type="text/javascript" src="{{ url_for('admin:statics', path='js/bootstrap.min.js') }}"></script>
+  <script type="text/javascript" src="{{ url_for('admin:statics', path='js/select2.full.min.js') }}"></script>
+  <script type="text/javascript" src="{{ url_for('admin:statics', path='js/flatpickr.min.js') }}"></script>
+  <script type="text/javascript" src="{{ url_for('admin:statics', path='js/main.js') }}"></script>
 {% block tail %}
-{{ super() }}
 <script type="text/javascript">
 (function () {
   var EXACT = {
@@ -100,3 +134,6 @@
 })();
 </script>
 {% endblock %}
+</body>
+
+</html>
